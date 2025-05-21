@@ -277,11 +277,8 @@ function buildSankeyData(steps: FunnelStep[], initialValue: number, funnelId?: s
   steps.forEach((step, index) => {
     console.log('\nProcessing step:', step.name);
     
-    // Ensure step value doesn't exceed initial value or previous step
-    const maxValue = index === 0 ? initialValue : steps[index - 1].visitorCount;
-    const stepValue = Math.min(step.visitorCount, maxValue, initialValue);
-    
-    // Add main step node
+    // Use the step's visitorCount directly for the main node
+    const stepValue = step.visitorCount;
     const mainNodeId = `step-${step.id}`;
     nodes.push({
       name: step.name,
@@ -303,28 +300,28 @@ function buildSankeyData(steps: FunnelStep[], initialValue: number, funnelId?: s
     } else {
       const prevStep = steps[index - 1];
       const prevNodeId = `step-${prevStep.id}`;
-      
-      // Handle optional steps
       if (!step.isRequired) {
-        // Add link from previous step to this optional step
+        // Optional step: link from previous step to this optional step
         links.push({
           source: prevNodeId,
           target: mainNodeId,
           value: stepValue
         });
         console.log('Added optional step link:', links[links.length - 1]);
-
         // Add direct link from previous step to next step (for users who skip optional)
         if (index < steps.length - 1) {
           const nextStep = steps[index + 1];
           const nextNodeId = `step-${nextStep.id}`;
-          const nextValue = Math.min(nextStep.visitorCount, stepValue, initialValue);
-          links.push({
-            source: prevNodeId,
-            target: nextNodeId,
-            value: nextValue
-          });
-          console.log('Added skip optional link:', links[links.length - 1]);
+          // Only users who skipped this optional step
+          const skippedValue = prevStep.visitorCount - step.visitorCount;
+          if (skippedValue > 0) {
+            links.push({
+              source: prevNodeId,
+              target: nextNodeId,
+              value: skippedValue
+            });
+            console.log('Added skip optional link:', links[links.length - 1]);
+          }
         }
       } else {
         // Only add main link if the previous step doesn't have split variations
@@ -342,11 +339,9 @@ function buildSankeyData(steps: FunnelStep[], initialValue: number, funnelId?: s
     // Handle split steps
     if (step.splitVariations && step.splitVariations.length > 0) {
       console.log('Processing splits for step:', step.name);
-      
-      // Add split nodes
       step.splitVariations.forEach((split, splitIndex) => {
         const splitNodeId = `step-${step.id}-split-variation-${splitIndex + 1}-${split.name.toLowerCase().replace(/\s+/g, '-')}`;
-        const splitValue = Math.min(split.visitorCount, stepValue, initialValue);
+        const splitValue = split.visitorCount;
         nodes.push({
           name: split.name,
           id: splitNodeId,
@@ -355,7 +350,6 @@ function buildSankeyData(steps: FunnelStep[], initialValue: number, funnelId?: s
           column: index + 1
         });
         console.log('Added split node:', nodes[nodes.length - 1]);
-
         // Add link from main step to split
         links.push({
           source: mainNodeId,
@@ -363,21 +357,15 @@ function buildSankeyData(steps: FunnelStep[], initialValue: number, funnelId?: s
           value: splitValue
         });
         console.log('Added split link:', links[links.length - 1]);
-
         // Add link from split to next step
         if (index < steps.length - 1) {
           const nextStep = steps[index + 1];
           const nextNodeId = `step-${nextStep.id}`;
-          
-          // Calculate a realistic conversion rate for the split variation
-          // Using a random conversion rate between 40% and 80% for demonstration
-          const conversionRate = 0.4 + Math.random() * 0.4; // Random between 0.4 and 0.8
-          const convertedVisitors = Math.round(splitValue * conversionRate);
-          
+          // For demo, assume all split users go to next step
           links.push({
             source: splitNodeId,
             target: nextNodeId,
-            value: convertedVisitors
+            value: splitValue
           });
           console.log('Added split-to-next link:', links[links.length - 1]);
         }
@@ -590,12 +578,19 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
 
     let content;
     if (node) {
-      // Node tooltip
+      // Node tooltip: conversion = node.value / sum of all incoming links
       const nodeValue = node.value || 0;
-      const incomingLinks = link ? [link] : [];
-      const prevValue = incomingLinks.length > 0 
-        ? incomingLinks.reduce((sum, l) => sum + (l.value || 0), 0)
-        : nodeValue;
+      const allIncomingLinks = sankeyData.links.filter(l => l.target === node.id);
+      const firstStepNode = sankeyData.nodes.find(n => n.name === steps[0].name);
+      const isFirstStep = firstStepNode && node.id === firstStepNode.id;
+      let prevValue;
+      if (allIncomingLinks.length > 0) {
+        prevValue = allIncomingLinks.reduce((sum, l) => sum + (l.value || 0), 0);
+      } else if (isFirstStep) {
+        prevValue = initialValue;
+      } else {
+        prevValue = 0;
+      }
       const conv = prevValue > 0 ? ((nodeValue / prevValue) * 100).toFixed(1) : null;
 
       // Find the original step to check if value was adjusted
@@ -730,29 +725,11 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
           )}
         </div>
       );
-    } else {
-      // Link tooltip - keeping original version
-      const isOptionalLink = link.source.id !== 'start' && !steps.find(s => `step-${s.id}` === link.source.id)?.isRequired;
-      const isSkipLink = isOptionalLink && !link.target.id.includes('split-variation');
-      
-      const isSplitLink = link.source.id?.includes('split-variation');
-      const isSplitToNext = isSplitLink && !link.target.id?.includes('split-variation');
-      
-      let percentage;
-      if (link.source.id === 'start') {
-        percentage = ((link.value / initialValue) * 100).toFixed(1);
-      } else if (isSplitToNext) {
-        percentage = ((link.value / link.source.value) * 100).toFixed(1);
-      } else {
-        const sourceStepId = isSplitLink 
-          ? link.source.id.split('-split-variation')[0].replace('step-', '')
-          : link.source.id?.replace('step-', '');
-        
-        const sourceNode = steps.find(s => s.id === sourceStepId);
-        percentage = sourceNode && sourceNode.visitorCount > 0 
-          ? ((link.value / sourceNode.visitorCount) * 100).toFixed(1) 
-          : '0.0';
-      }
+    } else if (link) {
+      // Link tooltip: conversion = link.value / source node value
+      const sourceNode = sankeyData.nodes.find(n => n.id === (link.source.id || link.source));
+      const sourceValue = sourceNode ? sourceNode.value : 0;
+      const conv = sourceValue > 0 ? ((link.value / sourceValue) * 100).toFixed(1) : null;
 
       content = (
         <div style={{
@@ -790,7 +767,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               <span style={{ fontSize: 18, color: '#64748b', margin: '0 6px' }}>→</span>
               {link.target.name}
             </span>
-            {isSkipLink && (
+            {link.source.id !== 'start' && !steps.find(s => `step-${s.id}` === link.source.id)?.isRequired && (
               <span style={{
                 marginLeft: 8,
                 padding: '2px 8px',
@@ -834,11 +811,11 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               fontSize: 13,
               letterSpacing: 0.2
             }}>
-              {percentage}%
+              {conv}%
             </span>
             <span style={{ fontSize: 13, color: '#64748b' }}>conversion</span>
           </div>
-          {isSkipLink && (
+          {link.source.id !== 'start' && !steps.find(s => `step-${s.id}` === link.source.id)?.isRequired && (
             <div style={{ 
               marginTop: 8,
               padding: '8px',
@@ -861,7 +838,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       tooltipRef.current.appendChild(root);
       tooltipRef.current.style.display = 'block';
     }
-  }, [steps, initialValue]);
+  }, [steps, initialValue, sankeyData]);
 
   const CustomTooltip = useCallback(({ node, link }: { node?: any; link?: any }) => {
     if (node || link) {
