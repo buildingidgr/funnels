@@ -1,0 +1,97 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 225 88% 60%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 246 70% 50%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 199 95% 62%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 225 88% 60%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 225 88% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  .funnel-step {
+    @apply relative flex flex-col items-center justify-center;
+    min-height: 120px;
+  }
+  
+  .funnel-connector {
+    @apply w-0 h-16 border-r-2 border-dashed border-waymore-primary mx-auto;
+  }
+
+  .funnel-step-card {
+    @apply relative w-full max-w-md bg-white border border-gray-200 rounded-lg shadow-sm;
+    transition: all 0.2s ease;
+  }
+
+  .funnel-step-card:hover {
+    @apply shadow-md border-waymore-primary;
+  }
+
+  .funnel-split {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  .funnel-split-connector {
+    @apply flex justify-center mb-4;
+  }
+
+  .funnel-split-connector::before {
+    content: '';
+    @apply h-8 w-1 bg-waymore-primary;
+  }
+
+  .funnel-split-branches {
+    @apply flex justify-center items-start gap-6 mb-2;
+  }
+
+  .funnel-branch-connector {
+    @apply h-16 w-0.5 bg-waymore-accent;
+  }
+}

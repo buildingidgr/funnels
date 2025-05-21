@@ -1,0 +1,253 @@
+.funnel-step {
+  position: relative;
+  width: 100%;
+}
+
+.funnel-step-card {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.funnel-connector {
+  position: relative;
+  height: 40px;
+  width: 2px;
+  background-color: #e5e7eb;
+  margin: 0 auto;
+}
+
+.funnel-connector:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 8px solid #e5e7eb;
+}
+
+.funnel-split-branches {
+  display: flex;
+  justify-content: space-evenly;
+  gap: 16px;
+}
+
+.funnel-branch-connector {
+  height: 20px;
+  width: 2px;
+  background-color: #e5e7eb;
+  margin-bottom: 8px;
+}
+
+/* Improved Funnel Visualization Tab Styles */
+.tabs-container {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+/* Animation for step transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.funnel-step {
+  animation: fadeIn 0.5s ease forwards;
+  animation-delay: calc(var(--index) * 100ms);
+  opacity: 0;
+}
+
+/* Progress bar animations */
+@keyframes growWidth {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.progress-animation {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-animation::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Updated Funnel Step Flow Styles for compact design */
+.funnel-step {
+  position: relative;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.funnel-step:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.funnel-connector {
+  position: relative;
+  height: 25px;
+  width: 2px;
+  background-color: #e5e7eb;
+  margin: 0 auto;
+}
+
+.funnel-connector:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -3px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid #e5e7eb;
+}
+
+/* Animation for step transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.funnel-step {
+  animation: fadeIn 0.3s ease forwards;
+  animation-delay: calc(var(--index) * 50ms);
+  opacity: 0;
+}
+
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] > summary + * {
+  animation: slideDown 0.2s ease-in-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Funnel Analysis Page Styles */
+.funnel-container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth transitions for all interactive elements */
+button, 
+a, 
+[role="button"] {
+  transition: all 0.2s ease;
+}
+
+/* Loading animation */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .funnel-container {
+    padding: 1rem;
+  }
+  
+  .card-hover:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode adjustments */
+.dark ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
