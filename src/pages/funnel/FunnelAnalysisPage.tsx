@@ -5,18 +5,18 @@ import { FunnelApi } from '../../services/api';
 import { Funnel } from '@/types/funnel';
 
 const FunnelAnalysisPage: React.FC = () => {
-  const { funnelId } = useParams<{ funnelId: string }>();
+  const { id } = useParams<{ id: string }>();
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFunnel = async () => {
-      if (!funnelId) return;
+      if (!id) return;
       
       try {
         setLoading(true);
-        const data = await FunnelApi.getFunnel(funnelId);
+        const data = await FunnelApi.getFunnel(id);
         setFunnel(data);
         setError(null);
       } catch (err) {
@@ -28,7 +28,7 @@ const FunnelAnalysisPage: React.FC = () => {
     };
 
     loadFunnel();
-  }, [funnelId]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -84,8 +84,8 @@ const FunnelAnalysisPage: React.FC = () => {
       
       <FunnelVisualizationTabs 
         steps={funnel.steps} 
-        initialValue={funnel.steps[0]?.value || 0} 
-        funnelId={funnelId} 
+        initialValue={funnel.steps[0]?.visitorCount || 0} 
+        funnelId={id} 
       />
     </div>
   );

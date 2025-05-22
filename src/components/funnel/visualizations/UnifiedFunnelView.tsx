@@ -1,5 +1,5 @@
 import React from "react";
-import { FunnelStep as FunnelStepType, FunnelStepCondition } from "@/types/funnel";
+import { FunnelStep as FunnelStepType, ConditionItem } from "@/types/funnel";
 import { motion } from "framer-motion";
 import { 
   Users,
@@ -22,7 +22,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
   console.log('UnifiedFunnelView received initialValue:', initialValue);
   
   // Filter out disabled steps
-  const enabledSteps = steps.filter(step => step.enable);
+  const enabledSteps = steps.filter(step => step.isEnabled);
   console.log('Enabled steps:', enabledSteps);
   
   if (enabledSteps.length === 0) {
@@ -33,35 +33,25 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
     );
   }
 
-  const renderCondition = (condition: FunnelStepCondition, i: number): JSX.Element => {
+  const renderCondition = (condition: ConditionItem, i: number): JSX.Element => {
     const renderConditionContent = () => {
-      switch (condition.type) {
-        case 'event':
-          return (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                <span className="font-medium text-gray-700">Event:</span>
-                <span className="font-semibold text-blue-700">{condition.event}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 font-medium">
-                <span>at least <span className="font-bold">{condition.count}</span> times</span>
-                <span className="hidden sm:inline">•</span>
-                <span>within <span className="font-bold">{condition.timeWindow?.value}</span> {condition.timeWindow?.unit}</span>
-              </div>
-            </div>
-          );
-        case 'and':
-          return <span className="font-medium text-gray-700">AND group</span>;
-        case 'or':
-          return <span className="font-medium text-gray-700">OR group</span>;
-        default:
-          return null;
-      }
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+            <span className="font-medium text-gray-700">Event:</span>
+            <span className="font-semibold text-blue-700">{condition.eventName}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 font-medium">
+            <span>at least <span className="font-bold">{condition.count}</span> times</span>
+            <span className="hidden sm:inline">•</span>
+          </div>
+        </div>
+      );
     };
 
     return (
-      <div key={condition.id || i} className="rounded-lg bg-gray-50 border border-gray-100 p-4 mb-2 shadow-sm">
+      <div key={i} className="rounded-lg bg-gray-50 border border-gray-100 p-4 mb-2 shadow-sm">
         {renderConditionContent()}
         {condition.properties && condition.properties.length > 0 && (
           <>
@@ -71,19 +61,11 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
               {condition.properties.map((prop, idx) => (
                 <li key={idx}
                     className="mb-0.5">
-                  <span className="font-medium">{prop.property}</span> {prop.operator} <span className="font-semibold">{prop.value}</span>
+                  <span className="font-medium">{prop.name}</span> {prop.operator} <span className="font-semibold">{prop.value}</span>
                 </li>
               ))}
             </ul>
           </>
-        )}
-        {condition.children && condition.children.length > 0 && (
-          <div className="ml-2 mt-3">
-            <div className="text-xs text-gray-500 font-medium mb-1">Nested Conditions:</div>
-            <div className="space-y-2">
-              {condition.children.map((child, idx) => renderCondition(child, idx))}
-            </div>
-          </div>
         )}
       </div>
     );
@@ -100,19 +82,19 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
         >
           {enabledSteps.map((step, index) => {
             const isFirstStep = index === 0;
-            const previousValue = isFirstStep ? initialValue : (enabledSteps[index - 1].value || 0);
-            const percentage = calculatePercentage(step.value, previousValue);
-            const totalPercentage = calculateTotalPercentage(step.value, previousValue);
+            const previousValue = isFirstStep ? initialValue : (enabledSteps[index - 1].visitorCount || 0);
+            const percentage = calculatePercentage(step.visitorCount, previousValue);
+            const totalPercentage = calculateTotalPercentage(step.visitorCount, previousValue);
             const colorClass = getColorClass(percentage);
             const textColorClass = getTextColorClass(percentage);
             const isImprovement = percentage > 100;
-            const dropoff = previousValue - (step.value || 0);
+            const dropoff = previousValue - (step.visitorCount || 0);
             const dropoffPercentage = previousValue ? (dropoff / previousValue) * 100 : 0;
             const showDropoff = dropoffPercentage > 5;
 
             return (
               <motion.div
-                key={`step-${step.number}`}
+                key={`step-${step.order}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -128,7 +110,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass} shadow-sm`}>
-                          <span className="text-white text-lg font-semibold">{step.number}</span>
+                          <span className="text-white text-lg font-semibold">{step.order}</span>
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold text-gray-800">{step.name}</h3>
@@ -142,7 +124,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                       <div className="flex items-center space-x-2">
                         <Users className="w-5 h-5 text-gray-400" />
                         <span className="text-2xl font-bold text-gray-800">
-                          {step.value?.toLocaleString() || 0}
+                          {step.visitorCount?.toLocaleString() || 0}
                         </span>
                       </div>
                     </div>
@@ -189,7 +171,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                     </div>
                     
                     {/* Conditions */}
-                    {step.conditions && step.conditions.length > 0 && (
+                    {step.conditions && (step.conditions.orEventGroups.length > 0 || (step.conditions.andAlsoEvents && step.conditions.andAlsoEvents.length > 0)) && (
                       <div className="mt-4">
                         <details className="group">
                           <summary className="flex items-center cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -197,7 +179,8 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                             Conditions
                           </summary>
                           <div className="mt-2 pl-5 grid grid-cols-1 gap-2">
-                            {step.conditions.map((condition, idx) => renderCondition(condition, idx))}
+                            {step.conditions.orEventGroups.map((condition, idx) => renderCondition(condition, idx))}
+                            {step.conditions.andAlsoEvents?.map((condition, idx) => renderCondition(condition, idx))}
                           </div>
                         </details>
                       </div>
@@ -248,7 +231,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                 )}
 
                 {/* Split Variations */}
-                {step.split && step.split.length > 0 && (
+                {step.splitVariations && step.splitVariations.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -258,13 +241,13 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                     <div className="flex items-center space-x-2 mb-4 pl-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                       <h4 className="text-sm font-medium text-gray-700">Split Variations</h4>
-                      <span className="text-xs text-gray-500">({step.split.length} paths)</span>
+                      <span className="text-xs text-gray-500">({step.splitVariations.length} paths)</span>
                     </div>
                     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                      {step.split.map((splitStep, splitIndex) => {
-                        const splitPercentage = ((splitStep.value || 0) / (step.value || 1) * 100);
-                        const isLargestSplit = splitIndex === step.split!.reduce((maxIndex, current, currentIndex, array) => 
-                          (current.value || 0) > (array[maxIndex].value || 0) ? currentIndex : maxIndex, 0
+                      {step.splitVariations.map((splitStep, splitIndex) => {
+                        const splitPercentage = ((splitStep.visitorCount || 0) / (step.visitorCount || 1) * 100);
+                        const isLargestSplit = splitIndex === step.splitVariations!.reduce((maxIndex, current, currentIndex, array) => 
+                          (current.visitorCount || 0) > (array[maxIndex].visitorCount || 0) ? currentIndex : maxIndex, 0
                         );
                         
                         return (
@@ -285,7 +268,7 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                                   <div className="flex items-center space-x-2 mt-1.5">
                                     <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                     <span className="text-sm text-gray-600">
-                                      {splitStep.value?.toLocaleString() || 0} users
+                                      {splitStep.visitorCount?.toLocaleString() || 0} users
                                     </span>
                                   </div>
                                 </div>
@@ -309,14 +292,15 @@ const UnifiedFunnelView: React.FC<UnifiedFunnelViewProps> = ({ steps, initialVal
                             </div>
                             
                             {/* Split Conditions */}
-                            {splitStep.conditions && splitStep.conditions.length > 0 && (
+                            {splitStep.conditions && (splitStep.conditions.orEventGroups.length > 0 || (splitStep.conditions.andAlsoEvents && splitStep.conditions.andAlsoEvents.length > 0)) && (
                               <div className="mt-4 pt-4 border-t border-gray-100">
                                 <div className="flex items-center space-x-2 mb-3">
                                   <ChevronRight className="w-4 h-4 text-gray-400" />
                                   <span className="text-sm font-medium text-gray-500">Conditions</span>
                                 </div>
                                 <div className="grid grid-cols-1 gap-3">
-                                  {splitStep.conditions.map((condition, idx) => renderCondition(condition, idx))}
+                                  {splitStep.conditions.orEventGroups.map((condition, idx) => renderCondition(condition, idx))}
+                                  {splitStep.conditions.andAlsoEvents?.map((condition, idx) => renderCondition(condition, idx))}
                                 </div>
                               </div>
                             )}

@@ -64,6 +64,7 @@ export interface SplitVariation {
 export interface FunnelStep {
   id: string;
   name: string;
+  description?: string;
   displayColor?: string;
   order: number;
   visitorCount?: number;

@@ -1,8 +1,10 @@
 import { Funnel, FunnelResults } from './types/funnel';
 import { exampleFunnel } from './types/funnelExample';
+import { exampleFunnel4 } from './types/funnelExample4';
+import { exampleFunnel5 } from './types/funnelExample5';
 
 // Store funnels in memory
-let funnels: Funnel[] = [exampleFunnel];
+let funnels: Funnel[] = [exampleFunnel, exampleFunnel4, exampleFunnel5];
 
 // Use the imported Funnel type
 type FunnelType = Funnel;
@@ -127,10 +129,32 @@ export function initializeFunnels(): Funnel[] {
   // Always clear localStorage first
   clearFunnelsFromStorage();
   
-  // Then initialize with our new default funnel
-  console.log('Initializing with new default funnel:', DEFAULT_FUNNEL);
-  saveFunnelsToStorage([DEFAULT_FUNNEL]);
-  return [DEFAULT_FUNNEL];
+  // Initialize with all example funnels
+  const defaultFunnels = [
+    {
+      ...exampleFunnel,
+      id: 'ecommerce-funnel-001',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastCalculatedAt: null
+    },
+    {
+      ...exampleFunnel4,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastCalculatedAt: null
+    },
+    {
+      ...exampleFunnel5,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastCalculatedAt: null
+    }
+  ];
+  
+  console.log('Initializing with example funnels:', defaultFunnels);
+  saveFunnelsToStorage(defaultFunnels);
+  return defaultFunnels;
 }
 
 export const FunnelApi = {
