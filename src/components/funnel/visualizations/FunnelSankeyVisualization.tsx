@@ -3,6 +3,7 @@ import { ResponsiveSankey, SankeyNodeDatum, SankeyLinkDatum } from '@nivo/sankey
 import { FunnelStep } from '@/types/funnel';
 import { FunnelApi } from '@/services/api';
 import { Chip } from '@nivo/tooltip';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface FunnelSankeyVisualizationProps {
   steps: FunnelStep[];
@@ -35,6 +36,30 @@ interface SankeyInputLink {
 const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ steps, initialValue, funnelId }) => {
   const [calculatedResults, setCalculatedResults] = useState<Record<string, number> | null>(null);
   
+  // Calculate step metrics
+  const stepMetrics = steps.map((step, index) => {
+    const currentValue = calculatedResults?.[step.id] || 0;
+    const previousValue = index === 0 ? initialValue : (calculatedResults?.[steps[index - 1].id] || 0);
+    const conversionRate = previousValue > 0 ? (currentValue / previousValue) * 100 : 0;
+    const dropOff = previousValue - currentValue;
+    const dropOffRate = previousValue > 0 ? (dropOff / previousValue) * 100 : 0;
+    
+    return {
+      step,
+      conversionRate,
+      dropOff,
+      dropOffRate
+    };
+  });
+
+  const bestConvertingStep = stepMetrics.reduce((best, current) => 
+    current.conversionRate > best.conversionRate ? current : best
+  );
+  
+  const highestDropOffStep = stepMetrics.reduce((worst, current) => 
+    current.dropOffRate > worst.dropOffRate ? current : worst
+  );
+
   useEffect(() => {
     if (!funnelId) return;
     const fetchResults = async () => {
@@ -47,7 +72,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       }
     };
     fetchResults();
-  }, [funnelId, steps]); // Add steps to dependency array if results should refetch when steps change externally
+  }, [funnelId, steps]);
 
   if (!steps || steps.length === 0 || !calculatedResults) {
     return <div className="p-4 text-center text-gray-400">Loading data or no steps to display...</div>;
@@ -250,60 +275,157 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
   };
 
   return (
-    <div>
-      {/* Label Section */}
-      <div className="mb-4 grid grid-cols-4 gap-4">
-        {sankeyGraphNodesInput.map((node) => {
-          const nodeColor = node.id === 'start' || node.id === 'end' 
-            ? '#3b82f6' 
-            : 'isSplit' in node && node.isSplit
-              ? '#14b8a6' 
-              : 'isOptional' in node && node.isOptional
-                ? '#a855f7' 
-                : '#22c55e';
-          
-          return (
-            <div key={node.id} className="flex items-center gap-2 p-2 bg-white rounded-lg shadow-sm border border-gray-100">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nodeColor }} />
-              <span className="font-medium text-gray-700">{node.name}</span>
-              <span className="text-sm text-gray-500">({formatNumber(node.value)})</span>
+    <div className="relative">
+      {/* Enhanced Label Section */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-medium text-gray-700">Funnel Path Legend</h3>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-gray-600">Best Converting:</span>
+              <span className="font-medium text-green-700">
+                {steps.find(s => s.id === bestConvertingStep.step.id)?.name} ({bestConvertingStep.conversionRate.toFixed(1)}%)
+              </span>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-gray-600">Highest Drop-off:</span>
+              <span className="font-medium text-red-700">
+                {steps.find(s => s.id === highestDropOffStep.step.id)?.name} ({highestDropOffStep.dropOffRate.toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {sankeyGraphNodesInput.map((node) => {
+            const nodeColor = node.id === 'start' || node.id === 'end' 
+              ? '#3b82f6' 
+              : 'isSplit' in node && node.isSplit
+                ? '#6366f1'
+                : 'isOptional' in node && node.isOptional
+                  ? '#a855f7' 
+                  : '#22c55e';
+            
+            const getNodeType = () => {
+              if (node.id === 'start') return 'Initial Step';
+              if (node.id === 'end') return 'Final Step';
+              if ('isSplit' in node && node.isSplit) return 'Split Path';
+              if ('isOptional' in node && node.isOptional) return 'Optional Step';
+              return 'Main Step';
+            };
+
+            const isSplit = 'isSplit' in node && node.isSplit;
+            const isOptional = 'isOptional' in node && node.isOptional;
+            const isMainStep = !isSplit && !isOptional && node.id !== 'start' && node.id !== 'end';
+
+            return (
+              <div 
+                key={node.id} 
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 hover:scale-105 ${
+                  isSplit 
+                    ? 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100 hover:shadow-md' 
+                    : isOptional
+                      ? 'bg-purple-50 border-purple-100 hover:bg-purple-100 hover:shadow-md'
+                      : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:shadow-md'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-4 h-4 rounded-full shadow-sm" 
+                    style={{ backgroundColor: nodeColor }}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{node.name}</span>
+                    <span className={`text-sm ${
+                      isSplit 
+                        ? 'text-indigo-600' 
+                        : isOptional
+                          ? 'text-purple-600'
+                          : 'text-gray-500'
+                    }`}>
+                      {getNodeType()}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-auto">
+                  <span className="text-sm font-medium text-gray-700">
+                    {formatNumber(node.value)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Sankey Graph */}
-      <div style={{ height: '600px' }}>
-        <ResponsiveSankey
-          data={data}
-          margin={{ top: 40, right: 160, bottom: 40, left: 100 }}
-          align="justify"
-          colors={(nodeFromData: SankeyInputNode) => {
-            if (nodeFromData.id === 'start' || nodeFromData.id === 'end') return '#3b82f6';
-            if (nodeFromData.isSplit) return '#14b8a6';
-            return nodeFromData.isOptional ? '#a855f7' : '#22c55e';
-          }}
-          nodeOpacity={1}
-          nodeHoverOpacity={0.95}
-          nodeHoverOthersOpacity={0.2}
-          nodeThickness={12}
-          nodeSpacing={10} 
-          nodeBorderWidth={0}
-          nodeBorderColor={{ from: 'color', modifiers: [['darker', 0.7]] }}
-          nodeBorderRadius={2}
-          linkOpacity={0.5}
-          linkHoverOpacity={0.7}
-          linkHoverOthersOpacity={0.1}
-          linkContract={1}
-          enableLinkGradient={true}
-          label={() => ''} // Hide default labels
-          labelPosition="outside"
-          labelOrientation="horizontal"
-          labelPadding={12}
-          labelTextColor={{ from: 'color', modifiers: [['darker', 1.2]] }}
-          nodeTooltip={NodeTooltipComponent}
-          linkTooltip={LinkTooltipComponent}
-        />
+      {/* Sankey Graph Container */}
+      <div className="relative bg-white rounded-lg shadow-lg border border-gray-100 p-4">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, #64748b 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }} />
+        </div>
+
+        {/* Sankey Graph */}
+        <div style={{ height: '600px' }}>
+          <ResponsiveSankey
+            data={data}
+            margin={{ top: 40, right: 160, bottom: 40, left: 100 }}
+            align="justify"
+            colors={(nodeFromData: SankeyInputNode) => {
+              if (nodeFromData.id === 'start' || nodeFromData.id === 'end') return '#3b82f6';
+              if (nodeFromData.isSplit) return '#6366f1';
+              return nodeFromData.isOptional ? '#a855f7' : '#22c55e';
+            }}
+            nodeOpacity={1}
+            nodeHoverOpacity={0.95}
+            nodeHoverOthersOpacity={0.2}
+            nodeThickness={16}
+            nodeSpacing={24}
+            nodeBorderWidth={0}
+            nodeBorderColor={{ from: 'color', modifiers: [['darker', 0.7]] }}
+            nodeBorderRadius={4}
+            linkOpacity={0.5}
+            linkHoverOpacity={0.8}
+            linkHoverOthersOpacity={0.1}
+            linkContract={3}
+            enableLinkGradient={true}
+            label={() => ''}
+            labelPosition="outside"
+            labelOrientation="horizontal"
+            labelPadding={12}
+            labelTextColor={{ from: 'color', modifiers: [['darker', 1.2]] }}
+            nodeTooltip={NodeTooltipComponent}
+            linkTooltip={LinkTooltipComponent}
+            theme={{
+              tooltip: {
+                container: {
+                  background: '#ffffff',
+                  color: '#333333',
+                  fontSize: '12px',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  padding: '12px'
+                }
+              }
+            }}
+            motionConfig="gentle"
+            animate={true}
+            role="application"
+            ariaLabel="Funnel Sankey Diagram"
+            ariaDescribedBy="funnel-sankey-description"
+          />
+        </div>
+
+        {/* Accessibility Description */}
+        <div id="funnel-sankey-description" className="sr-only">
+          Interactive Sankey diagram showing the flow of users through the funnel steps.
+          Each node represents a step in the funnel, and the links show the flow of users between steps.
+          The width of each link represents the number of users flowing through that path.
+        </div>
       </div>
     </div>
   );

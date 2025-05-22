@@ -1,4 +1,3 @@
-
 import { SankeyNode } from "../types";
 import { FunnelStep } from "@/types/funnel";
 
@@ -38,7 +37,7 @@ export const createColumnLabels = (
           } else {
             // Main step
             const step = enabledSteps[stepIndex];
-            labelText = `Step ${step.number}: ${step.name}`;
+            labelText = `Step ${step.order}: ${step.name}`;
           }
         }
       }

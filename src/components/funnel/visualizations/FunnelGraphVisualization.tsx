@@ -52,7 +52,7 @@ const splitToNextMap: Record<string, Record<string, number>> = {
 
 const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ steps, initialValue, funnelId }) => {
   // Filter out disabled steps
-  const enabledSteps = steps.filter(step => step.enable);
+  const enabledSteps = steps.filter(step => step.isEnabled);
   
   console.log('FunnelGraphVisualization received:', {
     totalSteps: steps.length,
@@ -60,19 +60,19 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
     initialValue,
     steps: enabledSteps.map(s => ({
       name: s.name,
-      value: s.value,
-      hasSplits: s.split?.length > 0,
-      split: s.split?.map(sp => ({
+      value: s.visitorCount,
+      hasSplits: s.splitVariations?.length > 0,
+      split: s.splitVariations?.map(sp => ({
         name: sp.name,
-        value: sp.value
+        value: sp.visitorCount
       }))
     }))
   });
 
   // Prepare data for Nivo Funnel with additional metrics and split steps
   const data = enabledSteps.flatMap((step, idx) => {
-    const previousValue = idx === 0 ? initialValue : enabledSteps[idx - 1].value || 0;
-    const currentValue = step.value || 0;
+    const previousValue = idx === 0 ? initialValue : enabledSteps[idx - 1].visitorCount || 0;
+    const currentValue = step.visitorCount || 0;
     const conversionRate = previousValue > 0 ? ((currentValue / previousValue) * 100).toFixed(1) : '0.0';
     const dropoff = previousValue - currentValue;
     
@@ -81,11 +81,11 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
       currentValue,
       conversionRate,
       dropoff,
-      hasSplits: step.split?.length > 0
+      hasSplits: step.splitVariations?.length > 0
     });
     
     // If step has splits, create separate paths for each split
-    if (step.split && step.split.length > 0) {
+    if (step.splitVariations && step.splitVariations.length > 0) {
       // First add the main step
       const mainStep = {
         id: step.name,
@@ -99,8 +99,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
       };
 
       // Then add each split as a separate path
-      const splitSteps = step.split.map((splitStep, splitIdx) => {
-        const splitValue = splitStep.value || 0;
+      const splitSteps = step.splitVariations.map((splitStep, splitIdx) => {
+        const splitValue = splitStep.visitorCount || 0;
         let splitToNextValue = splitValue;
         let splitConversionRate = '100.0';
         let splitDropoff = 0;

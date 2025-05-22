@@ -1,7 +1,6 @@
 import React from "react";
-import { FunnelStep as FunnelStepType, FunnelStepCondition } from "@/types/funnel";
+import { FunnelStep as FunnelStepType, ConditionItem } from "@/types/funnel";
 import StepMetrics from "./StepMetrics";
-import StepConditions from "./StepConditions";
 import SplitVariations from "./SplitVariations";
 import { 
   Users,
@@ -20,26 +19,19 @@ interface FunnelStepProps {
 }
 
 const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst }) => {
-  const percentage = calculatePercentage(step.value, previousValue);
-  const totalPercentage = calculateTotalPercentage(step.value, previousValue);
+  const percentage = calculatePercentage(step.visitorCount || 0, previousValue);
+  const totalPercentage = calculateTotalPercentage(step.visitorCount || 0, previousValue);
   const colorClass = getColorClass(percentage);
   const textColorClass = getTextColorClass(percentage);
   const isImprovement = percentage > 100;
   
-  const renderCondition = (condition: FunnelStepCondition, i: number) => {
+  const renderCondition = (condition: ConditionItem, i: number) => {
     return (
-      <div key={condition.id || i} className="mb-2 p-2 bg-gray-50 rounded border border-gray-100">
+      <div key={condition.eventName || i} className="mb-2 p-2 bg-gray-50 rounded border border-gray-100">
         <div className="font-medium text-gray-700 flex items-center gap-2">
-          {condition.type === 'event' && (
-            <>
-              <span>Event:</span>
-              <span className="text-blue-700">{condition.event}</span>
-              <span className="text-gray-500">{condition.countOperator} {condition.count} times</span>
-              <span className="text-gray-500">within {condition.timeWindow?.value} {condition.timeWindow?.unit}</span>
-            </>
-          )}
-          {condition.type === 'and' && <span>AND group</span>}
-          {condition.type === 'or' && <span>OR group</span>}
+          <span>Event:</span>
+          <span className="text-blue-700">{condition.eventName}</span>
+          <span className="text-gray-500">{condition.operator} {condition.count} times</span>
         </div>
         {condition.properties && condition.properties.length > 0 && (
           <div className="ml-4 mt-1">
@@ -47,16 +39,10 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
             <ul className="list-disc ml-4">
               {condition.properties.map((prop, idx) => (
                 <li key={idx} className="text-xs text-gray-700">
-                  {prop.property} {prop.operator} {prop.value}
+                  {prop.name} {prop.operator} {prop.value}
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-        {condition.children && condition.children.length > 0 && (
-          <div className="ml-4 mt-1">
-            <div className="text-xs text-gray-500">Nested Conditions:</div>
-            {condition.children.map(renderCondition)}
           </div>
         )}
       </div>
@@ -73,7 +59,7 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass} shadow-sm`}>
-              <span className="text-white text-lg font-semibold">{step.number}</span>
+              <span className="text-white text-lg font-semibold">{step.order}</span>
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-800">{step.name}</h3>
@@ -87,7 +73,7 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
           <div className="flex items-center space-x-2">
             <Users className="w-5 h-5 text-gray-400" />
             <span className="text-2xl font-bold text-gray-800">
-              {step.value?.toLocaleString() || 0}
+              {step.visitorCount?.toLocaleString() || 0}
             </span>
           </div>
         </div>
@@ -134,7 +120,7 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
         </div>
         
         {/* Conditions */}
-        {step.conditions && step.conditions.length > 0 && (
+        {step.conditions.orEventGroups.length > 0 && (
           <div className="mt-4">
             <details className="group">
               <summary className="flex items-center cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -142,16 +128,17 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
                 Conditions
               </summary>
               <div className="mt-2 pl-5 grid grid-cols-1 gap-2">
-                {step.conditions.map(renderCondition)}
+                {step.conditions.orEventGroups.map(renderCondition)}
+                {step.conditions.andAlsoEvents?.map(renderCondition)}
               </div>
             </details>
           </div>
         )}
         
         {/* Split Variations */}
-        {step.split && step.split.length > 0 && (
+        {step.splitVariations && step.splitVariations.length > 0 && (
           <div className="mt-6">
-            <SplitVariations split={step.split} parentValue={step.value} />
+            <SplitVariations split={step.splitVariations} parentValue={step.visitorCount || 0} />
           </div>
         )}
       </div>
