@@ -23,10 +23,10 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
       <div className="max-w-4xl mx-auto">
         {steps.map((step, index) => {
           const isFirstStep = index === 0;
-          const previousValue = isFirstStep ? initialValue : (steps[index - 1].value || 0);
+          const previousValue = isFirstStep ? initialValue : (steps[index - 1].visitorCount || 0);
           const nextStep = index < steps.length - 1 ? steps[index + 1] : null;
-          const conversionRate = calculateConversion(step.value, previousValue);
-          const dropoff = calculateDropoff(step.value, previousValue);
+          const conversionRate = calculateConversion(step.visitorCount || 0, previousValue);
+          const dropoff = calculateDropoff(step.visitorCount || 0, previousValue);
           
           return (
             <motion.div
@@ -48,15 +48,15 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
               {/* Connection to Next Step */}
               {nextStep && (
                 <FlowConnection 
-                  sourceValue={step.value || 0}
-                  targetValue={nextStep.value || 0}
+                  sourceValue={step.visitorCount || 0}
+                  targetValue={nextStep.visitorCount || 0}
                   dropoff={dropoff}
-                  hasSplit={Boolean(step.split && step.split.length > 0)}
+                  hasSplit={Boolean(step.splitVariations && step.splitVariations.length > 0)}
                 />
               )}
               
               {/* Split Variations */}
-              {step.split && step.split.length > 0 && (
+              {step.splitVariations && step.splitVariations.length > 0 && (
                 <motion.div 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -67,7 +67,7 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                     Split Variations
                   </div>
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {step.split.map((splitStep, splitIndex) => (
+                    {step.splitVariations.map((splitStep, splitIndex) => (
                       <motion.div
                         key={`split-${index}-${splitIndex}`}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -78,12 +78,12 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-gray-800">{splitStep.name}</span>
                           <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
-                            {((splitStep.value || 0) / (step.value || 1) * 100).toFixed(1)}%
+                            {((splitStep.visitorCount || 0) / (step.visitorCount || 1) * 100).toFixed(1)}%
                           </span>
                         </div>
                         <div className="mt-2 flex items-center text-sm text-gray-600">
                           <span className="mr-2">👥</span>
-                          {splitStep.value?.toLocaleString() || 0} users
+                          {splitStep.visitorCount?.toLocaleString() || 0} users
                         </div>
                       </motion.div>
                     ))}

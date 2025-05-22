@@ -1,8 +1,11 @@
-import { Funnel as FunnelType } from './types/funnel';
+import { Funnel, FunnelResults } from './types/funnel';
 import { exampleFunnel } from './types/funnelExample';
 
+// Store funnels in memory
+let funnels: Funnel[] = [exampleFunnel];
+
 // Use the imported Funnel type
-type Funnel = FunnelType;
+type FunnelType = Funnel;
 
 const DEFAULT_FUNNEL: Funnel = {
   ...exampleFunnel,
@@ -128,4 +131,85 @@ export function initializeFunnels(): Funnel[] {
   console.log('Initializing with new default funnel:', DEFAULT_FUNNEL);
   saveFunnelsToStorage([DEFAULT_FUNNEL]);
   return [DEFAULT_FUNNEL];
-} 
+}
+
+export const FunnelApi = {
+  calculateFunnel: async (funnelId: string): Promise<FunnelResults> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const funnel = funnels.find(f => f.id === funnelId);
+    if (!funnel) {
+      throw new Error('Funnel not found');
+    }
+
+    const results: FunnelResults = {
+      calculated: Date.now()
+    };
+    let currentValue = 1000; // Default initial value
+
+    // Helper function to generate a random conversion rate with more variation
+    const generateConversionRate = (isRequired: boolean, isSplitStep: boolean = false) => {
+      // Base rate is higher for required steps
+      const baseRate = isRequired ? 0.4 : 0.3;
+      // Add more randomization
+      const randomFactor = Math.random() * 0.4; // 0 to 0.4
+      // For split steps, ensure lower conversion rates
+      const splitAdjustment = isSplitStep ? -0.2 : 0;
+      // Cap at 0.8 (80%)
+      return Math.min(0.8, Math.max(0.1, baseRate + randomFactor + splitAdjustment));
+    };
+
+    // Helper function to generate a random split percentage
+    const generateSplitPercentage = (remainingVariations: number) => {
+      if (remainingVariations === 1) {
+        // Last variation gets remaining value, but with some loss
+        return 0.8 + Math.random() * 0.2; // 80-100% of remaining
+      }
+      // More randomization for splits
+      const basePercentage = 0.3 + Math.random() * 0.3; // 30-60%
+      return Math.min(0.8, basePercentage); // Cap at 80%
+    };
+
+    // Process each step
+    for (let i = 0; i < funnel.steps.length; i++) {
+      const step = funnel.steps[i];
+      const hasSplits = step.splitVariations && step.splitVariations.length > 0;
+      
+      // Calculate conversion rate for this step
+      const conversionRate = generateConversionRate(step.isRequired, hasSplits);
+      const stepValue = Math.floor(currentValue * conversionRate);
+      results[step.id] = stepValue;
+
+      // Handle split variations if they exist
+      if (hasSplits) {
+        let remainingValue = stepValue;
+        let remainingVariations = step.splitVariations.length;
+
+        step.splitVariations.forEach((variation, index) => {
+          const splitPercentage = generateSplitPercentage(remainingVariations);
+          const variationValue = index === step.splitVariations.length - 1
+            ? Math.floor(remainingValue * splitPercentage) // Last variation gets remaining value with some loss
+            : Math.floor(remainingValue * splitPercentage);
+
+          results[`${step.id}-variation-${index + 1}`] = variationValue;
+          remainingValue -= variationValue;
+          remainingVariations--;
+        });
+
+        // If there's a next step, apply additional conversion rate for split paths
+        if (i < funnel.steps.length - 1) {
+          const nextStep = funnel.steps[i + 1];
+          const splitConversionRate = generateConversionRate(nextStep.isRequired, true);
+          currentValue = Math.floor(stepValue * splitConversionRate);
+        } else {
+          currentValue = stepValue;
+        }
+      } else {
+        currentValue = stepValue;
+      }
+    }
+
+    return results;
+  },
+}; 

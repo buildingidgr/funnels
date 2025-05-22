@@ -8,8 +8,9 @@ import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home, Loader2, BarChart3, RefreshCw, Edit } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StepEditSidebar } from "@/components/funnel/step-edit-sidebar";
+import { FunnelSetupVisualSummary } from "@/components/funnel/FunnelDetails";
 
 // Add some CSS for the funnel visualization
 import "./FunnelAnalysisPage.css";
@@ -19,7 +20,7 @@ export default function FunnelAnalysisPage() {
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
@@ -84,10 +85,10 @@ export default function FunnelAnalysisPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg text-muted-foreground">Loading funnel analysis...</p>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 rounded-full bg-gray-200 mb-4"></div>
+            <div className="h-4 w-24 bg-gray-200 rounded"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -97,17 +98,15 @@ export default function FunnelAnalysisPage() {
   if (error || !funnel) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center px-4">
-          <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-full mb-6">
-            <AlertCircle className="h-12 w-12 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-red-600 mb-3">Funnel Not Found</h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-md mb-8">
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-bold text-red-600 mb-2">Funnel Not Found</h2>
+          <p className="text-gray-600 mb-6">
             {error || "This funnel may have been deleted or you entered an invalid ID."}
           </p>
-          <Button asChild size="lg" className="shadow-lg hover:shadow-xl transition-all duration-200">
+          <Button asChild>
             <Link to="/funnels" className="flex items-center">
-              <Home className="mr-2 h-5 w-5" />
+              <Home className="mr-2 h-4 w-4" />
               Return to Funnels List
             </Link>
           </Button>
@@ -138,26 +137,33 @@ export default function FunnelAnalysisPage() {
                     <RefreshCw className={`h-4 w-4 mr-2 ${isCalculating ? 'animate-spin' : ''}`} />
                     {isCalculating ? 'Calculating...' : 'Recalculate'}
                   </Button>
-                  <Sheet open={isEditing} onOpenChange={setIsEditing}>
-                    <SheetTrigger asChild>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
                       <Button variant="default" size="sm" className="shadow-sm hover:shadow-md transition-all duration-200">
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Steps
                       </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-[600px] max-w-2xl overflow-y-auto">
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
+                      <DialogTitle>Edit Funnel Steps</DialogTitle>
+                      <DialogDescription>
+                        Configure the steps and conditions for your funnel analysis.
+                      </DialogDescription>
                       <StepEditSidebar 
                         funnel={funnel} 
                         onSave={setFunnel}
-                        onClose={() => setIsEditing(false)}
+                        onClose={() => setDialogOpen(false)}
                       />
-                    </SheetContent>
-                  </Sheet>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <FunnelVisualization funnel={funnel} />
+              <div className="mt-10">
+                <FunnelSetupVisualSummary funnel={funnel} />
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -1,32 +1,43 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FunnelSummary } from "@/types/funnel";
-import { FunnelApi, formatDate } from "@/services/api";
+import { FunnelApi, formatDate, resetFunnels } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { BarChart, Plus } from "lucide-react";
+import { BarChart, Plus, RefreshCw } from "lucide-react";
 
 export default function FunnelList() {
   const [funnels, setFunnels] = useState<FunnelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadFunnels = async () => {
-      try {
-        setIsLoading(true);
-        const data = await FunnelApi.listFunnels();
-        setFunnels(data);
-      } catch (error) {
-        console.error("Error loading funnels:", error);
-        toast.error("Failed to load funnels");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadFunnels = async () => {
+    try {
+      setIsLoading(true);
+      const data = await FunnelApi.listFunnels();
+      setFunnels(data);
+    } catch (error) {
+      console.error("Error loading funnels:", error);
+      toast.error("Failed to load funnels");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadFunnels();
   }, []);
+
+  const handleReset = async () => {
+    try {
+      await resetFunnels();
+      await loadFunnels();
+      toast.success("Funnels reset successfully");
+    } catch (error) {
+      console.error("Error resetting funnels:", error);
+      toast.error("Failed to reset funnels");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -59,12 +70,18 @@ export default function FunnelList() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold tracking-tight">Your Funnels</h2>
-        <Button asChild>
-          <Link to="/funnels/create" className="flex items-center">
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Funnel
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleReset} className="flex items-center">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reset Funnels
+          </Button>
+          <Button asChild>
+            <Link to="/funnels/create" className="flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Funnel
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

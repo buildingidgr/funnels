@@ -109,7 +109,7 @@ const getNodeStats = (node: any, links: any[]) => {
   const mainLink = incoming.reduce((a, b) => (a.value > b.value ? a : b));
   const prevValue = mainLink.source && typeof mainLink.source.value !== 'undefined' ? mainLink.source.value : 0;
   const nodeValue = node.value || 0;
-  const conv = prevValue > 0 ? ((nodeValue / prevValue) * 100).toFixed(1) : null;
+  const conv = prevValue > 0 ? Math.min(100, ((nodeValue / prevValue) * 100)).toFixed(1) : null;
   const drop = prevValue - nodeValue;
   return { prevValue, conv, drop };
 };
@@ -120,7 +120,7 @@ const CustomNodeLabel = ({ node, links }: { node: any; links: any[] }) => {
   const prevValue = incomingLinks.length > 0 
     ? incomingLinks.reduce((sum, l) => sum + (l.value || 0), 0)
     : nodeValue;
-  const conv = prevValue > 0 ? ((nodeValue / prevValue) * 100).toFixed(1) : null;
+  const conv = prevValue > 0 ? Math.min(100, ((nodeValue / prevValue) * 100)).toFixed(1) : null;
   
   return (
     <g transform={`translate(${node.x0 < node.x1 ? node.x0 : node.x1},${(node.y0 + node.y1) / 2})`}>
@@ -578,22 +578,8 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
 
     let content;
     if (node) {
-      // Node tooltip: conversion = node.value / sum of all incoming links
+      // Node tooltip: use the node's value directly
       const nodeValue = node.value || 0;
-      const allIncomingLinks = sankeyData.links.filter(l => l.target === node.id);
-      const firstStepNode = sankeyData.nodes.find(n => n.name === steps[0].name);
-      const isFirstStep = firstStepNode && node.id === firstStepNode.id;
-      let prevValue;
-      if (allIncomingLinks.length > 0) {
-        prevValue = allIncomingLinks.reduce((sum, l) => sum + (l.value || 0), 0);
-      } else if (isFirstStep) {
-        prevValue = initialValue;
-      } else {
-        prevValue = 0;
-      }
-      const conv = prevValue > 0 ? ((nodeValue / prevValue) * 100).toFixed(1) : null;
-
-      // Find the original step to check if value was adjusted
       const originalStep = steps.find(s => `step-${s.id}` === node.id);
       const wasAdjusted = originalStep && originalStep.visitorCount > nodeValue;
 
@@ -690,23 +676,6 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
                 <span>Adjusted from {originalStep.visitorCount.toLocaleString()}</span>
               </div>
             )}
-            {conv !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  background: '#e0f2fe',
-                  color: '#0284c7',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  letterSpacing: 0.2
-                }}>
-                  {conv}%
-                </span>
-                <span style={{ fontSize: 13, color: '#64748b' }}>conversion</span>
-              </div>
-            )}
           </div>
           {node.isOptional && (
             <div style={{ 
@@ -726,11 +695,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         </div>
       );
     } else if (link) {
-      // Link tooltip: conversion = link.value / source node value
-      const sourceNode = sankeyData.nodes.find(n => n.id === (link.source.id || link.source));
-      const sourceValue = sourceNode ? sourceNode.value : 0;
-      const conv = sourceValue > 0 ? ((link.value / sourceValue) * 100).toFixed(1) : null;
-
+      // Link tooltip: use the link's value directly
       content = (
         <div style={{
           background: 'white',
@@ -800,21 +765,6 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               <b>{link.value.toLocaleString()}</b> users
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              display: 'inline-block',
-              padding: '3px 10px',
-              borderRadius: '6px',
-              background: '#e0f2fe',
-              color: '#0284c7',
-              fontWeight: 600,
-              fontSize: 13,
-              letterSpacing: 0.2
-            }}>
-              {conv}%
-            </span>
-            <span style={{ fontSize: 13, color: '#64748b' }}>conversion</span>
-          </div>
           {link.source.id !== 'start' && !steps.find(s => `step-${s.id}` === link.source.id)?.isRequired && (
             <div style={{ 
               marginTop: 8,
@@ -838,7 +788,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       tooltipRef.current.appendChild(root);
       tooltipRef.current.style.display = 'block';
     }
-  }, [steps, initialValue, sankeyData]);
+  }, [steps, initialValue]);
 
   const CustomTooltip = useCallback(({ node, link }: { node?: any; link?: any }) => {
     if (node || link) {
@@ -1057,7 +1007,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               margin={{ top: 100, right: 10, bottom: 60, left: 10 }}
               align="justify"
               colors={node => {
-                console.log('Node:', node.id, 'Color:', getNodeColor(node)); // Add logging to debug
+                console.log('Node:', node.id, 'Color:', getNodeColor(node));
                 return getNodeColor(node);
               }}
               nodeOpacity={0.95}
@@ -1065,9 +1015,9 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               nodeInnerPadding={3}
               nodeBorderWidth={1}
               nodeBorderColor={node => {
-                if (node.id.includes('split-variation')) return '#0e7490'; // Darker cyan for splits
-                if (node.isOptional) return '#7e22ce'; // Darker violet
-                return '#1e40af'; // Darker blue
+                if (node.id.includes('split-variation')) return '#0e7490';
+                if (node.isOptional) return '#7e22ce';
+                return '#1e40af';
               }}
               linkOpacity={0.5}
               linkHoverOpacity={0.7}
@@ -1079,6 +1029,18 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
               sort="input"
               nodeTooltip={CustomTooltip}
               linkTooltip={CustomTooltip}
+              linkWidth={link => {
+                // Calculate the conversion rate for this link
+                const sourceNode = sankeyData.nodes.find(n => n.id === (link.source.id || link.source));
+                if (!sourceNode) return 1;
+                
+                // Calculate the percentage of users flowing through this link
+                const conversionRate = (link.value / sourceNode.value) * 100;
+                
+                // Scale the width based on the conversion rate
+                // Base width is 1, max width is 12
+                return Math.max(1, Math.min(12, conversionRate / 8));
+              }}
               theme={{
                 tooltip: {
                   container: {

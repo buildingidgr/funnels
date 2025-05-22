@@ -6,7 +6,8 @@ export interface Timeframe {
 export interface EventProperty {
   name: string;
   operator: 'equals' | 'contains' | 'regex' | 'startsWith' | 'endsWith' | 'isSet' | 'isNotSet' | 'isTrue' | 'isFalse' | 'greaterThan' | 'lessThan' | 'equalsNumeric' | 'notEqualsNumeric' | 'greaterThanNumeric' | 'lessThanNumeric';
-  value: string | number | boolean;
+  value: string | number | readonly string[];
+  type: 'string' | 'number' | 'boolean' | 'date';
 }
 
 export interface TimeWindow {
@@ -41,9 +42,16 @@ export interface EventConditionDefinition {
   filters?: FilterClause[];
 }
 
+export interface ConditionItem {
+  eventName: string;
+  operator: 'equals' | 'contains' | 'regex' | 'startsWith' | 'endsWith' | 'isSet' | 'isNotSet' | 'isTrue' | 'isFalse' | 'greaterThan' | 'lessThan' | 'equalsNumeric' | 'notEqualsNumeric' | 'greaterThanNumeric' | 'lessThanNumeric';
+  count: number;
+  properties?: EventProperty[];
+}
+
 export interface Conditions {
-  orEventGroups: EventConditionDefinition[];
-  andAlsoEvents?: EventConditionDefinition[];
+  orEventGroups: ConditionItem[];
+  andAlsoEvents?: ConditionItem[];
 }
 
 export interface SplitVariation {

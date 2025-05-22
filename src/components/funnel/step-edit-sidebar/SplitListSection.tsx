@@ -1,6 +1,5 @@
-
 import React from "react";
-import { SplitStep } from "@/types/funnel";
+import { SplitVariation, Conditions } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +7,10 @@ import { Plus, Trash } from "lucide-react";
 import { StepConditionBuilder } from "@/components/funnel/StepConditionBuilder";
 
 interface SplitListSectionProps {
-  splits: SplitStep[];
+  splits: SplitVariation[];
   onAddSplit: () => void;
   onUpdateSplit: (splitIndex: number, field: string, value: any) => void;
-  onUpdateSplitConditions: (splitIndex: number, conditions: Record<string, string>) => void;
+  onUpdateSplitConditions: (splitIndex: number, conditions: Conditions) => void;
   onRemoveSplit: (splitIndex: number) => void;
 }
 
@@ -59,10 +58,10 @@ export function SplitListSection({
 }
 
 interface SplitItemProps {
-  split: SplitStep;
+  split: SplitVariation;
   splitIndex: number;
   onUpdateSplit: (field: string, value: any) => void;
-  onUpdateConditions: (conditions: Record<string, string>) => void;
+  onUpdateConditions: (conditions: Conditions) => void;
   onRemove: () => void;
 }
 
@@ -76,7 +75,7 @@ function SplitItem({
   return (
     <div className="border rounded-md p-3 space-y-3">
       <div className="flex justify-between items-center">
-        <h4 className="text-xs font-medium">Split {split.number}</h4>
+        <h4 className="text-xs font-medium">Split {splitIndex + 1}</h4>
         <Button
           type="button"
           size="icon"

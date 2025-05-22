@@ -1,5 +1,5 @@
 import React from "react";
-import { FunnelStep, FunnelStepCondition } from "@/types/funnel";
+import { FunnelStep, Conditions } from "@/types/funnel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,10 +13,10 @@ interface StepAccordionItemProps {
   step: FunnelStep;
   stepIndex: number;
   onUpdateStep: (field: string, value: any) => void;
-  onUpdateConditions: (conditions: FunnelStepCondition[]) => void;
+  onUpdateConditions: (conditions: Conditions) => void;
   onAddSplit: () => void;
   onUpdateSplit: (splitIndex: number, field: string, value: any) => void;
-  onUpdateSplitConditions: (splitIndex: number, conditions: FunnelStepCondition[]) => void;
+  onUpdateSplitConditions: (splitIndex: number, conditions: Conditions) => void;
   onRemoveSplit: (splitIndex: number) => void;
 }
 
@@ -30,17 +30,23 @@ export function StepAccordionItem({
   onUpdateSplitConditions,
   onRemoveSplit
 }: StepAccordionItemProps) {
+  // Ensure conditions has the correct structure
+  const conditions = {
+    orEventGroups: Array.isArray(step.conditions?.orEventGroups) ? step.conditions.orEventGroups : [],
+    andAlsoEvents: step.conditions?.andAlsoEvents || []
+  };
+
   return (
     <AccordionItem value={`step-${stepIndex}`} className="border rounded-md overflow-hidden">
       <AccordionTrigger className="px-4 py-3 hover:bg-muted/50">
         <div className="flex items-center space-x-2 text-left">
           <div
             className={`w-2 h-2 rounded-full ${
-              step.enable ? "bg-green-500" : "bg-gray-300"
+              step.isEnabled ? "bg-green-500" : "bg-gray-300"
             }`}
           />
           <span>
-            Step {step.number}: {step.name || "Unnamed Step"}
+            Step {step.order}: {step.name || "Unnamed Step"}
           </span>
         </div>
       </AccordionTrigger>
@@ -60,19 +66,19 @@ export function StepAccordionItem({
           <div className="flex items-center space-x-2">
             <Switch 
               id={`step-enable-${stepIndex}`}
-              checked={step.enable}
-              onCheckedChange={(checked) => onUpdateStep("enable", checked)}
+              checked={step.isEnabled}
+              onCheckedChange={(checked) => onUpdateStep("isEnabled", checked)}
             />
             <Label htmlFor={`step-enable-${stepIndex}`} className="text-sm">Enable Step</Label>
           </div>
 
           <StepConditionBuilder 
-            conditions={step.conditions}
+            conditions={conditions}
             onChange={onUpdateConditions}
           />
 
           <SplitListSection
-            splits={step.split || []}
+            splits={step.splitVariations || []}
             onAddSplit={onAddSplit}
             onUpdateSplit={onUpdateSplit}
             onUpdateSplitConditions={onUpdateSplitConditions}

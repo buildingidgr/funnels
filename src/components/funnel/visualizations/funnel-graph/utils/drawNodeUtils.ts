@@ -1,4 +1,3 @@
-
 import { SankeyNode } from "../types";
 import { FunnelStep } from "@/types/funnel";
 import { getStepDetails } from "./stepUtils";
@@ -124,7 +123,7 @@ export const drawNode = (
     if (idParts.length >= 2) {
       const stepIndex = parseInt(idParts[1]);
       if (stepIndex >= 0 && stepIndex < steps.length) {
-        stepNumber = `Step ${steps[stepIndex].number}: `;
+        stepNumber = `Step ${steps[stepIndex].order}: `;
         
         // Check if this is a split
         if (idParts.length > 2 && idParts[2] === 'split') {

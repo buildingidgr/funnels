@@ -24,23 +24,17 @@ export const exampleFunnel: Funnel = {
       conditions: {
         orEventGroups: [
           {
-            primaryEvent: {
-              type: "pageViewed",
-              properties: [
-                {
-                  name: "urlPath",
-                  operator: "contains",
-                  value: "/products/"
-                }
-              ],
-              occurrence: {
-                operator: "atLeast",
-                count: 1,
-                timeWindow: {
-                  type: "anytime"
-                }
+            eventName: "pageViewed",
+            operator: "equals",
+            count: 1,
+            properties: [
+              {
+                name: "urlPath",
+                operator: "contains",
+                value: "/products/",
+                type: "string"
               }
-            }
+            ]
           }
         ]
       }
@@ -50,29 +44,16 @@ export const exampleFunnel: Funnel = {
       name: "Read Product Reviews (Optional)",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 8000,
+      visitorCount: 4500,
       isEnabled: true,
       isRequired: false,
       conditions: {
         orEventGroups: [
           {
-            primaryEvent: {
-              type: "customEvent",
-              properties: [
-                {
-                  name: "eventName",
-                  operator: "equals",
-                  value: "reviewSectionViewed"
-                }
-              ],
-              occurrence: {
-                operator: "atLeast",
-                count: 1,
-                timeWindow: {
-                  type: "anytime"
-                }
-              }
-            }
+            eventName: "reviewSectionViewed",
+            operator: "equals",
+            count: 1,
+            properties: []
           }
         ]
       }
@@ -82,37 +63,16 @@ export const exampleFunnel: Funnel = {
       name: "Added to Cart",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 6000,
+      visitorCount: 1800,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            primaryEvent: {
-              type: "customEvent",
-              properties: [
-                {
-                  name: "eventName",
-                  operator: "equals",
-                  value: "addToCart"
-                }
-              ],
-              occurrence: {
-                operator: "atLeast",
-                count: 1,
-                timeWindow: {
-                  type: "anytime"
-                }
-              }
-            },
-            filters: [
-              {
-                sourceType: "userAttribute",
-                propertyName: "deviceType",
-                operator: "is",
-                value: "mobile"
-              }
-            ]
+            eventName: "addToCart",
+            operator: "equals",
+            count: 1,
+            properties: []
           }
         ]
       },
@@ -124,16 +84,10 @@ export const exampleFunnel: Funnel = {
           conditions: {
             orEventGroups: [
               {
-                primaryEvent: {
-                  type: "customEvent",
-                  properties: [
-                    {
-                      name: "eventName",
-                      operator: "equals",
-                      value: "quickAddToCart"
-                    }
-                  ]
-                }
+                eventName: "quickAddToCart",
+                operator: "equals",
+                count: 1,
+                properties: []
               }
             ]
           }
@@ -145,16 +99,10 @@ export const exampleFunnel: Funnel = {
           conditions: {
             orEventGroups: [
               {
-                primaryEvent: {
-                  type: "customEvent",
-                  properties: [
-                    {
-                      name: "eventName",
-                      operator: "equals",
-                      value: "productPageAddToCart"
-                    }
-                  ]
-                }
+                eventName: "productPageAddToCart",
+                operator: "equals",
+                count: 1,
+                properties: []
               }
             ]
           }
@@ -166,43 +114,16 @@ export const exampleFunnel: Funnel = {
       name: "Started Checkout",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 4000,
+      visitorCount: 900,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            primaryEvent: {
-              type: "pageViewed",
-              properties: [
-                {
-                  name: "urlPath",
-                  operator: "contains",
-                  value: "/checkout"
-                }
-              ],
-              occurrence: {
-                operator: "atLeast",
-                count: 1,
-                timeWindow: {
-                  type: "anytime"
-                }
-              }
-            }
-          }
-        ],
-        andAlsoEvents: [
-          {
-            primaryEvent: {
-              type: "customEvent",
-              properties: [
-                {
-                  name: "eventName",
-                  operator: "equals",
-                  value: "cartNotEmpty"
-                }
-              ]
-            }
+            eventName: "checkoutStarted",
+            operator: "equals",
+            count: 1,
+            properties: []
           }
         ]
       }
@@ -212,37 +133,16 @@ export const exampleFunnel: Funnel = {
       name: "Completed Purchase",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 2000,
+      visitorCount: 450,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            primaryEvent: {
-              type: "customEvent",
-              properties: [
-                {
-                  name: "eventName",
-                  operator: "equals",
-                  value: "purchaseCompleted"
-                }
-              ],
-              occurrence: {
-                operator: "atLeast",
-                count: 1,
-                timeWindow: {
-                  type: "anytime"
-                }
-              }
-            },
-            filters: [
-              {
-                sourceType: "userAttribute",
-                propertyName: "customerType",
-                operator: "is",
-                value: "new"
-              }
-            ]
+            eventName: "purchaseCompleted",
+            operator: "equals",
+            count: 1,
+            properties: []
           }
         ]
       }

@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import FunnelForm from "@/components/funnel/FunnelForm";
 import { StepEditSidebar } from "@/components/funnel/step-edit-sidebar";
 import { 
-  Sheet,
-  SheetContent,
-  SheetTrigger
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PanelLeft, AlertCircle, Home } from "lucide-react";
 
@@ -20,7 +20,7 @@ export default function FunnelEditPage() {
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -87,21 +87,21 @@ export default function FunnelEditPage() {
     <DashboardLayout>
       <div className="relative">
         <div className="mb-4 flex justify-end">
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <PanelLeft className="h-4 w-4" />
                 Edit Steps
               </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[600px] max-w-2xl overflow-y-auto">
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
               <StepEditSidebar 
                 funnel={funnel} 
                 onSave={handleFunnelChange}
-                onClose={() => setSidebarOpen(false)}
+                onClose={() => setDialogOpen(false)}
               />
-            </SheetContent>
-          </Sheet>
+            </DialogContent>
+          </Dialog>
         </div>
         <FunnelForm 
           existingFunnel={funnel} 

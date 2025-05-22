@@ -4,10 +4,10 @@ import FunnelForm from "@/components/funnel/FunnelForm";
 import { Funnel } from "@/types/funnel";
 import { StepEditSidebar } from "@/components/funnel/step-edit-sidebar";
 import { 
-  Sheet,
-  SheetContent,
-  SheetTrigger
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 
@@ -19,10 +19,10 @@ export default function FunnelCreatePage() {
       from: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
       to: Date.now(),
     },
-    performed: "all",
+    performedBy: "all",
     steps: [],
   });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleFunnelChange = (updatedFunnel: Funnel) => {
     setFunnel(updatedFunnel);
@@ -32,21 +32,21 @@ export default function FunnelCreatePage() {
     <DashboardLayout>
       <div className="relative">
         <div className="mb-4 flex justify-end">
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <PanelLeft className="h-4 w-4" />
                 Edit Steps
               </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[600px] max-w-2xl overflow-y-auto">
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
               <StepEditSidebar 
                 funnel={funnel} 
                 onSave={handleFunnelChange}
-                onClose={() => setSidebarOpen(false)}
+                onClose={() => setDialogOpen(false)}
               />
-            </SheetContent>
-          </Sheet>
+            </DialogContent>
+          </Dialog>
         </div>
         <FunnelForm 
           existingFunnel={funnel}

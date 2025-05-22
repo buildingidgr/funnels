@@ -87,21 +87,6 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
               <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
             </div>
             
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-500">Conversion:</span>
-                <span className={`font-medium ${conversionCategory.color}`}>{formatPercent(conversionRate)}</span>
-              </div>
-              
-              {/* Progress bar visualization */}
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${conversionCategory.color} bg-current`}
-                  style={{ width: `${Math.min(100, Math.max(0, conversionRate))}%` }}
-                ></div>
-              </div>
-            </div>
-            
             <div className="flex justify-between items-center mt-2">
               <div className="text-gray-500">Drop-off:</div>
               <div className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</div>
@@ -144,21 +129,6 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
           <div className="flex justify-between items-center mb-2">
             <div className="text-gray-500">Users:</div>
             <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-gray-500">Conversion:</span>
-              <span className={`font-medium ${conversionCategory.color}`}>{formatPercent(conversionRate)}</span>
-            </div>
-            
-            {/* Progress bar visualization */}
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${conversionCategory.color} bg-current`}
-                style={{ width: `${Math.min(100, Math.max(0, conversionRate))}%` }}
-              ></div>
-            </div>
           </div>
           
           <div className="flex justify-between items-center mt-2">

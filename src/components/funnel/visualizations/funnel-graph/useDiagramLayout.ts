@@ -91,7 +91,7 @@ export const useDiagramLayout = ({
     });
     
     // Calculate width for each column (even narrower nodes for better spacing)
-    const columnWidth = usableWidth / (columnCount + 4.0); // Increased divisor for more space between columns
+    const columnWidth = usableWidth / (columnCount + 2.0); // Reduced from 4.0 to 2.0 to make columns wider
     
     // Calculate node dimensions for each column
     columnKeys.forEach((columnKey, columnIndex) => {

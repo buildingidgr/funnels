@@ -280,7 +280,7 @@ const CustomLink = (props: any) => {
           fontWeight={isActive ? "600" : "400"}
           fill={isActive ? "#3b82f6" : "#64748b"}
         >
-          {`${payload.conversionRate.toFixed(1)}%`}
+          {`${payload.value.toLocaleString()} users`}
         </text>
       )}
     </g>
