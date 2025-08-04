@@ -82,6 +82,7 @@ export default function useSankeyFormatting(steps: FunnelStep[], initialValue: n
           // Pass through additional properties for styling and tooltips
           sourceColor: link.sourceColor,
           targetColor: link.targetColor,
+          sourceValue: link.sourceValue, // Add sourceValue for percentage calculations
           conversionRate: link.sourceValue && link.sourceValue > 0 ? 
             (link.value / link.sourceValue) * 100 : undefined
         };

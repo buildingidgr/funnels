@@ -10,6 +10,7 @@ export interface SankeyNode {
   y?: number;
   width?: number;
   height?: number;
+  conversionRate?: number; // Add conversion rate property
   // Add additional properties that Recharts might use
   key?: string;
 }
@@ -27,6 +28,7 @@ export interface SankeyLink {
   labelValue?: string;
   labelPercentage?: string;
   originalWidth?: number; // Added for tracking original width during highlighting
+  conversionRate?: number; // Add conversion rate property
   
   // Add missing properties that are being used in drawLinkUtils.ts
   width?: number;

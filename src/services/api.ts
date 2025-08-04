@@ -429,6 +429,23 @@ export const FunnelApi = {
       const funnelIndex = mockFunnels.findIndex(f => f.id === id);
       if (funnelIndex !== -1) {
         mockFunnels[funnelIndex].lastCalculatedAt = new Date().toISOString();
+        
+        // Update splitVariations with calculated values
+        mockFunnels[funnelIndex].steps.forEach(step => {
+          if (step.splitVariations && step.splitVariations.length > 0) {
+            step.splitVariations.forEach((variation, varIndex) => {
+              const variationId = `${step.id}-variation-${varIndex + 1}`;
+              variation.visitorCount = results[variationId] || 0;
+            });
+          }
+          
+          // Update the main step value with the calculated result
+          if (results[step.id] !== undefined) {
+            step.visitorCount = results[step.id];
+            step.value = results[step.id]; // Also update the value property
+          }
+        });
+        
         saveFunnels();
       }
       
