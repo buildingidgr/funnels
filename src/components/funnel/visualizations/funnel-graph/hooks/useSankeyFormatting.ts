@@ -14,13 +14,13 @@ export default function useSankeyFormatting(steps: FunnelStep[], initialValue: n
 
   // Use the root useSankeyData implementation to generate the initial data outside useMemo
   // This follows React hooks rules - hooks must be called at the top level
-  const sankeyData = useSankeyDataRoot(steps.filter(step => step.enable), initialValue);
+  const sankeyData = useSankeyDataRoot(steps.filter(step => step.isEnabled), initialValue);
 
   return useMemo(() => {
     console.log("[DEBUG] useSankeyFormatting memo recalculating");
     
     // Filter to only enabled steps
-    const enabledSteps = steps.filter(step => step.enable);
+    const enabledSteps = steps.filter(step => step.isEnabled);
     
     // Return early if there's not enough data
     if (enabledSteps.length === 0) {

@@ -22,6 +22,7 @@ interface FunnelPart {
   type: 'main' | 'split';
   parentStep?: string;
   actualValue?: number;
+  color: string;
 }
 
 interface NivoPart {
@@ -51,41 +52,73 @@ const splitToNextMap: Record<string, Record<string, number>> = {
 };
 
 const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ steps, initialValue, funnelId }) => {
-  // Filter out disabled steps
+  // Enhanced color palette for better step distinction
+  const getStepColor = (index: number) => {
+    const colors = [
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#f59e0b', // Amber
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#84cc16', // Lime
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#f43f5e', // Rose
+    ];
+    
+    return colors[index % colors.length];
+  };
+
+  const getSplitColor = (parentIndex: number, splitIndex: number) => {
+    const colors = [
+      '#34d399', // Light Green
+      '#60a5fa', // Light Blue
+      '#fbbf24', // Light Amber
+      '#f87171', // Light Red
+      '#a78bfa', // Light Purple
+      '#22d3ee', // Light Cyan
+      '#fb923c', // Light Orange
+      '#f472b6', // Light Pink
+      '#a3e635', // Light Lime
+      '#818cf8', // Light Indigo
+      '#5eead4', // Light Teal
+      '#fb7185', // Light Rose
+    ];
+    
+    return colors[(parentIndex + splitIndex) % colors.length];
+  };
+
+  // Filter to only enabled steps
   const enabledSteps = steps.filter(step => step.isEnabled);
   
   console.log('FunnelGraphVisualization received:', {
     totalSteps: steps.length,
     enabledSteps: enabledSteps.length,
     initialValue,
-    steps: enabledSteps.map(s => ({
-      name: s.name,
-      value: s.visitorCount,
-      hasSplits: s.splitVariations?.length > 0,
-      split: s.splitVariations?.map(sp => ({
-        name: sp.name,
-        value: sp.visitorCount
-      }))
-    }))
+    steps: enabledSteps.map(s => ({ name: s.name, value: s.value, visitorCount: s.visitorCount }))
   });
 
-  // Prepare data for Nivo Funnel with additional metrics and split steps
+  // Process the data for the funnel chart
   const data = enabledSteps.flatMap((step, idx) => {
-    const previousValue = idx === 0 ? initialValue : enabledSteps[idx - 1].visitorCount || 0;
-    const currentValue = step.visitorCount || 0;
+    const currentValue = step.value || step.visitorCount || 0;
+    const previousValue = idx === 0 ? initialValue : (enabledSteps[idx - 1].value || enabledSteps[idx - 1].visitorCount || 0);
     const conversionRate = previousValue > 0 ? ((currentValue / previousValue) * 100).toFixed(1) : '0.0';
     const dropoff = previousValue - currentValue;
-    
+    const hasSplits = step.splitVariations && step.splitVariations.length > 0;
+
     console.log(`Processing step ${step.name}:`, {
       previousValue,
       currentValue,
       conversionRate,
       dropoff,
-      hasSplits: step.splitVariations?.length > 0
+      hasSplits
     });
-    
-    // If step has splits, create separate paths for each split
-    if (step.splitVariations && step.splitVariations.length > 0) {
+
+    // If this step has splits, create multiple parts
+    if (hasSplits && step.splitVariations) {
       // First add the main step
       const mainStep = {
         id: step.name,
@@ -95,7 +128,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
         dropoff,
         previousValue,
         isSplit: false,
-        type: 'main'
+        type: 'main',
+        color: getStepColor(idx)
       };
 
       // Then add each split as a separate path
@@ -127,7 +161,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
           isSplit: true,
           type: 'split' as const,
           parentStep: step.name,
-          actualValue: splitToNextValue
+          actualValue: splitToNextValue,
+          color: getSplitColor(idx, splitIdx)
         };
       });
 
@@ -144,7 +179,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
       dropoff,
       previousValue,
       isSplit: false,
-      type: 'main'
+      type: 'main',
+      color: getStepColor(idx)
     }];
   });
 
@@ -155,28 +191,32 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
     value: d.value,
     isSplit: d.isSplit,
     conversionRate: d.conversionRate,
-    dropoff: d.dropoff
+    dropoff: d.dropoff,
+    color: d.color
   })));
 
-  // Define color schemes
-  const mainColors = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe']; // Blue gradient
-  const splitColors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5']; // Green gradient
+  console.log('About to render ResponsiveFunnel with data:', data);
 
   // Custom color scheme for main steps and splits
   const getColor = (part: any) => {
-    if (!part || !part.data) return mainColors[0];
+    console.log('getColor called with part:', part);
     
-    // Check if this is a split step
-    const isSplitStep = part.data.isSplit;
-    
-    // For main steps, use a fixed color
-    if (!isSplitStep) {
-      return mainColors[0]; // Use the primary blue for all main steps
+    if (!part || !part.data) {
+      console.log('No part or part.data, returning default color');
+      return getStepColor(0);
     }
     
-    // For split steps, alternate between two shades of green
-    const isFirstSplit = part.data.id.includes('Mobile') || part.data.id.includes('New');
-    return isFirstSplit ? splitColors[0] : splitColors[1];
+    // If the color is already in the data, use it
+    if (part.data.color) {
+      console.log('Using color from data:', part.data.color);
+      return part.data.color;
+    }
+    
+    // Fallback: use the index-based approach
+    const stepIndex = part.index ?? 0;
+    const color = getStepColor(stepIndex);
+    console.log('Using fallback color:', color, 'at index:', stepIndex);
+    return color;
   };
 
   // Custom tooltip component
@@ -206,7 +246,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
             width: '16px',
             height: '16px',
             borderRadius: '4px',
-            background: isSplit ? splitColors[0] : mainColors[0],
+            background: isSplit ? getSplitColor(0, 0) : getStepColor(0),
             border: `2px solid ${isSplit ? '#047857' : '#1e40af'}`,
             position: 'relative'
           }}>
@@ -317,50 +357,54 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
   return (
     <div style={{ height: 600 }}>
       <div style={{ 
-        marginBottom: '24px', 
-        padding: '16px',
+        marginBottom: '16px', 
+        padding: '8px 12px',
         background: '#f8fafc',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0'
+        borderRadius: '6px',
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
       }}>
-        <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#1e293b', fontWeight: 600 }}>Funnel Legend</h4>
-        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ 
+          fontSize: '13px', 
+          color: '#64748b', 
+          fontWeight: 500,
+          marginRight: '8px'
+        }}>
+          Legend:
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '4px',
-              background: mainColors[0],
-              border: '2px solid #1e40af'
+              width: '12px',
+              height: '12px',
+              borderRadius: '3px',
+              background: getStepColor(0),
+              border: '1px solid #1e40af'
             }} />
-            <div>
-              <span style={{ fontSize: '14px', color: '#1e293b', fontWeight: 500 }}>Main Steps</span>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>Primary funnel path</p>
-            </div>
+            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>Main Steps</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '4px',
-              background: splitColors[0],
-              border: '2px solid #047857',
+              width: '12px',
+              height: '12px',
+              borderRadius: '3px',
+              background: getSplitColor(0, 0),
+              border: '1px solid #047857',
               position: 'relative'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                width: '8px',
-                height: '8px',
+                top: '-2px',
+                right: '-2px',
+                width: '6px',
+                height: '6px',
                 background: '#047857',
                 borderRadius: '50%'
               }} />
             </div>
-            <div>
-              <span style={{ fontSize: '14px', color: '#1e293b', fontWeight: 500 }}>Split Paths</span>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>Alternative user flows</p>
-            </div>
+            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>Split Paths</span>
           </div>
         </div>
       </div>
@@ -368,7 +412,6 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
         data={data}
         margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
         valueFormat=">-,"
-        colors={getColor}
         borderWidth={20}
         labelColor={{
           from: 'color',

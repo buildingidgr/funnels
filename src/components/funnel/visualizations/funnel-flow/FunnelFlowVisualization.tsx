@@ -7,6 +7,7 @@ import {
 } from "./utils";
 import FlowStep from "./FlowStep";
 import FlowConnection from "./FlowConnection";
+import OptionalStepFlow from "./OptionalStepFlow";
 import { motion } from "framer-motion";
 
 interface FunnelFlowVisualizationProps {
@@ -47,12 +48,29 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
               
               {/* Connection to Next Step */}
               {nextStep && (
-                <FlowConnection 
-                  sourceValue={step.visitorCount || 0}
-                  targetValue={nextStep.visitorCount || 0}
-                  dropoff={dropoff}
-                  hasSplit={Boolean(step.splitVariations && step.splitVariations.length > 0)}
-                />
+                <>
+                  {/* For optional steps, show dual flow */}
+                  {!step.isRequired ? (
+                    <OptionalStepFlow
+                      currentStep={step}
+                      nextStep={nextStep}
+                      previousValue={previousValue}
+                      currentValue={step.visitorCount || 0}
+                      nextValue={nextStep.visitorCount || 0}
+                      index={index}
+                    />
+                  ) : (
+                    /* For required steps, show standard connection */
+                    <FlowConnection 
+                      sourceValue={step.visitorCount || 0}
+                      targetValue={nextStep.visitorCount || 0}
+                      dropoff={dropoff}
+                      hasSplit={Boolean(step.splitVariations && step.splitVariations.length > 0)}
+                      isOptional={!step.isRequired}
+                      skipValue={!step.isRequired ? previousValue - (step.visitorCount || 0) : undefined}
+                    />
+                  )}
+                </>
               )}
               
               {/* Split Variations */}

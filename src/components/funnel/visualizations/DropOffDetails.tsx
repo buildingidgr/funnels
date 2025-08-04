@@ -101,137 +101,48 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
   const averageDropOff = (totalDropOff / (chartData.length - 1)).toFixed(1);
 
   return (
-    <div className="space-y-6">
-      {/* Overall Funnel Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Overall Conversion</span>
-            <TrendingUp className="w-4 h-4 text-green-500" />
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{overallConversionRate}%</div>
-          <Progress value={Number(overallConversionRate)} className="mt-2" />
+    <div className="space-y-4">
+      {/* Compact Overall Metrics */}
+      <div className="flex flex-wrap gap-3 items-center mb-2">
+        <div className="flex items-center gap-1 text-xs bg-green-50 px-2 py-1 rounded">
+          <TrendingUp className="h-3 w-3 text-green-500" />
+          <span>Conversion:</span>
+          <span className="font-semibold text-green-700">{overallConversionRate}%</span>
         </div>
-        
-        <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Total Drop-off</span>
-            <TrendingDown className="w-4 h-4 text-red-500" />
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{totalDropOff.toLocaleString()}</div>
-          <div className="text-sm text-gray-500 mt-1">users lost</div>
+        <div className="flex items-center gap-1 text-xs bg-red-50 px-2 py-1 rounded">
+          <TrendingDown className="h-3 w-3 text-red-500" />
+          <span>Drop-off:</span>
+          <span className="font-semibold text-red-700">{totalDropOff.toLocaleString()}</span>
         </div>
-        
-        <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Average Drop-off</span>
-            <Users className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{averageDropOff}%</div>
-          <div className="text-sm text-gray-500 mt-1">per step</div>
+        <div className="flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded">
+          <Users className="h-3 w-3 text-blue-500" />
+          <span>Avg/step:</span>
+          <span className="font-semibold text-blue-700">{averageDropOff}%</span>
         </div>
       </div>
-      
-      {/* Key insights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-          <p className="text-sm text-red-800 font-semibold mb-2">Highest Drop-off</p>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm">{highestDropOff.previousStep} → {highestDropOff.name}</span>
-            <span className="font-semibold text-red-600">{highestDropOff.dropOff}%</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <Users className="w-4 h-4 mr-1" />
-            {highestDropOff.dropOffValue.toLocaleString()} users lost
-          </div>
-          <Progress 
-            value={Number(highestDropOff.dropOff)} 
-            className="mt-2 h-1.5 bg-red-100"
-          />
-        </div>
-        
-        <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-          <p className="text-sm text-green-800 font-semibold mb-2">Best Converting Step</p>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm">{lowestDropOff.previousStep} → {lowestDropOff.name}</span>
-            <span className="font-semibold text-green-600">{lowestDropOff.conversionRate}%</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <Users className="w-4 h-4 mr-1" />
-            {(100 - Number(lowestDropOff.dropOff)).toFixed(1)}% retention
-          </div>
-          <Progress 
-            value={Number(lowestDropOff.conversionRate)} 
-            className="mt-2 h-1.5 bg-green-100"
-          />
-        </div>
-      </div>
-      
-      {/* Step by step details */}
-      <div className="space-y-3">
+
+      {/* Minimal Step-by-step Details */}
+      <div className="divide-y border rounded bg-white">
         {chartData.map((step, index) => {
-          if (index === 0) return null; // Skip the first step as it has no drop-off
-          
+          if (index === 0) return null;
           const previousStep = chartData[index - 1];
-          const dropOffWidth = `${Number(step.dropOff)}%`;
-          
           return (
-            <div key={index} className="p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium">
-                    {index}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{step.name}</p>
-                    <p className="text-xs text-gray-500">From {previousStep.name}</p>
-                  </div>
-                </div>
-                <div className={`text-sm font-medium ${
-                  Number(step.dropOff) < 20 ? "text-green-600" : 
-                  Number(step.dropOff) < 50 ? "text-yellow-600" : 
-                  "text-red-600"
-                }`}>
-                  {step.dropOff}% drop-off
-                </div>
+            <div key={index} className="flex items-center justify-between px-3 py-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-500">{index}</span>
+                <span className="truncate font-medium text-gray-800">{step.name}</span>
+                <span className="text-gray-400">from</span>
+                <span className="truncate text-gray-500">{previousStep.name}</span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Previous Step</p>
-                  <p className="text-sm font-medium">{previousStep.value.toLocaleString()} users</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Current Step</p>
-                  <p className="text-sm font-medium">{step.value.toLocaleString()} users</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Conversion Rate</span>
-                  <span>{step.conversionRate}%</span>
-                </div>
-                <Progress 
-                  value={Number(step.conversionRate)} 
-                  className="h-1.5"
-                />
+              <div className="flex items-center gap-3">
+                <span className={`font-semibold ${Number(step.dropOff) < 20 ? "text-green-600" : Number(step.dropOff) < 50 ? "text-yellow-600" : "text-red-600"}`}>{step.dropOff}%</span>
+                <span className="text-gray-400">/</span>
+                <span className="font-medium text-gray-500">{step.value.toLocaleString()} users</span>
               </div>
             </div>
           );
         })}
       </div>
-      
-      {/* Optimization Tips */}
-      {Number(highestDropOff.dropOff) > 50 && (
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg mt-6">
-          <p className="text-sm font-medium text-blue-800 mb-2">💡 Optimization Tip</p>
-          <p className="text-sm text-gray-700">
-            Consider improving the transition from "{highestDropOff.previousStep}" to "{highestDropOff.name}" 
-            to reduce the {highestDropOff.dropOff}% drop-off rate. This step is losing {highestDropOff.dropOffValue.toLocaleString()} users.
-          </p>
-        </div>
-      )}
     </div>
   );
 };

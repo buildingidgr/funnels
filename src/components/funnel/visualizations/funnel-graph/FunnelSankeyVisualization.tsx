@@ -206,7 +206,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       id: stepId,
       name: step.name,
       value: stepValue,
-      color: !step.isRequired ? '#9333ea' : '#2563eb'
+      color: getStepColor(step, index)
     });
 
     // Add link from previous step or start
@@ -214,36 +214,56 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
     const sourceValue = index === 0 ? initialValue : calculatedResults?.[steps[index - 1].id] || 0;
     
     if (!step.isRequired) {
-      // For optional steps, split the flow using exact API values
+      // For optional steps, create a clearer dual-flow representation
       const optionalValue = calculatedResults?.[step.id] || 0;
       const skipValue = sourceValue - optionalValue;
       
-      console.log(`Added optional step link:`, {
+      console.log(`Added optional step dual flow:`, {
         source: sourceId,
         target: stepId,
-        value: optionalValue,
-        sourceValue,
+        optionalValue,
         skipValue,
+        sourceValue,
         sourceId,
         targetId: stepId
       });
       
+      // Add link through the optional step (completed path)
       sankeyData.links.push({
         source: sourceId,
         target: stepId,
         value: optionalValue,
-        color: '#9333ea90',
+        color: getLinkColor(index, true), // Optional step path
         percentage: `${((optionalValue / sourceValue) * 100).toFixed(1)}%`
       });
 
-      // Add skip link to next required step
+      // Add link from optional step to next step (completed path continuation)
       if (index < steps.length - 1) {
         const nextStep = steps[index + 1];
         const nextStepId = getNodeId(nextStep.id);
-        console.log(`Added skip optional link:`, {
+        const nextStepValue = calculatedResults?.[nextStep.id] || 0;
+        const optionalNextValue = Math.round(nextStepValue * (optionalValue / sourceValue));
+        
+        sankeyData.links.push({
+          source: stepId,
+          target: nextStepId,
+          value: optionalNextValue,
+          color: getLinkColor(index, true), // Optional step path
+          percentage: `${((optionalNextValue / optionalValue) * 100).toFixed(1)}%`
+        });
+      }
+
+      // Add bypass link directly to next step (skipped path)
+      if (index < steps.length - 1) {
+        const nextStep = steps[index + 1];
+        const nextStepId = getNodeId(nextStep.id);
+        const nextStepValue = calculatedResults?.[nextStep.id] || 0;
+        const bypassValue = Math.round(nextStepValue * (skipValue / sourceValue));
+        
+        console.log(`Added skip path link:`, {
           source: sourceId,
           target: nextStepId,
-          value: skipValue,
+          value: bypassValue,
           sourceId,
           targetId: nextStepId
         });
@@ -251,9 +271,9 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         sankeyData.links.push({
           source: sourceId,
           target: nextStepId,
-          value: skipValue,
-          color: '#2563eb90',
-          percentage: `${((skipValue / sourceValue) * 100).toFixed(1)}%`
+          value: bypassValue,
+          color: getLinkColor(index + 1, false), // Different color for skip path
+          percentage: `${((bypassValue / skipValue) * 100).toFixed(1)}%`
         });
       }
     } else {
@@ -271,9 +291,24 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         source: sourceId,
         target: stepId,
         value: stepValue,
-        color: '#2563eb90',
+        color: getLinkColor(index, false),
         percentage: `${((stepValue / sourceValue) * 100).toFixed(1)}%`
       });
+
+      // Add link to next step if it exists
+      if (index < steps.length - 1) {
+        const nextStep = steps[index + 1];
+        const nextStepId = getNodeId(nextStep.id);
+        const nextStepValue = calculatedResults?.[nextStep.id] || 0;
+        
+        sankeyData.links.push({
+          source: stepId,
+          target: nextStepId,
+          value: nextStepValue,
+          color: getLinkColor(index + 1, false),
+          percentage: `${((nextStepValue / stepValue) * 100).toFixed(1)}%`
+        });
+      }
     }
 
     // Handle split variations
@@ -311,7 +346,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       });
       
       // Process each variation
-      variationValues.forEach(({ id, value, name }) => {
+      variationValues.forEach(({ id, value, name }, variationIndex) => {
         const splitId = getNodeId(id);
         
         // IMPORTANT: Create a local constant to ensure we don't lose the value
@@ -331,7 +366,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
           id: splitId,
           name: name,
           value: splitValue,
-          color: '#0891b2'
+          color: getStepColor(step, index + variationIndex + 1) // Different color for each split
         });
 
         // Add link from main step to split with exact API value
@@ -348,7 +383,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
           source: stepId,
           target: splitId,
           value: splitValue,
-          color: '#0891b290',
+          color: getLinkColor(index + variationIndex + 1, false),
           percentage: `${((splitValue / stepValue) * 100).toFixed(1)}%`
         });
 
@@ -356,10 +391,10 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         if (index < steps.length - 1) {
           const nextStep = steps[index + 1];
           const nextStepId = getNodeId(nextStep.id);
-          const nextValue = calculatedResults?.[nextStep.id] || 0;
+          const nextStepValue = calculatedResults?.[nextStep.id] || 0;
           
           // Calculate the split's contribution to the next step based on its proportion
-          const splitNextValue = Math.round(nextValue * (splitValue / totalVariationValue));
+          const splitNextValue = Math.round(nextStepValue * (splitValue / totalVariationValue));
           
           console.log(`DEBUGFIX: Added split-to-next link:`, {
             source: splitId,
@@ -367,7 +402,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
             value: splitNextValue,
             totalVariationValue,
             variationValue: splitValue,
-            nextValue,
+            nextValue: nextStepValue,
             sourceId: splitId,
             targetId: nextStepId,
             percentage: `${((splitNextValue / splitValue) * 100).toFixed(1)}%`
@@ -431,9 +466,114 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
 
   const getNodeColor = (node: any) => {
     const originalId = getOriginalId(node.id);
-    if (originalId?.includes('variation')) return '#0e7490';
+    
+    // Handle special cases first
+    if (originalId === 'start') return '#3b82f6'; // Blue for start
+    if (originalId === 'end') return '#ef4444'; // Red for end
+    if (originalId?.includes('variation')) return '#0e7490'; // Cyan for variations
+    
+    // Find the step and its index
     const step = steps.find(s => s.id === originalId);
-    return step && !step.isRequired ? '#7e22ce' : '#1e40af';
+    if (!step) return '#6b7280'; // Gray for unknown steps
+    
+    const stepIndex = steps.findIndex(s => s.id === originalId);
+    
+    // Use the diverse color palette based on step index
+    return getStepColor(step, stepIndex);
+  };
+
+  const sankeyGraphLinksInput = [
+    {
+      source: 'start',
+      target: `step-${steps[0].id}`,
+      value: calculatedResults[steps[0].id] || 0
+    },
+    ...steps.slice(0, -1).flatMap((step, index) => {
+      const nextStep = steps[index + 1];
+      const nextStepValue = calculatedResults[nextStep.id] || 0;
+      const currentStepValue = calculatedResults[step.id] || 0;
+      
+      // For optional steps, add both the direct path and the bypass path
+      if (!step.isRequired) {
+        const skipValue = currentStepValue - nextStepValue;
+        return [
+          // Direct path through the optional step
+          {
+            source: `step-${step.id}`,
+            target: `step-${nextStep.id}`,
+            value: nextStepValue,
+            color: getLinkColor(index, true) // Use diverse color for optional path
+          },
+          // Bypass path that skips the optional step
+          {
+            source: `step-${step.id}`,
+            target: `step-${nextStep.id}`,
+            value: skipValue,
+            color: getLinkColor(index + 1, false) // Use diverse color for skip path
+          }
+        ];
+      }
+      
+      // For required steps, just add the direct path
+      return [{
+        source: `step-${step.id}`,
+        target: `step-${nextStep.id}`,
+        value: nextStepValue > 0 ? nextStepValue : 0,
+        color: getLinkColor(index, false) // Use diverse color for required path
+      }];
+    }),
+    // ... existing code for split variations ...
+    {
+      source: `step-${steps[steps.length - 1].id}`,
+      target: 'end',
+      value: calculatedResults[steps[steps.length - 1].id] || 0
+    }
+  ].filter(link => link && typeof link.value === 'number' && link.value > 0)
+   .map(link => ({ ...link, value: Math.max(0.001, link.value) })); // Ensure tiny value to render zero-value links
+
+  // Enhanced color palette for better step distinction
+  const getStepColor = (step: FunnelStep, index: number) => {
+    const colors = [
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#f59e0b', // Amber
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#84cc16', // Lime
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#f43f5e', // Rose
+    ];
+    
+    // Use step index to cycle through colors
+    return colors[index % colors.length];
+  };
+
+  const getLinkColor = (sourceIndex: number, isOptional: boolean = false) => {
+    const colors = [
+      '#3b82f680', // Blue
+      '#10b98180', // Green
+      '#f59e0b80', // Amber
+      '#ef444480', // Red
+      '#8b5cf680', // Purple
+      '#06b6d480', // Cyan
+      '#f9731680', // Orange
+      '#ec489980', // Pink
+      '#84cc1680', // Lime
+      '#6366f180', // Indigo
+      '#14b8a680', // Teal
+      '#f43f5e80', // Rose
+    ];
+    
+    // For optional steps, use a lighter variant
+    if (isOptional) {
+      return colors[sourceIndex % colors.length];
+    }
+    
+    return colors[sourceIndex % colors.length];
   };
 
   return (
@@ -451,18 +591,30 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         nodeBorderWidth={1}
         nodeBorderColor={node => {
           const originalId = getOriginalId(node.id);
-          if (originalId?.includes('variation')) return '#0e7490';
+          
+          // Handle special cases first
+          if (originalId === 'start') return '#3b82f6'; // Blue for start
+          if (originalId === 'end') return '#ef4444'; // Red for end
+          if (originalId?.includes('variation')) return '#0e7490'; // Cyan for variations
+          
+          // Find the step and its index
           const step = steps.find(s => s.id === originalId);
-          return step && !step.isRequired ? '#7e22ce' : '#1e40af';
+          if (!step) return '#6b7280'; // Gray for unknown steps
+          
+          const stepIndex = steps.findIndex(s => s.id === originalId);
+          
+          // Use the diverse color palette based on step index
+          return getStepColor(step, stepIndex);
         }}
         linkOpacity={0.5}
         linkHoverOpacity={0.7}
-        linkContract={2}
+        linkContract={0}
         enableLinkGradient={true}
         label={null}
         layout="horizontal"
         sort="input"
         nodeSpacing={24}
+        linkBlendMode="multiply"
         theme={{
           tooltip: {
             container: {

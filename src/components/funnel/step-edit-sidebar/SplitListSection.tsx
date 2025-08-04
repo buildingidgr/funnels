@@ -3,8 +3,9 @@ import { SplitVariation, Conditions } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash } from "lucide-react";
-import { StepConditionBuilder } from "@/components/funnel/StepConditionBuilder";
+import { Plus, Trash, Split } from "lucide-react";
+import { StepConditionBuilder } from "@/components/funnel/step-condition-builder/StepConditionBuilder";
+import { Badge } from "@/components/ui/badge";
 
 interface SplitListSectionProps {
   splits: SplitVariation[];
@@ -22,12 +23,20 @@ export function SplitListSection({
   onRemoveSplit
 }: SplitListSectionProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <Label className="text-sm">Split Options</Label>
+        <div className="flex items-center gap-2">
+          <Split className="h-4 w-4 text-blue-600" />
+          <Label className="text-sm font-medium">Split Variations</Label>
+          {splits && splits.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {splits.length} {splits.length === 1 ? 'variation' : 'variations'}
+            </Badge>
+          )}
+        </div>
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onAddSplit}
           className="h-7 px-2 text-xs"
@@ -38,7 +47,13 @@ export function SplitListSection({
       </div>
 
       {!splits || splits.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No splits</p>
+        <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+          <Split className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground mb-2">No split variations</p>
+          <p className="text-xs text-muted-foreground">
+            Add split variations to create A/B tests or different user paths
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
           {splits.map((split, splitIndex) => (
@@ -73,9 +88,14 @@ function SplitItem({
   onRemove 
 }: SplitItemProps) {
   return (
-    <div className="border rounded-md p-3 space-y-3">
+    <div className="border border-blue-200 rounded-md p-3 space-y-3 bg-blue-50/30">
       <div className="flex justify-between items-center">
-        <h4 className="text-xs font-medium">Split {splitIndex + 1}</h4>
+        <div className="flex items-center gap-2">
+          <h4 className="text-xs font-medium text-blue-700">Split Variation {splitIndex + 1}</h4>
+          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+            A/B Test
+          </Badge>
+        </div>
         <Button
           type="button"
           size="icon"
@@ -88,19 +108,28 @@ function SplitItem({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor={`split-name-${splitIndex}`} className="text-xs">Name</Label>
+        <Label htmlFor={`split-name-${splitIndex}`} className="text-xs font-medium">
+          Variation Name
+        </Label>
         <Input
           id={`split-name-${splitIndex}`}
           value={split.name}
           onChange={(e) => onUpdateSplit("name", e.target.value)}
+          placeholder="e.g., Control Group, Variant A"
           className="h-7 text-xs"
         />
       </div>
 
-      <StepConditionBuilder 
-        conditions={split.conditions}
-        onChange={onUpdateConditions}
-      />
+      <div className="space-y-2">
+        <Label className="text-xs font-medium">Conditions</Label>
+        <div className="text-xs text-muted-foreground mb-2">
+          Define when this variation should be shown to users
+        </div>
+        <StepConditionBuilder 
+          conditions={split.conditions}
+          onChange={onUpdateConditions}
+        />
+      </div>
     </div>
   );
 }

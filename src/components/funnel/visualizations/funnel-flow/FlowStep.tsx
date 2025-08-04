@@ -2,20 +2,16 @@ import React from "react";
 import { FunnelStep } from "@/types/funnel";
 import { getConversionColor } from "./utils";
 import { 
-  ChevronRight,
   Circle, 
-  ArrowDown,
   Users,
-  TrendingUp,
-  TrendingDown,
   Info,
-  Clock,
   BarChart2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface FlowStepProps {
   step: FunnelStep;
@@ -32,11 +28,32 @@ const FlowStep: React.FC<FlowStepProps> = ({
   conversionRate,
   isFirst
 }) => {
+  // Enhanced color palette for better step distinction
+  const getStepColor = (index: number) => {
+    const colors = [
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#f59e0b', // Amber
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#84cc16', // Lime
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#f43f5e', // Rose
+    ];
+    
+    return colors[index % colors.length];
+  };
+
   const colorClass = getConversionColor(conversionRate);
   const isImprovement = conversionRate > 100;
   const dropoff = previousValue - (step.value || 0);
   const dropoffPercentage = previousValue ? (dropoff / previousValue) * 100 : 0;
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const stepColor = getStepColor(index);
   
   return (
     <motion.div 
@@ -51,14 +68,27 @@ const FlowStep: React.FC<FlowStepProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
             <motion.div 
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass} shadow-sm cursor-pointer`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm cursor-pointer`}
+              style={{ backgroundColor: stepColor }}
               whileHover={{ scale: 1.1 }}
               onClick={() => setIsExpanded(!isExpanded)}
             >
-              <span className="text-white text-lg font-semibold">{step.number}</span>
+              <span className="text-white text-lg font-semibold">{step.order}</span>
             </motion.div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">{step.name}</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stepColor }} />
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {step.name}
+                    {!step.isRequired && (
+                      <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700 border-green-300">
+                        Optional
+                      </Badge>
+                    )}
+                  </h3>
+                </div>
+              </div>
               {step.description && (
                 <p className="text-sm text-gray-500 mt-1">{step.description}</p>
               )}
@@ -115,36 +145,87 @@ const FlowStep: React.FC<FlowStepProps> = ({
             />
           </motion.div>
           
-          {/* Drop-off */}
-          {!isFirst && (
+          {/* Drop-off or Optional Flow Info */}
+          {!isFirst ? (
             <motion.div 
               className="bg-gray-50 rounded-lg p-4"
               whileHover={{ scale: 1.02 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Drop-off</span>
+                <span className="text-sm font-medium text-gray-600">
+                  {!step.isRequired ? 'Flow Split' : 'Drop-off'}
+                </span>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
                       <Info className="w-4 h-4 text-gray-400" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Number of users who left at this step</p>
+                      <p>
+                        {!step.isRequired 
+                          ? 'Users who completed vs bypassed this optional step'
+                          : 'Number of users who left at this step'
+                        }
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
               <div className="flex items-baseline">
-                <span className="text-2xl font-bold text-red-600">
-                  {dropoff.toLocaleString()}
-                </span>
-                <span className="ml-2 text-sm text-gray-500">
-                  ({dropoffPercentage.toFixed(1)}%)
-                </span>
+                {!step.isRequired ? (
+                  <>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {dropoff.toLocaleString()}
+                    </span>
+                    <span className="ml-2 text-sm text-gray-500">
+                      bypassed ({dropoffPercentage.toFixed(1)}%)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl font-bold text-red-600">
+                      {dropoff.toLocaleString()}
+                    </span>
+                    <span className="ml-2 text-sm text-gray-500">
+                      lost ({dropoffPercentage.toFixed(1)}%)
+                    </span>
+                  </>
+                )}
               </div>
               <Progress 
                 value={dropoffPercentage} 
-                className="mt-2 h-2 bg-red-100"
+                className={cn("mt-2 h-2", !step.isRequired ? "bg-blue-100" : "bg-red-100")}
+              />
+            </motion.div>
+          ) : (
+            <motion.div 
+              className="bg-gray-50 rounded-lg p-4"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Total Users</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="w-4 h-4 text-gray-400" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Total users who started the funnel</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-baseline">
+                <span className="text-2xl font-bold text-gray-800">
+                  {previousValue.toLocaleString()}
+                </span>
+                <span className="ml-2 text-sm text-gray-500">
+                  started
+                </span>
+              </div>
+              <Progress 
+                value={100} 
+                className="mt-2 h-2 bg-gray-200"
               />
             </motion.div>
           )}
@@ -168,7 +249,7 @@ const FlowStep: React.FC<FlowStepProps> = ({
                     <span className="text-sm font-medium text-gray-600">Status</span>
                   </div>
                   <span className="text-lg font-semibold text-gray-800">
-                    {step.enable ? 'Enabled' : 'Disabled'}
+                    {step.isEnabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
 
@@ -190,7 +271,7 @@ const FlowStep: React.FC<FlowStepProps> = ({
                     <span className="text-sm font-medium text-gray-600">Requirements</span>
                   </div>
                   <span className="text-lg font-semibold text-gray-800">
-                    {step.required ? 'Required' : 'Optional'}
+                    {step.isRequired ? 'Required' : 'Optional'}
                   </span>
                 </div>
               </div>

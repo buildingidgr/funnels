@@ -37,7 +37,14 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       initialValue,
       hasActiveSplits: steps.some(step => step.split && step.split.length > 0),
       tooltipsEnabled: showTooltips,
-      tooltipsInteractive: interactiveTooltips
+      tooltipsInteractive: interactiveTooltips,
+      stepDetails: steps.map(step => ({
+        name: step.name,
+        value: step.value,
+        visitorCount: step.visitorCount,
+        isEnabled: step.isEnabled,
+        hasSplit: step.split && step.split.length > 0
+      }))
     });
   }, [steps, initialValue, showTooltips, interactiveTooltips]);
   
@@ -57,19 +64,29 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     console.log("[DEBUG] After useSankeyFormatting:", {
       nodesCount: rechartsData.nodes.length,
       linksCount: rechartsData.links.length,
-      hasSplits: enabledSteps.some(step => step.split && step.split.length > 0)
+      hasSplits: enabledSteps.some(step => step.split && step.split.length > 0),
+      hasSufficientData,
+      hasValidLinks,
+      conversionRate,
+      nodeMapKeys: Object.keys(nodeMap),
+      rechartsDataNodes: rechartsData.nodes.map(n => ({ name: n.name, value: n.value })),
+      rechartsDataLinks: rechartsData.links.map(l => ({ source: l.source, target: l.target, value: l.value }))
     });
-  }, [rechartsData, enabledSteps]);
+  }, [rechartsData, enabledSteps, hasSufficientData, hasValidLinks, conversionRate, nodeMap]);
 
   // Handle empty data case gracefully
   if (!hasSufficientData) {
+    console.log("[DEBUG] No sufficient data, showing empty state");
     return <EmptyState message="Insufficient data available for visualization" />;
   }
 
   // If no valid links, show message
   if (!hasValidLinks) {
+    console.log("[DEBUG] No valid links, showing empty state");
     return <EmptyState message="No valid connections between funnel steps" />;
   }
+
+  console.log("[DEBUG] Rendering funnel graph visualization");
 
   // Handle node hover/click events with better data extraction
   const handleNodeMouseEnter = (e: React.MouseEvent<SVGRectElement>) => {
@@ -137,7 +154,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   const toggleInteractiveTooltips = () => setInteractiveTooltips(!interactiveTooltips);
 
   return (
-    <Card className={`w-full h-full overflow-hidden p-4 ${getConversionRateClass()} transition-all duration-300`}>
+    <div className={`w-full h-full overflow-hidden p-4 ${getConversionRateClass()} transition-all duration-300`}>
       {/* Header with controls */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
@@ -204,7 +221,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       </div>
       
       {/* Render the Sankey visualization with proper containment */}
-      <div className="w-full h-[600px] bg-white rounded-lg p-2 shadow-inner">
+      <div className="w-full h-[600px] bg-white rounded-lg p-2">
         <SankeyVisualization
           rechartsData={rechartsData}
           nodeMap={nodeMap}
@@ -253,7 +270,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
           <span className="ml-1">100% Conversion</span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

@@ -4,6 +4,7 @@ import { FunnelSummary } from "@/types/funnel";
 import { FunnelApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BarChart, Plus, FileCheck } from "lucide-react";
 import FunnelSummaryCard from "./FunnelSummaryCard";
@@ -18,7 +19,7 @@ export default function Dashboard() {
         setIsLoading(true);
         const funnels = await FunnelApi.listFunnels();
         // Sort by most recently updated
-        const sorted = funnels.sort((a, b) => b.updated - a.updated);
+        const sorted = funnels.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         setRecentFunnels(sorted.slice(0, 3));
       } catch (error) {
         console.error("Error loading recent funnels:", error);
@@ -32,7 +33,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <Button asChild>
@@ -60,25 +61,45 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Recent Funnels</h2>
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Recent Funnels</h2>
 
         {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="animate-pulse h-6 w-3/4 bg-gray-200 rounded"></div>
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                    <Skeleton className="h-5 w-12" />
+                  </div>
                 </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="animate-pulse space-y-2">
-                    <div className="h-4 w-full bg-gray-200 rounded"></div>
-                    <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                <CardContent className="pb-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <div className="pt-4 space-y-4">
+                      <Skeleton className="h-px w-full" />
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <Skeleton className="h-2 w-full" />
+                        <div className="flex justify-between">
+                          <Skeleton className="h-3 w-12" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between pt-4 border-t">
-                  <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
-                  <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+                <CardFooter className="flex gap-3 pt-6 border-t">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-24" />
                 </CardFooter>
               </Card>
             ))}
@@ -98,7 +119,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
             {recentFunnels.map((funnel) => (
               <FunnelSummaryCard key={funnel.id} funnel={funnel} />
             ))}
@@ -106,7 +127,7 @@ export default function Dashboard() {
         )}
 
         {recentFunnels.length > 0 && (
-          <div className="mt-4 flex justify-center">
+          <div className="flex justify-center pt-4">
             <Button variant="outline" asChild>
               <Link to="/funnels">View All Funnels</Link>
             </Button>

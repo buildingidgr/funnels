@@ -2,6 +2,7 @@ import { Funnel, FunnelResults, FunnelSummary } from "@/types/funnel";
 import { exampleFunnel } from "@/types/funnelExample";
 import { exampleFunnel4 } from "@/types/funnelExample4";
 import { exampleFunnel5 } from "@/types/funnelExample5";
+import { exampleFunnel6 } from "@/types/funnelExample6";
 import { toast } from "sonner";
 
 // Mock API service (would be replaced with actual API calls)
@@ -70,6 +71,13 @@ const defaultFunnels: Funnel[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     lastCalculatedAt: null
+  },
+  {
+    ...exampleFunnel6,
+    id: 'customer-support-funnel-001',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    lastCalculatedAt: null
   }
 ];
 
@@ -80,17 +88,12 @@ let mockFunnels: Funnel[] = [];
 export const resetFunnels = (): void => {
   console.log('Resetting funnels to default...');
   try {
-    // Clear localStorage
     localStorage.removeItem(STORAGE_KEYS.FUNNELS);
-    console.log('Successfully cleared localStorage');
-    
-    // Initialize with default funnels
     mockFunnels = [...defaultFunnels];
-    console.log('Initialized with default funnels:', mockFunnels);
-    
-    // Save to localStorage
     localStorage.setItem(STORAGE_KEYS.FUNNELS, JSON.stringify(mockFunnels));
-    console.log('Successfully saved default funnels to localStorage');
+    
+    // Force page reload to see changes
+    window.location.reload();
   } catch (error) {
     console.error('Error resetting funnels:', error);
   }
@@ -156,14 +159,41 @@ export const FunnelApi = {
   }): Promise<FunnelSummary[]> => {
     try {
       // Return mock data instead of making API call
-      return mockFunnels.map(funnel => ({
-        id: funnel.id!,
-        name: funnel.name,
-        description: funnel.description,
-        createdAt: funnel.createdAt!,
-        updatedAt: funnel.updatedAt!,
-        lastCalculatedAt: funnel.lastCalculatedAt!
-      }));
+      return mockFunnels.map(funnel => {
+        // Calculate performance metrics from step data
+        const enabledSteps = funnel.steps.filter(step => step.isEnabled);
+        const totalVisitors = enabledSteps[0]?.visitorCount || 0;
+        const finalStep = enabledSteps[enabledSteps.length - 1];
+        const finalVisitors = finalStep?.visitorCount || 0;
+        const conversionRate = totalVisitors > 0 ? (finalVisitors / totalVisitors) * 100 : 0;
+
+        const performanceSteps = enabledSteps.map((step, index) => {
+          const previousStep = index > 0 ? enabledSteps[index - 1] : null;
+          const previousVisitors = previousStep?.visitorCount || totalVisitors;
+          const stepConversionRate = previousVisitors > 0 ? (step.visitorCount / previousVisitors) * 100 : 0;
+
+          return {
+            id: step.id,
+            name: step.name,
+            visitorCount: step.visitorCount || 0,
+            conversionRate: stepConversionRate
+          };
+        });
+
+        return {
+          id: funnel.id!,
+          name: funnel.name,
+          description: funnel.description,
+          createdAt: funnel.createdAt!,
+          updatedAt: funnel.updatedAt!,
+          lastCalculatedAt: funnel.lastCalculatedAt!,
+          performance: {
+            totalVisitors,
+            conversionRate,
+            steps: performanceSteps
+          }
+        };
+      });
     } catch (error: any) {
       return handleApiError(error);
     }

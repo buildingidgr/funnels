@@ -3,10 +3,8 @@ import { FunnelStep, Conditions } from "@/types/funnel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { AccordionItem, AccordionContent, AccordionTrigger } from "@/components/ui/accordion";
-import { StepConditionBuilder } from "@/components/funnel/StepConditionBuilder";
+import { StepConditionBuilder } from "@/components/funnel/step-condition-builder/StepConditionBuilder";
 import { SplitListSection } from "./SplitListSection";
 
 interface StepAccordionItemProps {
@@ -77,13 +75,15 @@ export function StepAccordionItem({
             onChange={onUpdateConditions}
           />
 
-          <SplitListSection
-            splits={step.splitVariations || []}
-            onAddSplit={onAddSplit}
-            onUpdateSplit={onUpdateSplit}
-            onUpdateSplitConditions={onUpdateSplitConditions}
-            onRemoveSplit={onRemoveSplit}
-          />
+          <div className="pt-4 border-t border-gray-200">
+            <SplitListSection
+              splits={step.splitVariations || []}
+              onAddSplit={onAddSplit}
+              onUpdateSplit={onUpdateSplit}
+              onUpdateSplitConditions={onUpdateSplitConditions}
+              onRemoveSplit={onRemoveSplit}
+            />
+          </div>
         </div>
       </AccordionContent>
     </AccordionItem>

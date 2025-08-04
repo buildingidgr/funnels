@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import FunnelsListPage from "./pages/FunnelsListPage";
 import FunnelCreatePage from "./pages/FunnelCreatePage";
-import FunnelDetailsPage from "./pages/FunnelDetailsPage";
 import FunnelEditPage from "./pages/FunnelEditPage";
 import FunnelAnalysisPage from "./pages/FunnelAnalysisPage";
 
@@ -22,7 +21,6 @@ const App = () => (
           <Route path="/" element={<Navigate to="/funnels" replace />} />
           <Route path="/funnels" element={<FunnelsListPage />} />
           <Route path="/funnels/create" element={<FunnelCreatePage />} />
-          <Route path="/funnels/:id" element={<FunnelDetailsPage />} />
           <Route path="/funnels/:id/edit" element={<FunnelEditPage />} />
           <Route path="/funnels/:id/analysis" element={<FunnelAnalysisPage />} />
           <Route path="*" element={<NotFound />} />

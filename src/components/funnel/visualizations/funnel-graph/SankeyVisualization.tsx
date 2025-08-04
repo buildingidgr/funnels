@@ -305,8 +305,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         overflow: 'visible',
         background: '#f8fafc',
         borderRadius: '12px',
-        padding: '24px',
-        boxShadow: '0 4px 20px rgba(30,41,59,0.08)'
+        padding: '24px'
       }} ref={containerRef}>
         <ResponsiveContainer width="100%" height="100%">
           <Sankey

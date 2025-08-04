@@ -276,91 +276,9 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
 
   return (
     <div className="relative">
-      {/* Enhanced Label Section */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-medium text-gray-700">Funnel Path Legend</h3>
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-gray-600">Best Converting:</span>
-              <span className="font-medium text-green-700">
-                {steps.find(s => s.id === bestConvertingStep.step.id)?.name} ({bestConvertingStep.conversionRate.toFixed(1)}%)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-gray-600">Highest Drop-off:</span>
-              <span className="font-medium text-red-700">
-                {steps.find(s => s.id === highestDropOffStep.step.id)?.name} ({highestDropOffStep.dropOffRate.toFixed(1)}%)
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {sankeyGraphNodesInput.map((node) => {
-            const nodeColor = node.id === 'start' || node.id === 'end' 
-              ? '#3b82f6' 
-              : 'isSplit' in node && node.isSplit
-                ? '#6366f1'
-                : 'isOptional' in node && node.isOptional
-                  ? '#a855f7' 
-                  : '#22c55e';
-            
-            const getNodeType = () => {
-              if (node.id === 'start') return 'Initial Step';
-              if (node.id === 'end') return 'Final Step';
-              if ('isSplit' in node && node.isSplit) return 'Split Path';
-              if ('isOptional' in node && node.isOptional) return 'Optional Step';
-              return 'Main Step';
-            };
-
-            const isSplit = 'isSplit' in node && node.isSplit;
-            const isOptional = 'isOptional' in node && node.isOptional;
-            const isMainStep = !isSplit && !isOptional && node.id !== 'start' && node.id !== 'end';
-
-            return (
-              <div 
-                key={node.id} 
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 hover:scale-105 ${
-                  isSplit 
-                    ? 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100 hover:shadow-md' 
-                    : isOptional
-                      ? 'bg-purple-50 border-purple-100 hover:bg-purple-100 hover:shadow-md'
-                      : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-sm" 
-                    style={{ backgroundColor: nodeColor }}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{node.name}</span>
-                    <span className={`text-sm ${
-                      isSplit 
-                        ? 'text-indigo-600' 
-                        : isOptional
-                          ? 'text-purple-600'
-                          : 'text-gray-500'
-                    }`}>
-                      {getNodeType()}
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-auto">
-                  <span className="text-sm font-medium text-gray-700">
-                    {formatNumber(node.value)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
+      {/* Funnel Path Legend removed */}
       {/* Sankey Graph Container */}
-      <div className="relative bg-white rounded-lg shadow-lg border border-gray-100 p-4">
+      <div className="relative bg-white rounded-lg p-4">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="absolute inset-0" style={{

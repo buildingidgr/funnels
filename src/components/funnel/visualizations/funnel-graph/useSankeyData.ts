@@ -4,7 +4,21 @@ import { SankeyData, SankeyNode, SankeyLink } from "./types";
 
 export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number): SankeyData => {
   return useMemo(() => {
-    if (enabledSteps.length === 0) return { nodes: [], links: [] };
+    console.log("[DEBUG] useSankeyData called with:", {
+      enabledStepsCount: enabledSteps.length,
+      initialValue,
+      steps: enabledSteps.map(step => ({
+        name: step.name,
+        value: step.value,
+        visitorCount: step.visitorCount,
+        hasSplit: step.split && step.split.length > 0
+      }))
+    });
+
+    if (enabledSteps.length === 0) {
+      console.log("[DEBUG] No enabled steps, returning empty data");
+      return { nodes: [], links: [] };
+    }
     
     // Define colors for different steps - make them more distinct
     const nodeColors = [
@@ -25,6 +39,12 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
       const currentValue = step.value || 0;
       const color = nodeColors[index % nodeColors.length];
       
+      console.log(`[DEBUG] Creating node for step ${step.name}:`, {
+        id: `step-${index}`,
+        value: currentValue,
+        color
+      });
+      
       nodes.push({
         id: `step-${index}`,
         name: step.name,
@@ -39,6 +59,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
       
       // Handle split steps if they exist - add null check for step.split
       if (step.split && step.split.length > 0) {
+        console.log(`[DEBUG] Processing splits for step ${step.name}:`, step.split);
         step.split.forEach((splitStep, splitIndex) => {
           const splitValue = splitStep.value || 0;
           // Only add split steps with values
@@ -58,6 +79,11 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
               width: 0,
               height: 0
             });
+            console.log(`[DEBUG] Created split node:`, {
+              id: `step-${index}-split-${splitIndex}`,
+              name: splitStep.name,
+              value: splitValue
+            });
           }
         });
       }
@@ -69,6 +95,8 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
     const links: SankeyLink[] = [];
     previousValue = initialValue;
     
+    console.log("[DEBUG] Creating links between nodes");
+    
     // Create links between nodes
     for (let i = 0; i < enabledSteps.length; i++) {
       const currentStep = enabledSteps[i];
@@ -77,6 +105,12 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
       // Add link from previous step to current step
       if (i === 0) {
         // This is the first step, link from initialValue
+        console.log(`[DEBUG] Creating initial link to step ${currentStep.name}:`, {
+          source: "initial",
+          target: `step-${i}`,
+          value: currentValue,
+          sourceValue: initialValue
+        });
         links.push({
           source: "initial",
           target: `step-${i}`,
@@ -94,6 +128,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         
         // Skip links from zero value nodes
         if (prevValue === 0) {
+          console.log(`[DEBUG] Skipping link from step ${prevStep.name} (zero value)`);
           // Use continue to skip to the next iteration
           continue;
         }
@@ -103,19 +138,30 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         // Format percentage safely
         const formattedPercentage = isNaN(percentage) ? "0.0" : percentage.toFixed(1);
         
-        links.push({
-          source: `step-${i - 1}`,
-          target: `step-${i}`,
-          value: currentValue,
-          sourceValue: prevValue, // Add source value for percentage calculation
-          path: "", 
-          color: nodes[i].color + "90",
-          labelValue: `${currentValue.toLocaleString()}`,
-          labelPercentage: `${formattedPercentage}%`,
-          // Add source and target colors for gradient
-          sourceColor: nodes[i-1].color + "90",
-          targetColor: nodes[i].color + "90"
-        });
+        // Only create the direct link from previous -> current if the previous step is required
+        // (or if there is no step before the previous one to form a bypass).
+        if (prevStep.isRequired || i < 2) {
+          console.log(`[DEBUG] Creating link from ${prevStep.name} to ${currentStep.name}:`, {
+            source: `step-${i - 1}`,
+            target: `step-${i}`,
+            value: currentValue,
+            sourceValue: prevValue,
+            percentage: formattedPercentage
+          });
+          links.push({
+            source: `step-${i - 1}`,
+            target: `step-${i}`,
+            value: currentValue,
+            sourceValue: prevValue, // Add source value for percentage calculation
+            path: "", 
+            color: nodes[i].color + "90",
+            labelValue: `${currentValue.toLocaleString()}`,
+            labelPercentage: `${formattedPercentage}%`,
+            // Add source and target colors for gradient
+            sourceColor: nodes[i-1].color + "90",
+            targetColor: nodes[i].color + "90"
+          });
+        }
         
         // Handle links from previous step splits to current step if they exist
         // Add null check for prevStep.split
@@ -129,6 +175,12 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
               
               const sourceNode = nodes.find(n => n.id === `step-${i-1}-split-${splitIndex}`);
               if (sourceNode) {
+                console.log(`[DEBUG] Creating split link from ${splitStep.name} to ${currentStep.name}:`, {
+                  source: `step-${i-1}-split-${splitIndex}`,
+                  target: `step-${i}`,
+                  value: splitValue,
+                  percentage: formattedSplitPercentage
+                });
                 links.push({
                   source: `step-${i-1}-split-${splitIndex}`,
                   target: `step-${i}`,
@@ -165,6 +217,13 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
           
           const targetNode = nodes.find(n => n.id === `step-${i}-split-${splitIndex}`);
           
+          console.log(`[DEBUG] Creating link from ${currentStep.name} to split ${splitStep.name}:`, {
+            source: `step-${i}`,
+            target: `step-${i}-split-${splitIndex}`,
+            value: splitValue,
+            percentage: formattedSplitPercentage
+          });
+          
           links.push({
             source: `step-${i}`,
             target: `step-${i}-split-${splitIndex}`,
@@ -181,10 +240,73 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         });
       }
       
+      // Check for optional step logic (bypass link generation)
+      if (i >= 2) {
+        const prevStep = enabledSteps[i - 1];
+        const prevValue = prevStep.value || 0;
+        
+        if (!prevStep.isRequired) {
+          // The previous step is optional – create two links:
+          // 1. From the optional step to the current step (scaled value)
+          // 2. A bypass link that skips the optional step (from the step before the optional one)
+
+          const prevPrevStep = enabledSteps[i - 2];
+          const prevPrevValue = prevPrevStep.value || 0;
+          const optionalStepValue = prevValue;
+
+          // Proportion of users that went through the optional step relative to the step before it
+          const optionalShare = prevPrevValue > 0 ? optionalStepValue / prevPrevValue : 0;
+
+          // Allocate current step visitors proportionally between the two incoming paths
+          const valueFromOptional = Math.round(currentValue * optionalShare);
+          const valueBypassing   = currentValue - valueFromOptional;
+
+          // --- Link from optional step -> current step --- //
+          if (valueFromOptional > 0) {
+            const formattedPercOpt = optionalStepValue > 0 ? ((valueFromOptional / optionalStepValue) * 100).toFixed(1) : "0.0";
+            links.push({
+              source: `step-${i - 1}`,
+              target: `step-${i}`,
+              value: valueFromOptional,
+              sourceValue: optionalStepValue,
+              path: "",
+              color: nodes[i - 1].color + "90",
+              labelValue: `${valueFromOptional.toLocaleString()}`,
+              labelPercentage: `${formattedPercOpt}%`,
+              sourceColor: nodes[i - 1].color + "90",
+              targetColor: nodes[i].color + "90"
+            });
+          }
+
+          // --- Bypass link prevPrev -> current step --- //
+          if (valueBypassing > 0) {
+            const formattedPercBypass = prevPrevValue > 0 ? ((valueBypassing / prevPrevValue) * 100).toFixed(1) : "0.0";
+            links.push({
+              source: `step-${i - 2}`,
+              target: `step-${i}`,
+              value: valueBypassing,
+              sourceValue: prevPrevValue,
+              path: "",
+              // Use a semi-transparent grey to visually distinguish the bypass link
+              color: "#6b7280" + "80", // Tailwind slate-500 with transparency
+              labelValue: `${valueBypassing.toLocaleString()}`,
+              labelPercentage: `${formattedPercBypass}%`,
+              sourceColor: nodes[i - 2].color + "90",
+              targetColor: nodes[i].color + "90"
+            });
+          }
+        }
+      }
+      
       previousValue = currentValue;
     }
     
-    console.log("Generated Sankey data:", { nodes, links });
+    console.log("[DEBUG] Generated Sankey data:", { 
+      nodes: nodes.length, 
+      links: links.length,
+      nodeIds: nodes.map(n => n.id),
+      linkDetails: links.map(l => ({ source: l.source, target: l.target, value: l.value }))
+    });
     return { nodes, links };
   }, [enabledSteps, initialValue]);
 };

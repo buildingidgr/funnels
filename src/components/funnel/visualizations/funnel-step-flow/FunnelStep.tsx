@@ -7,10 +7,13 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  SkipForward
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { calculatePercentage, calculateTotalPercentage, getColorClass, getTextColorClass } from "./utils";
+import { Badge } from "@/components/ui/badge";
 
 interface FunnelStepProps {
   step: FunnelStepType;
@@ -24,6 +27,9 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
   const colorClass = getColorClass(percentage);
   const textColorClass = getTextColorClass(percentage);
   const isImprovement = percentage > 100;
+  const isOptional = !step.isRequired;
+  const bypassedUsers = previousValue - (step.visitorCount || 0);
+  const bypassPercentage = previousValue > 0 ? (bypassedUsers / previousValue) * 100 : 0;
   
   const renderCondition = (condition: ConditionItem, i: number) => {
     return (
@@ -62,7 +68,14 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
               <span className="text-white text-lg font-semibold">{step.order}</span>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">{step.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-gray-800">{step.name}</h3>
+                {isOptional && (
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                    Optional
+                  </Badge>
+                )}
+              </div>
               {step.description && (
                 <p className="text-sm text-gray-500 mt-1">{step.description}</p>
               )}
@@ -83,7 +96,9 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
           {/* Conversion Rate */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Conversion Rate</span>
+              <span className="text-sm font-medium text-gray-600">
+                {isOptional ? 'Completion Rate' : 'Conversion Rate'}
+              </span>
               {isImprovement ? (
                 <TrendingUp className="w-4 h-4 text-green-500" />
               ) : (
@@ -102,22 +117,61 @@ const FunnelStep: React.FC<FunnelStepProps> = ({ step, previousValue, isFirst })
             </div>
           </div>
           
-          {/* Total Conversion */}
+          {/* Total Conversion or Bypass Info */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Conversion</span>
-              <span className={`text-sm ${textColorClass}`}>
-                {totalPercentage.toFixed(1)}%
+              <span className="text-sm font-medium text-gray-600">
+                {isOptional ? 'Bypass Rate' : 'Total Conversion'}
               </span>
+              {isOptional ? (
+                <SkipForward className="w-4 h-4 text-blue-500" />
+              ) : (
+                <span className={`text-sm ${textColorClass}`}>
+                  {totalPercentage.toFixed(1)}%
+                </span>
+              )}
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full ${colorClass}`}
-                style={{ width: `${Math.min(totalPercentage, 100)}%` }}
-              />
-            </div>
+            {isOptional ? (
+              <div className="flex items-baseline">
+                <span className="text-2xl font-bold text-blue-600">
+                  {bypassPercentage.toFixed(1)}%
+                </span>
+                <span className="ml-2 text-sm text-gray-500">
+                  bypassed ({bypassedUsers.toLocaleString()} users)
+                </span>
+              </div>
+            ) : (
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${colorClass}`}
+                  style={{ width: `${Math.min(totalPercentage, 100)}%` }}
+                />
+              </div>
+            )}
           </div>
         </div>
+        
+        {/* Optional Step Flow Summary */}
+        {isOptional && bypassedUsers > 0 && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-gray-700">Completed Path</span>
+                <span className="text-sm font-semibold text-green-600">
+                  {step.visitorCount?.toLocaleString() || 0} users
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <SkipForward className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">Bypassed Path</span>
+                <span className="text-sm font-semibold text-blue-600">
+                  {bypassedUsers.toLocaleString()} users
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Conditions */}
         {step.conditions.orEventGroups.length > 0 && (

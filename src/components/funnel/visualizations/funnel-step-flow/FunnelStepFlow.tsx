@@ -44,6 +44,7 @@ const FunnelStepFlow: React.FC<FunnelStepFlowProps> = ({ steps, initialValue }) 
                 <StepConnector 
                   previousValue={index === 0 ? initialValue : enabledSteps[index - 1].value || 0} 
                   currentValue={step.value || 0}
+                  isOptional={!enabledSteps[index - 1].isRequired}
                 />
               )}
               

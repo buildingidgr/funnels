@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash, ChevronDown, ChevronUp } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
 interface FunnelFormProps {
@@ -393,7 +392,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       } else {
         const { id } = await FunnelApi.createFunnel(funnel);
         toast.success("Funnel created successfully");
-        navigate(`/funnels/${id}`);
+        navigate(`/funnels/${id}/analysis`);
       }
     } catch (error) {
       console.error("Error saving funnel:", error);

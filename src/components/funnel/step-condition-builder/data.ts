@@ -64,6 +64,87 @@ export const eventProperties = {
     { name: "filterType", type: "string", label: "Filter Type" },
     { name: "filterValue", type: "string", label: "Filter Value" },
     { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  quickAddToCart: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "productSku", type: "string", label: "Product SKU" },
+    { name: "quantity", type: "number", label: "Quantity" },
+    { name: "price", type: "number", label: "Price" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  productPageAddToCart: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "productSku", type: "string", label: "Product SKU" },
+    { name: "quantity", type: "number", label: "Quantity" },
+    { name: "price", type: "number", label: "Price" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  reviewSectionViewed: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "reviewCount", type: "number", label: "Review Count" },
+    { name: "averageRating", type: "number", label: "Average Rating" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  cartNotEmpty: [
+    { name: "itemCount", type: "number", label: "Item Count" },
+    { name: "totalValue", type: "number", label: "Total Value" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  checkoutStarted: [
+    { name: "step", type: "string", label: "Checkout Step" },
+    { name: "totalAmount", type: "number", label: "Total Amount" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  productViewed: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "productSku", type: "string", label: "Product SKU" },
+    { name: "category", type: "string", label: "Category" },
+    { name: "price", type: "number", label: "Price" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  wishlistAdded: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "productSku", type: "string", label: "Product SKU" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  wishlistRemoved: [
+    { name: "productId", type: "string", label: "Product ID" },
+    { name: "productSku", type: "string", label: "Product SKU" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  couponApplied: [
+    { name: "couponCode", type: "string", label: "Coupon Code" },
+    { name: "discountAmount", type: "number", label: "Discount Amount" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  couponRemoved: [
+    { name: "couponCode", type: "string", label: "Coupon Code" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  shippingMethodSelected: [
+    { name: "method", type: "string", label: "Shipping Method" },
+    { name: "cost", type: "number", label: "Shipping Cost" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  paymentMethodSelected: [
+    { name: "method", type: "string", label: "Payment Method" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  orderConfirmed: [
+    { name: "orderId", type: "string", label: "Order ID" },
+    { name: "totalAmount", type: "number", label: "Total Amount" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  orderCancelled: [
+    { name: "orderId", type: "string", label: "Order ID" },
+    { name: "reason", type: "string", label: "Cancellation Reason" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
+  ],
+  orderRefunded: [
+    { name: "orderId", type: "string", label: "Order ID" },
+    { name: "refundAmount", type: "number", label: "Refund Amount" },
+    { name: "reason", type: "string", label: "Refund Reason" },
+    { name: "timestamp", type: "date", label: "Timestamp" }
   ]
 };
 

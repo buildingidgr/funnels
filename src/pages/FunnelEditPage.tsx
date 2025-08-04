@@ -6,6 +6,7 @@ import { Funnel } from "@/types/funnel";
 import { toast } from "sonner";
 import FunnelForm from "@/components/funnel/FunnelForm";
 import { StepEditSidebar } from "@/components/funnel/step-edit-sidebar";
+import { AIFunnelGenerator } from "@/components/funnel/AIFunnelGenerator";
 import { 
   Dialog,
   DialogContent,
@@ -50,6 +51,22 @@ export default function FunnelEditPage() {
     setFunnel(updatedFunnel);
   };
 
+  const handleAIGeneratedSteps = (generatedSteps: any[]) => {
+    if (!funnel) return;
+    
+    // Merge with existing steps, ensuring proper ordering
+    const updatedSteps = [...funnel.steps, ...generatedSteps];
+    
+    // Reorder all steps to ensure sequential ordering
+    updatedSteps.forEach((step, index) => {
+      step.order = index + 1;
+    });
+    
+    const updatedFunnel = { ...funnel, steps: updatedSteps };
+    setFunnel(updatedFunnel);
+    toast.success(`Added ${generatedSteps.length} AI-generated steps to your funnel!`);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -86,7 +103,11 @@ export default function FunnelEditPage() {
   return (
     <DashboardLayout>
       <div className="relative">
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-end gap-2">
+          <AIFunnelGenerator 
+            onGenerate={handleAIGeneratedSteps}
+            existingSteps={funnel?.steps || []}
+          />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">

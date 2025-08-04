@@ -11,7 +11,7 @@ interface FunnelFlowProps {
 
 const FunnelFlow: React.FC<FunnelFlowProps> = ({ steps, initialValue }) => {
   // Filter out disabled steps
-  const enabledSteps = steps.filter(step => step.enable);
+  const enabledSteps = steps.filter(step => step.isEnabled);
   
   if (enabledSteps.length === 0) {
     return (
