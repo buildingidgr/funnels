@@ -228,31 +228,70 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   const getConversionRateClass = () => {
     if (conversionRate >= 75) return "bg-gradient-to-r from-green-50 to-white";
     if (conversionRate >= 40) return "bg-gradient-to-r from-yellow-50 to-white";
-    return "bg-gradient-to-r from-red-50 to-white";
+    return "bg-gradient-to-r from-gray-50 to-white";
   };
 
-  // Calculate performance insights
+  // Calculate performance insights with proper step names and conversion rates
+  console.log('[DEBUG] enabledSteps for performance insights:', enabledSteps.map(step => ({
+    id: step.id,
+    name: step.name,
+    order: step.order,
+    value: step.value,
+    visitorCount: step.visitorCount
+  })));
+
+  // Calculate conversion rates for each step
+  const stepConversionRates = enabledSteps.map((step, index) => {
+    const currentValue = step.value || step.visitorCount || 0;
+    const previousValue = index === 0 ? initialValue : (enabledSteps[index - 1].value || enabledSteps[index - 1].visitorCount || 0);
+    const conversionRate = previousValue > 0 ? (currentValue / previousValue) * 100 : 0;
+    
+    return {
+      step,
+      conversionRate,
+      currentValue,
+      previousValue
+    };
+  });
+
+  console.log('[DEBUG] Step conversion rates:', stepConversionRates.map(s => ({
+    name: s.step.name,
+    conversionRate: s.conversionRate,
+    currentValue: s.currentValue,
+    previousValue: s.previousValue
+  })));
+
+  const bestPerformingStep = stepConversionRates.reduce((best, current) => 
+    current.conversionRate > best.conversionRate ? current : best
+  );
+
+  const worstPerformingStep = stepConversionRates.reduce((worst, current) => 
+    current.conversionRate < worst.conversionRate ? current : worst
+  );
+
   const performanceInsights = {
     totalUsers: data.nodes.reduce((sum, node) => sum + node.value, 0),
     overallConversion: conversionRate,
-    bestPerformingStep: enabledSteps.reduce((best, current) => {
-      const currentRate = current.value && current.visitorCount ? 
-        (current.value / current.visitorCount) * 100 : 0;
-      const bestRate = best.value && best.visitorCount ? 
-        (best.value / best.visitorCount) * 100 : 0;
-      return currentRate > bestRate ? current : best;
-    }),
-    worstPerformingStep: enabledSteps.reduce((worst, current) => {
-      const currentRate = current.value && current.visitorCount ? 
-        (current.value / current.visitorCount) * 100 : 0;
-      const worstRate = worst.value && worst.visitorCount ? 
-        (worst.value / worst.visitorCount) * 100 : 0;
-      return currentRate < worstRate ? current : worst;
-    })
+    bestPerformingStep: bestPerformingStep.step,
+    worstPerformingStep: worstPerformingStep.step,
+    bestConversionRate: bestPerformingStep.conversionRate,
+    worstConversionRate: worstPerformingStep.conversionRate
   };
 
+  console.log('[DEBUG] Performance insights calculated:', {
+    bestPerformingStep: performanceInsights.bestPerformingStep.name,
+    worstPerformingStep: performanceInsights.worstPerformingStep.name,
+    bestConversionRate: performanceInsights.bestConversionRate,
+    worstConversionRate: performanceInsights.worstConversionRate,
+    totalUsers: performanceInsights.totalUsers,
+    overallConversion: performanceInsights.overallConversion
+  });
+
   return (
-    <div className={`w-full h-full overflow-hidden p-4 ${getConversionRateClass()} transition-all duration-300`}>
+    <div 
+      key={`funnel-graph-${performanceInsights.bestPerformingStep.name}-${performanceInsights.worstPerformingStep.name}`}
+      className={`w-full h-full overflow-hidden p-4 ${getConversionRateClass()} transition-all duration-300`}
+    >
       {/* Header with enhanced controls */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
@@ -278,35 +317,11 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
         
         {/* Performance Summary */}
         <div className="flex items-center gap-4">
-          <div className="text-sm">
-            <span className="font-medium">Overall Conversion:</span> 
-            <span className={`ml-1 font-bold ${
-              conversionRate >= 75 ? "text-green-600" : 
-              conversionRate >= 40 ? "text-yellow-600" : 
-              "text-red-600"
-            }`}>
-              {conversionRate.toFixed(1)}%
-            </span>
-          </div>
-          
-          {/* Quick Performance Indicators */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-              <span className="text-green-600">Best: {performanceInsights.bestPerformingStep.name}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs">
-              <TrendingDown className="h-3 w-3 text-red-600" />
-              <span className="text-red-600">Needs: {performanceInsights.worstPerformingStep.name}</span>
-            </div>
-          </div>
+          {/* Removed Overall Conversion text and percentage */}
         </div>
       </div>
       
-      {/* Render step labels above the chart with proper containment */}
-      <div className="px-2 pb-3">
-        <StepLabels data={data} enabledSteps={enabledSteps} />
-      </div>
+
       
       {/* Render the Sankey visualization with proper containment */}
       <div className="w-full h-[600px] bg-white rounded-lg p-2 shadow-sm">
@@ -323,41 +338,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
         />
       </div>
       
-      {/* Enhanced Legend with Performance Context */}
-      <div className="flex flex-wrap justify-center mt-4 gap-x-6 gap-y-2 text-xs text-gray-600">
-        <div className="flex items-center">
-          <div className="w-8 h-3 rounded-sm flex items-center" style={{ backgroundColor: "#3b82f6" }}></div>
-          <span className="ml-1">Step 1</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-3 rounded-sm flex items-center" style={{ backgroundColor: "#10b981" }}></div>
-          <span className="ml-1">Step 2</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-3 rounded-sm flex items-center" style={{ backgroundColor: "#8b5cf6" }}></div>
-          <span className="ml-1">Step 3</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-3 rounded-sm flex items-center" style={{ backgroundColor: "#f59e0b" }}></div>
-          <span className="ml-1">Step 4</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-1 border-t-4 border-green-500"></div>
-          <span className="ml-1">High Conversion</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-1 border-t-[1px] border-red-500"></div>
-          <span className="ml-1">Low Conversion</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-1 border-t-[6px] border-dashed border-blue-400"></div>
-          <span className="ml-1">Split Flow</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-8 h-1 border-t-[4px] border-yellow-500"></div>
-          <span className="ml-1">Medium Conversion</span>
-        </div>
-      </div>
+
       
       {/* Performance Insights Footer */}
       <div className="mt-4 p-3 bg-white/80 rounded-lg border border-gray-200">
@@ -373,14 +354,42 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
             <Target className="h-4 w-4 text-green-600" />
             <div>
               <div className="font-medium text-gray-700">Best Performing</div>
-              <div className="text-sm font-bold text-green-800">{performanceInsights.bestPerformingStep.name}</div>
+              <div className="text-sm font-bold text-green-800">
+                {(() => {
+                  const stepName = performanceInsights.bestPerformingStep.name || 'Unknown Step';
+                  const conversionRate = performanceInsights.bestConversionRate.toFixed(1);
+                  console.log('[DEBUG] RENDERING Best Performing:', { stepName, conversionRate });
+                  return stepName;
+                })()}
+              </div>
+              <div className="text-xs text-green-600">
+                {(() => {
+                  const conversionRate = performanceInsights.bestConversionRate.toFixed(1);
+                  console.log('[DEBUG] RENDERING Best Conversion Rate:', conversionRate);
+                  return conversionRate;
+                })()}%
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-4 w-4 text-gray-600" />
             <div>
               <div className="font-medium text-gray-700">Needs Attention</div>
-              <div className="text-sm font-bold text-red-800">{performanceInsights.worstPerformingStep.name}</div>
+              <div className="text-sm font-bold text-gray-800">
+                {(() => {
+                  const stepName = performanceInsights.worstPerformingStep.name || 'Unknown Step';
+                  const conversionRate = performanceInsights.worstConversionRate.toFixed(1);
+                  console.log('[DEBUG] RENDERING Needs Attention:', { stepName, conversionRate });
+                  return stepName;
+                })()}
+              </div>
+              <div className="text-xs text-gray-600">
+                {(() => {
+                  const conversionRate = performanceInsights.worstConversionRate.toFixed(1);
+                  console.log('[DEBUG] RENDERING Worst Conversion Rate:', conversionRate);
+                  return conversionRate;
+                })()}%
+              </div>
             </div>
           </div>
         </div>

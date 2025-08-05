@@ -23,5 +23,5 @@ export const getConversionColor = (conversionRate: number): string => {
   if (conversionRate >= 60) return "bg-green-400";
   if (conversionRate >= 40) return "bg-yellow-500";
   if (conversionRate >= 20) return "bg-orange-500";
-  return "bg-red-500";
+  return "bg-gray-500"; // Changed from bg-red-500 to bg-gray-500
 };

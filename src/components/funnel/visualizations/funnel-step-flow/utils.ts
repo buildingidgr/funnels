@@ -21,7 +21,7 @@ export const calculateTotalPercentage = (value: number | undefined, initialValue
 export const getColorClass = (percentage: number): string => {
   if (percentage >= 70) return "bg-green-500";
   if (percentage >= 40) return "bg-yellow-500";
-  return "bg-red-500";
+  return "bg-gray-500"; // Changed from bg-red-500 to bg-gray-500
 };
 
 /**
@@ -30,5 +30,5 @@ export const getColorClass = (percentage: number): string => {
 export const getTextColorClass = (percentage: number): string => {
   if (percentage >= 70) return "text-green-600";
   if (percentage >= 40) return "text-yellow-600";
-  return "text-red-600";
+  return "text-gray-600"; // Changed from text-red-600 to text-gray-600
 };

@@ -16,11 +16,19 @@ export const StepLabels: React.FC<StepLabelsProps> = ({ data, enabledSteps }) =>
 
   // Calculate conversion rates and find best/worst performing steps
   const stepMetrics = enabledSteps.map((step, index) => {
-    const currentValue = step.visitorCount || 0;
-    const previousValue = index === 0 ? data.nodes[0].value : (enabledSteps[index - 1].visitorCount || 0);
+    const currentValue = step.value || step.visitorCount || 0;
+    const previousValue = index === 0 ? data.nodes[0].value : (enabledSteps[index - 1].value || enabledSteps[index - 1].visitorCount || 0);
     const conversionRate = previousValue > 0 ? (currentValue / previousValue) * 100 : 0;
     const dropOff = previousValue - currentValue;
     const dropOffRate = previousValue > 0 ? (dropOff / previousValue) * 100 : 0;
+    
+    console.log('[DEBUG] StepLabels calculation for step:', {
+      name: step.name,
+      currentValue,
+      previousValue,
+      conversionRate,
+      dropOffRate
+    });
     
     return {
       step,
@@ -69,21 +77,21 @@ export const StepLabels: React.FC<StepLabelsProps> = ({ data, enabledSteps }) =>
         </div>
       </div>
 
-      {/* Step Labels */}
-      <div className="flex justify-between w-full px-4">
+      {/* Enhanced Step Labels */}
+      <div className="flex justify-between w-full px-4 gap-2">
         {/* Initial Users Label */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.div 
-                className="flex flex-col items-center gap-2 min-w-[100px] max-w-[140px] cursor-help"
+                className="flex flex-col items-center gap-2 min-w-[120px] max-w-[160px] cursor-help"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-bold shadow-sm">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-700 text-base font-bold shadow-md">
                   0
                 </div>
-                <div className="px-4 py-2 rounded-lg bg-blue-50 text-blue-800 text-sm font-medium truncate text-center w-full border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="px-4 py-3 rounded-lg bg-blue-50 text-blue-800 text-sm font-semibold truncate text-center w-full border-2 border-blue-200 shadow-md hover:shadow-lg transition-all duration-200">
                   Initial Users
                 </div>
               </motion.div>
@@ -133,22 +141,22 @@ export const StepLabels: React.FC<StepLabelsProps> = ({ data, enabledSteps }) =>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <motion.div 
-                    className="flex flex-col items-center gap-2 min-w-[100px] max-w-[140px] cursor-help"
+                    className="flex flex-col items-center gap-2 min-w-[120px] max-w-[160px] cursor-help"
                     whileHover={{ scale: 1.02 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
                     <div className="relative">
-                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${circle} ${text} text-sm font-bold shadow-sm`}>
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full ${circle} ${text} text-base font-bold shadow-md`}>
                         {index + 1}
                       </div>
                       {hasSplits && (
                         <div className="absolute -top-1 -right-1">
-                          <Split className="h-4 w-4 text-indigo-600" />
+                          <Split className="h-5 w-5 text-indigo-600" />
                         </div>
                       )}
                     </div>
                     <div 
-                      className={`px-4 py-2 rounded-lg ${bg} ${text} text-sm font-medium truncate text-center w-full border ${border} shadow-sm hover:shadow-md transition-shadow relative`}
+                      className={`px-4 py-3 rounded-lg ${bg} ${text} text-sm font-semibold truncate text-center w-full border-2 ${border} shadow-md hover:shadow-lg transition-all duration-200 relative`}
                       title={`Step ${step.order}: ${step.name}`}
                     >
                       {step.name}

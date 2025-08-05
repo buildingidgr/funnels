@@ -3,7 +3,7 @@ import { Funnel } from './funnel';
 export const exampleFunnel5: Funnel = {
   id: 'mobile-app-engagement-funnel-001',
   name: "Mobile App Engagement Funnel",
-  description: "Tracks users through mobile app engagement with multiple split paths for different app features and user segments",
+  description: "Tracks users through mobile app engagement with realistic conversion rates and detailed mobile-specific event tracking",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   lastCalculatedAt: null,
@@ -14,134 +14,155 @@ export const exampleFunnel5: Funnel = {
   performedBy: "all_contacts",
   steps: [
     {
-      id: "step-1-app-install",
-      name: "App Installation",
+      id: "step-1-app-store-visit",
+      name: "App Store Visit",
       displayColor: "#4A90E2",
       order: 1,
-      visitorCount: 12000,
+      visitorCount: 20000,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "appInstalled",
+            eventName: "app_store_page_view",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "store_type",
+                operator: "contains",
+                value: ["ios_app_store", "google_play"],
+                type: "string"
+              },
+              {
+                name: "view_duration",
+                operator: "greaterThanNumeric",
+                value: 10,
+                type: "number"
+              }
+            ]
           }
         ]
       }
     },
     {
-      id: "step-2-platform",
-      name: "Platform Selection",
+      id: "step-2-app-install",
+      name: "App Installation",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 11000,
+      visitorCount: 4000,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "platformSelected",
+            eventName: "app_installed",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "installation_source",
+                operator: "contains",
+                value: ["app_store", "google_play", "direct_link"],
+                type: "string"
+              }
+            ]
           }
         ]
-      },
-      splitVariations: [
-        {
-          id: "variation-1-ios",
-          name: "iOS Users",
-          visitorCount: 6000,
-          conditions: {
-            orEventGroups: [
-              {
-                eventName: "platformSelected",
-                operator: "equals",
-                count: 1,
-                properties: [
-                  {
-                    name: "platform",
-                    operator: "equals",
-                    value: "ios",
-                    type: "string"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          id: "variation-2-android",
-          name: "Android Users",
-          visitorCount: 5000,
-          conditions: {
-            orEventGroups: [
-              {
-                eventName: "platformSelected",
-                operator: "equals",
-                count: 1,
-                properties: [
-                  {
-                    name: "platform",
-                    operator: "equals",
-                    value: "android",
-                    type: "string"
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ]
+      }
     },
     {
-      id: "step-3-onboarding",
-      name: "Onboarding Completion",
+      id: "step-3-first-open",
+      name: "First App Open",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 9000,
+      visitorCount: 3200,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "onboardingCompleted",
+            eventName: "app_opened",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "session_type",
+                operator: "equals",
+                value: "first_open",
+                type: "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      id: "step-4-permissions",
+      name: "Permissions Granted",
+      displayColor: "#D0021B",
+      order: 4,
+      visitorCount: 2560,
+      isEnabled: true,
+      isRequired: true,
+      conditions: {
+        orEventGroups: [
+          {
+            eventName: "permissions_granted",
+            operator: "equals",
+            count: 1,
+            properties: [
+              {
+                name: "permission_type",
+                operator: "contains",
+                value: ["notifications", "location", "camera", "contacts"],
+                type: "string"
+              }
+            ]
           }
         ]
       },
       splitVariations: [
         {
-          id: "variation-1-full",
-          name: "Full Onboarding",
-          visitorCount: 6000,
+          id: "variation-1-critical",
+          name: "Critical Permissions",
+          visitorCount: 1792,
           conditions: {
             orEventGroups: [
               {
-                eventName: "fullOnboardingCompleted",
+                eventName: "permissions_granted",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "permission_type",
+                    operator: "contains",
+                    value: ["notifications", "location"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }
         },
         {
-          id: "variation-2-quick",
-          name: "Quick Onboarding",
-          visitorCount: 3000,
+          id: "variation-2-optional",
+          name: "Optional Permissions",
+          visitorCount: 768,
           conditions: {
             orEventGroups: [
               {
-                eventName: "quickOnboardingCompleted",
+                eventName: "permissions_granted",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "permission_type",
+                    operator: "contains",
+                    value: ["camera", "contacts"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }
@@ -149,20 +170,65 @@ export const exampleFunnel5: Funnel = {
       ]
     },
     {
-      id: "step-4-feature-usage",
-      name: "Feature Usage",
-      displayColor: "#D0021B",
-      order: 4,
-      visitorCount: 8000,
+      id: "step-5-onboarding",
+      name: "Onboarding Completed",
+      displayColor: "#9013FE",
+      order: 5,
+      visitorCount: 1920,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "featureUsed",
+            eventName: "onboarding_completed",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "onboarding_steps_completed",
+                operator: "greaterThanNumeric",
+                value: 3,
+                type: "number"
+              },
+              {
+                name: "onboarding_duration",
+                operator: "greaterThanNumeric",
+                value: 60,
+                type: "number"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      id: "step-6-feature-usage",
+      name: "Core Feature Used",
+      displayColor: "#50E3C2",
+      order: 6,
+      visitorCount: 1344,
+      isEnabled: true,
+      isRequired: true,
+      conditions: {
+        orEventGroups: [
+          {
+            eventName: "feature_used",
+            operator: "equals",
+            count: 1,
+            properties: [
+              {
+                name: "feature_category",
+                operator: "contains",
+                value: ["core", "primary"],
+                type: "string"
+              },
+              {
+                name: "usage_duration",
+                operator: "greaterThanNumeric",
+                value: 30,
+                type: "number"
+              }
+            ]
           }
         ]
       },
@@ -170,14 +236,21 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-1-social",
           name: "Social Features",
-          visitorCount: 4000,
+          visitorCount: 672,
           conditions: {
             orEventGroups: [
               {
-                eventName: "socialFeatureUsed",
+                eventName: "feature_used",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "feature_name",
+                    operator: "contains",
+                    value: ["share", "like", "comment", "follow"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }
@@ -185,14 +258,21 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-2-content",
           name: "Content Features",
-          visitorCount: 4000,
+          visitorCount: 672,
           conditions: {
             orEventGroups: [
               {
-                eventName: "contentFeatureUsed",
+                eventName: "feature_used",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "feature_name",
+                    operator: "contains",
+                    value: ["view", "create", "edit", "upload"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }
@@ -200,71 +280,65 @@ export const exampleFunnel5: Funnel = {
       ]
     },
     {
-      id: "step-5-engagement",
-      name: "User Engagement",
-      displayColor: "#9013FE",
-      order: 5,
-      visitorCount: 7000,
+      id: "step-7-daily-active",
+      name: "Daily Active User",
+      displayColor: "#FF6B6B",
+      order: 7,
+      visitorCount: 940,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "userEngaged",
+            eventName: "daily_active",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "session_count",
+                operator: "greaterThanNumeric",
+                value: 1,
+                type: "number"
+              },
+              {
+                name: "total_session_time",
+                operator: "greaterThanNumeric",
+                value: 120,
+                type: "number"
+              }
+            ]
           }
         ]
-      },
-      splitVariations: [
-        {
-          id: "variation-1-daily",
-          name: "Daily Active Users",
-          visitorCount: 4000,
-          conditions: {
-            orEventGroups: [
-              {
-                eventName: "dailyActive",
-                operator: "equals",
-                count: 1,
-                properties: []
-              }
-            ]
-          }
-        },
-        {
-          id: "variation-2-weekly",
-          name: "Weekly Active Users",
-          visitorCount: 3000,
-          conditions: {
-            orEventGroups: [
-              {
-                eventName: "weeklyActive",
-                operator: "equals",
-                count: 1,
-                properties: []
-              }
-            ]
-          }
-        }
-      ]
+      }
     },
     {
-      id: "step-6-monetization",
-      name: "Monetization",
-      displayColor: "#50E3C2",
-      order: 6,
-      visitorCount: 5000,
+      id: "step-8-monetization",
+      name: "Monetization Action",
+      displayColor: "#FFD93D",
+      order: 8,
+      visitorCount: 470,
       isEnabled: true,
       isRequired: true,
       conditions: {
         orEventGroups: [
           {
-            eventName: "monetizationAction",
+            eventName: "monetization_action",
             operator: "equals",
             count: 1,
-            properties: []
+            properties: [
+              {
+                name: "action_type",
+                operator: "contains",
+                value: ["subscription", "in_app_purchase", "premium_upgrade"],
+                type: "string"
+              },
+              {
+                name: "transaction_status",
+                operator: "equals",
+                value: "success",
+                type: "string"
+              }
+            ]
           }
         ]
       },
@@ -272,14 +346,21 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-1-subscription",
           name: "Subscription",
-          visitorCount: 3000,
+          visitorCount: 282,
           conditions: {
             orEventGroups: [
               {
-                eventName: "subscriptionPurchased",
+                eventName: "subscription_purchased",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "plan_type",
+                    operator: "contains",
+                    value: ["monthly", "annual"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }
@@ -287,14 +368,21 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-2-inapp",
           name: "In-App Purchase",
-          visitorCount: 2000,
+          visitorCount: 188,
           conditions: {
             orEventGroups: [
               {
-                eventName: "inAppPurchase",
+                eventName: "in_app_purchase",
                 operator: "equals",
                 count: 1,
-                properties: []
+                properties: [
+                  {
+                    name: "purchase_type",
+                    operator: "contains",
+                    value: ["premium_feature", "virtual_currency", "ad_removal"],
+                    type: "string"
+                  }
+                ]
               }
             ]
           }

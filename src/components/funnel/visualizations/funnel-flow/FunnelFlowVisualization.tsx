@@ -19,23 +19,39 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
   steps, 
   initialValue 
 }) => {
+  console.log('[DEBUG] FunnelFlowVisualization rendered:', {
+    stepsCount: steps.length,
+    initialValue,
+    steps: steps.map(s => ({ name: s.name, value: s.value, visitorCount: s.visitorCount }))
+  });
+
   return (
-    <div className="relative py-8 px-4 bg-gradient-to-b from-gray-50 to-white rounded-xl">
-      <div className="max-w-4xl mx-auto">
+    <div className="relative py-12 px-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 rounded-2xl border border-gray-200 shadow-lg">
+      <div className="max-w-5xl mx-auto">
         {steps.map((step, index) => {
           const isFirstStep = index === 0;
-          const previousValue = isFirstStep ? initialValue : (steps[index - 1].visitorCount || 0);
+          const previousValue = isFirstStep ? initialValue : (steps[index - 1].value || steps[index - 1].visitorCount || 0);
           const nextStep = index < steps.length - 1 ? steps[index + 1] : null;
-          const conversionRate = calculateConversion(step.visitorCount || 0, previousValue);
-          const dropoff = calculateDropoff(step.visitorCount || 0, previousValue);
+          const currentValue = step.value || step.visitorCount || 0;
+          const nextValue = nextStep ? (nextStep.value || nextStep.visitorCount || 0) : 0;
+          const conversionRate = calculateConversion(currentValue, previousValue);
+          const dropoff = calculateDropoff(currentValue, previousValue);
+          
+          console.log('[DEBUG] Processing step:', {
+            stepName: step.name,
+            currentValue,
+            previousValue,
+            conversionRate,
+            dropoff
+          });
           
           return (
             <motion.div
               key={`flow-step-${index}`}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="mb-12"
+              transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
+              className="mb-16"
             >
               {/* Step Visualization */}
               <FlowStep 
@@ -55,53 +71,74 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                       currentStep={step}
                       nextStep={nextStep}
                       previousValue={previousValue}
-                      currentValue={step.visitorCount || 0}
-                      nextValue={nextStep.visitorCount || 0}
+                      currentValue={currentValue}
+                      nextValue={nextValue}
                       index={index}
                     />
                   ) : (
                     /* For required steps, show standard connection */
                     <FlowConnection 
-                      sourceValue={step.visitorCount || 0}
-                      targetValue={nextStep.visitorCount || 0}
+                      sourceValue={currentValue}
+                      targetValue={nextValue}
                       dropoff={dropoff}
                       hasSplit={Boolean(step.splitVariations && step.splitVariations.length > 0)}
                       isOptional={!step.isRequired}
-                      skipValue={!step.isRequired ? previousValue - (step.visitorCount || 0) : undefined}
+                      skipValue={!step.isRequired ? previousValue - currentValue : undefined}
                     />
                   )}
                 </>
               )}
               
-              {/* Split Variations */}
+              {/* Enhanced Split Variations */}
               {step.splitVariations && step.splitVariations.length > 0 && (
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="mt-6 ml-12 pl-6 border-l-2 border-dashed border-gray-200"
+                  initial={{ opacity: 0, x: -30, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+                  className="mt-8 ml-16 pl-8 border-l-2 border-dashed border-indigo-200 relative"
                 >
-                  <div className="text-sm font-medium text-gray-600 mb-3 pl-2">
+                  {/* Decorative element */}
+                  <div className="absolute -left-2 top-0 w-4 h-4 bg-indigo-100 rounded-full border-2 border-indigo-300"></div>
+                  
+                  <div className="text-sm font-semibold text-indigo-700 mb-4 pl-2 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
                     Split Variations
                   </div>
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {step.splitVariations.map((splitStep, splitIndex) => (
                       <motion.div
                         key={`split-${index}-${splitIndex}`}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.2, delay: splitIndex * 0.1 }}
-                        className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: splitIndex * 0.1 + 0.4, ease: "easeOut" }}
+                        className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-5 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
                       >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-gray-800">{splitStep.name}</span>
-                          <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
-                            {((splitStep.visitorCount || 0) / (step.visitorCount || 1) * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-600">
-                          <span className="mr-2">👥</span>
-                          {splitStep.visitorCount?.toLocaleString() || 0} users
+                        {/* Animated background pattern */}
+                        <motion.div
+                          className="absolute inset-0 opacity-5"
+                          animate={{ 
+                            backgroundPosition: ['0% 0%', '100% 100%']
+                          }}
+                          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                          style={{
+                            backgroundImage: 'radial-gradient(circle, #6366f1 1px, transparent 1px)',
+                            backgroundSize: '20px 20px'
+                          }}
+                        />
+                        
+                        <div className="relative z-10">
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="font-semibold text-gray-800">{splitStep.name}</span>
+                            <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">
+                              {((splitStep.value || splitStep.visitorCount || 0) / (currentValue || 1) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="mt-3 flex items-center text-sm text-gray-600">
+                            <span className="mr-2 text-lg">👥</span>
+                            <span className="font-semibold text-gray-800">
+                              {(splitStep.value || splitStep.visitorCount || 0).toLocaleString()} users
+                            </span>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
