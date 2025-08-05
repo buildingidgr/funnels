@@ -85,6 +85,14 @@ const useDiagramLayout = (nodeCount: number, width: number) => {
 const CustomNode = (props: any) => {
   const { x, y, width, height, index, payload, isActive } = props;
   
+  // Debug logging to see what's being passed to the node
+  console.log(`[DEBUG] CustomNode props for index ${index}:`, {
+    payload,
+    displayName: payload.displayName,
+    originalName: payload.originalName,
+    name: payload.name
+  });
+  
   // Determine if this is a split step
   const isSplitStep = payload.name.includes('-split-');
   
@@ -114,12 +122,19 @@ const CustomNode = (props: any) => {
   let displayName = '';
   let originalName = '';
   
+  // Check if this is a step node (either by ID format or by checking if it's not a special node)
+  const isStepNode = payload.name.startsWith('step-') || 
+                    (!payload.name.toLowerCase().includes('start') && 
+                     !payload.name.toLowerCase().includes('end') && 
+                     !payload.name.toLowerCase().includes('initial'));
+  
   if (payload.name.startsWith('step-')) {
+    // Handle legacy format where name is "step-0", "step-1", etc.
     const parts = payload.name.split('-');
     if (parts.length >= 2) {
       const stepNum = parseInt(parts[1]) + 1; // Add 1 for user-friendly numbering
       
-      // Get the original step name from nodeMap if available
+      // Get the original step name from payload.originalName if available
       if (payload.originalName) {
         originalName = payload.originalName;
       }
@@ -131,9 +146,21 @@ const CustomNode = (props: any) => {
         displayName = splitName;
       }
     }
+  } else if (isStepNode) {
+    // Handle new format where name is the actual step name (e.g., "Landing Page")
+    if (payload.originalName) {
+      displayName = payload.originalName;
+    } else {
+      displayName = payload.name;
+    }
   } else {
-    // For non-step nodes (like "initial")
+    // For special nodes (like "Start", "End", "Initial")
     displayName = payload.name;
+  }
+  
+  // Use displayName from the node data if available (this is the actual step name)
+  if (payload.displayName) {
+    displayName = payload.displayName;
   }
   
   // Handle potentially long names by truncating if needed
@@ -642,6 +669,14 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   
   // Create enhanced components with non-state hover handling
   const EnhancedNode = useCallback((props: any) => {
+    // Debug logging for EnhancedNode
+    console.log('[DEBUG] EnhancedNode called with props:', {
+      index: props.index,
+      payload: props.payload,
+      displayName: props.payload?.displayName,
+      name: props.payload?.name
+    });
+    
     return (
       <g 
         onMouseEnter={handleNodeHover} 
@@ -672,6 +707,17 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   // Validate the data
   const validatedData = validateSankeyData(rechartsData);
   
+  // Debug logging for validatedData
+  console.log('[DEBUG] validatedData:', {
+    hasData: !!validatedData,
+    nodesCount: validatedData?.nodes?.length,
+    linksCount: validatedData?.links?.length,
+    nodes: validatedData?.nodes?.map(node => ({
+      name: node.name,
+      displayName: node.displayName
+    }))
+  });
+  
   // Calculate layout dimensions
   const { diagramWidth, nodePadding, nodeWidth, margins } = useDiagramLayout(
     validatedData?.nodes?.length || 0,
@@ -684,11 +730,26 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     
     // Add original names to nodes
     const nodesWithNames = validatedData.nodes.map(node => {
-      const mappedNode = nodeMap[node.name];
-      return {
+      // The node.name contains the node ID (like "step-0"), and node.displayName contains the actual step name
+      // We don't need to look up in nodeMap since the displayName is already set correctly
+      const enhancedNode = {
         ...node,
-        originalName: mappedNode?.name || ''
+        originalName: node.displayName || node.name || '',
+        displayName: node.displayName || node.name || ''
       };
+      
+      // Debug logging for each node
+      console.log(`[DEBUG] Enhanced node mapping:`, {
+        nodeName: node.name,
+        nodeDisplayName: node.displayName,
+        enhancedNode: {
+          name: enhancedNode.name,
+          displayName: enhancedNode.displayName,
+          originalName: enhancedNode.originalName
+        }
+      });
+      
+      return enhancedNode;
     });
     
     return {
@@ -766,6 +827,22 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
           coordinate={tooltipPosition}
         />
       </div>
+      
+      {/* Debug logging for the data being passed to Sankey */}
+      {(() => {
+        console.log('[DEBUG] Data being passed to Sankey component:', {
+          enhancedData: enhancedData ? {
+            nodesCount: enhancedData.nodes.length,
+            linksCount: enhancedData.links.length,
+            nodes: enhancedData.nodes.map(node => ({
+              name: node.name,
+              displayName: node.displayName,
+              originalName: node.originalName
+            }))
+          } : 'NO DATA'
+        });
+        return null;
+      })()}
       
       <ResponsiveContainer width="100%" height="100%">
         <Sankey

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sankey, ResponsiveContainer } from 'recharts';
 import { SankeyNode, SankeyLink } from './types';
 import { SankeyLegend } from './components/SankeyLegend';
@@ -60,6 +61,46 @@ const STEP_COLORS = {
 
 // Enhanced node component with better visual feedback
 const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) => {
+  // Determine if this is the first or last node to adjust text positioning
+  const isFirstNode = index === 0;
+  const isLastNode = index === (props.totalNodes - 1);
+  
+  // Debug logging to see what's being passed to the node
+  console.log(`[DEBUG] EnhancedNode props for index ${index}:`, {
+    payload,
+    displayName: payload.displayName,
+    name: payload.name,
+    x,
+    y,
+    width,
+    height,
+    isFirstNode,
+    isLastNode
+  });
+  
+  // Calculate text positioning based on node position
+  const textX = x + width / 2;
+  const textY = y - 12;
+  
+  // Create a temporary element to measure text width
+  const textContent = `${payload.displayName || payload.name} (${payload.value?.toLocaleString() || 0})`;
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  context.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const textWidth = context.measureText(textContent).width;
+  
+  // Add some padding around the text
+  const padding = 16;
+  const backgroundWidth = Math.max(textWidth + padding * 2, 120); // Minimum width of 120px
+  
+  // Ensure the background doesn't extend beyond reasonable bounds
+  const maxBackgroundWidth = 300; // Maximum background width
+  const finalBackgroundWidth = Math.min(backgroundWidth, maxBackgroundWidth);
+  const backgroundX = textX - finalBackgroundWidth / 2;
+  
+  // Ensure the background is properly centered
+  const adjustedBackgroundX = Math.max(0, backgroundX); // Don't let it go negative
+  
   const isSplit = payload.id.includes('split');
   const isDomestic = payload.name.toLowerCase().includes('domestic');
   const isInternational = payload.name.toLowerCase().includes('international');
@@ -102,7 +143,35 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
   }, [height, payload.name, props.onStepHeightChange]);
 
   return (
-    <g className={`sankey-node-group ${isSplit ? 'sankey-split-node' : ''}`}>
+    <g 
+      className={`sankey-node-group ${isSplit ? 'sankey-split-node' : ''}`}
+      onMouseEnter={(e) => {
+        console.log('[DEBUG] EnhancedNode mouse enter event:', {
+          payload,
+          event: { clientX: e.clientX, clientY: e.clientY },
+          timestamp: new Date().toISOString()
+        });
+        
+        // Call the handleNodeHover function if available
+        if (props.handleNodeHover) {
+          props.handleNodeHover(e, payload);
+        }
+      }}
+      onMouseLeave={(e) => {
+        console.log('[DEBUG] EnhancedNode mouse leave event:', {
+          payload,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Hide tooltip when mouse leaves node
+        if (props.setTooltipVisible) {
+          props.setTooltipVisible(false);
+        }
+        if (props.setSelectedNode) {
+          props.setSelectedNode(null);
+        }
+      }}
+    >
       {/* Node background with enhanced styling */}
       <rect
         x={x}
@@ -121,26 +190,49 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
         }}
       />
       
-      {/* Step name label - positioned above the node for better visibility */}
-      <text
-        x={x + width / 2}
-        y={y - 8}
-        textAnchor="middle"
-        className="sankey-step-label"
-        style={{
-          fontSize: '12px',
-          fontWeight: '600',
-          fill: '#1f2937',
-          textShadow: '0 1px 2px rgba(255, 255, 255, 0.9)',
-          paintOrder: 'stroke fill',
-          stroke: 'white',
-          strokeWidth: '3px',
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round'
-        }}
+
+      
+      {/* Add a background rectangle for better text visibility, especially for edge nodes */}
+      <rect
+        x={adjustedBackgroundX}
+        y={y - 30}
+        width={finalBackgroundWidth}
+        height={25}
+        fill="rgba(255, 255, 255, 0.95)"
+        rx={6}
+        ry={6}
+      />
+      
+      {/* Step name label with value - positioned above the node with background */}
+      <foreignObject
+        x={adjustedBackgroundX}
+        y={y - 35}
+        width={finalBackgroundWidth}
+        height={30}
+        style={{ overflow: 'visible' }}
       >
-        {payload.name}
-      </text>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: '600',
+            color: '#1f2937',
+            textAlign: 'center',
+            lineHeight: '1.2',
+            whiteSpace: 'nowrap',
+            overflow: 'visible',
+            textShadow: 'none',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          {payload.displayName || payload.name} ({payload.value?.toLocaleString() || 0})
+        </div>
+      </foreignObject>
       
       {/* User count with better formatting - positioned inside the node */}
       <text
@@ -188,6 +280,15 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
 // Enhanced link component with better visual feedback and performance indicators
 const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, ...props }: any) => {
   const [isHovered, setIsHovered] = useState(false);
+  
+  console.log('[DEBUG] EnhancedLink rendered:', {
+    payload,
+    isHovered,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Get the handleLinkHover function from props or context
+  const handleLinkHover = props.handleLinkHover;
   
   const isSplit = payload.sourceId?.includes('split') || payload.targetId?.includes('split');
   const isDomestic = payload.sourceId?.includes('domestic') || payload.targetId?.includes('international');
@@ -279,8 +380,31 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   return (
     <g 
       className="sankey-link-group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={(e) => {
+        console.log('[DEBUG] EnhancedLink mouse enter event:', {
+          payload,
+          event: { clientX: e.clientX, clientY: e.clientY },
+          timestamp: new Date().toISOString()
+        });
+        setIsHovered(true);
+        
+        // Call the handleLinkHover function if available
+        if (handleLinkHover) {
+          handleLinkHover(e, payload);
+        }
+      }}
+      onMouseLeave={(e) => {
+        console.log('[DEBUG] EnhancedLink mouse leave event:', {
+          payload,
+          timestamp: new Date().toISOString()
+        });
+        setIsHovered(false);
+        
+        // Hide tooltip when mouse leaves link
+        if (props.setTooltipVisible) {
+          props.setTooltipVisible(false);
+        }
+      }}
     >
       {/* Hover area for better interaction */}
       <path
@@ -341,61 +465,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         }}
       />
       
-      {/* Hover tooltip with flow details */}
-      {isHovered && (
-        <g>
-          {/* Background for tooltip */}
-          <rect
-            x={(sourceX + targetX) / 2 - 40}
-            y={(sourceY + targetY) / 2 - 25}
-            width={80}
-            height={50}
-            fill="rgba(0, 0, 0, 0.85)"
-            rx={6}
-            ry={6}
-            style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-          />
-          
-          {/* Flow percentage */}
-          <text
-            x={(sourceX + targetX) / 2}
-            y={(sourceY + targetY) / 2 - 8}
-            textAnchor="middle"
-            fill="white"
-            fontSize={12}
-            fontWeight="700"
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-          >
-            {percentage.toFixed(1)}%
-          </text>
-          
-          {/* User count */}
-          <text
-            x={(sourceX + targetX) / 2}
-            y={(sourceY + targetY) / 2 + 8}
-            textAnchor="middle"
-            fill="#94a3b8"
-            fontSize={10}
-            fontWeight="500"
-          >
-            {payload.value.toLocaleString()} users
-          </text>
-          
-          {/* Conversion rate if available */}
-          {conversionRate > 0 && (
-            <text
-              x={(sourceX + targetX) / 2}
-              y={(sourceY + targetY) / 2 + 22}
-              textAnchor="middle"
-              fill={isHighConversion ? '#10b981' : isLowConversion ? '#ef4444' : '#fbbf24'}
-              fontSize={9}
-              fontWeight="600"
-            >
-              {conversionRate.toFixed(1)}% conversion
-            </text>
-          )}
-        </g>
-      )}
+      {/* Removed built-in tooltip - using custom tooltip system instead */}
       
       {/* Conversion rate label on link (when not hovered) */}
       {conversionRate > 0 && payload.value > 50 && !isHovered && (
@@ -539,6 +609,234 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [stepHeights, setStepHeights] = useState<Record<string, number>>({});
   
+  // Render tooltip outside component lifecycle
+  useEffect(() => {
+    console.log('[DEBUG] Tooltip useEffect triggered:', {
+      showTooltips,
+      tooltipVisible,
+      tooltipContent: tooltipContent ? 'has content' : 'no content',
+      tooltipPosition,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (showTooltips && tooltipVisible && tooltipContent) {
+      console.log('[DEBUG] Creating tooltip element');
+      
+      const tooltipElement = document.createElement('div');
+      tooltipElement.id = 'sankey-tooltip';
+      tooltipElement.style.cssText = `
+        position: fixed;
+        left: ${tooltipPosition.x}px;
+        top: ${tooltipPosition.y}px;
+        transform: translate(-50%, -100%);
+        z-index: 2147483647;
+        pointer-events: none;
+        user-select: none;
+        isolation: isolate;
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        font-size: 14px;
+        line-height: 1.5;
+        color: #1e293b;
+        max-width: 320px;
+        border: 1px solid #e2e8f0;
+      `;
+      
+      // Create a simple text-based tooltip instead of trying to render React elements
+      console.log('[DEBUG] Tooltip content object:', tooltipContent);
+      
+      if (tooltipContent.type === 'link') {
+        // Handle link tooltip
+        const sourceNode = rechartsData.nodes.find(n => n.name === tooltipContent.sourceId);
+        const targetNode = rechartsData.nodes.find(n => n.name === tooltipContent.targetId);
+        
+        console.log('[DEBUG] Found nodes for link tooltip:', { sourceNode, targetNode });
+        
+        if (sourceNode && targetNode) {
+          const linkValue = tooltipContent.value || 0;
+          const sourceValue = tooltipContent.sourceValue || sourceNode.value || 0;
+          const percentage = ((linkValue / sourceValue) * 100).toFixed(1);
+          const conversionRate = tooltipContent.conversionRate || 0;
+          
+          // Get the actual step names from the nodeMap
+          const sourceStepName = nodeMap[sourceNode.name]?.name || sourceNode.name;
+          const targetStepName = nodeMap[targetNode.name]?.name || targetNode.name;
+          
+          console.log('[DEBUG] Link tooltip data:', {
+            linkValue,
+            sourceValue,
+            percentage,
+            conversionRate,
+            sourceNodeName: sourceStepName,
+            targetNodeName: targetStepName
+          });
+          
+          tooltipElement.innerHTML = `
+            <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
+              ${sourceStepName} → ${targetStepName}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <div style="color: #334155;">
+                <div style="font-size: 12px; color: #64748b;">Users</div>
+                <div style="font-weight: 600; font-size: 18px;">
+                  ${linkValue.toLocaleString()}
+                </div>
+              </div>
+              <div style="color: #334155; text-align: right;">
+                <div style="font-size: 12px; color: #64748b;">Conversion</div>
+                <div style="font-weight: 600; font-size: 18px;">
+                  ${percentage}%
+                </div>
+              </div>
+            </div>
+            
+            <div style="
+              padding: 8px 12px; 
+              background: ${conversionRate >= 75 ? '#f0fdf4' : conversionRate >= 40 ? '#fffbeb' : '#fef2f2'};
+              border-radius: 6px;
+              border: 1px solid ${conversionRate >= 75 ? '#bbf7d0' : conversionRate >= 40 ? '#fed7aa' : '#fecaca'};
+            ">
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">
+                Performance
+              </div>
+              <div style="
+                font-weight: 600;
+                color: ${conversionRate >= 75 ? '#059669' : conversionRate >= 40 ? '#d97706' : '#dc2626'};
+              ">
+                ${conversionRate >= 75 ? 'Excellent' : conversionRate >= 40 ? 'Good' : 'Needs Improvement'}
+              </div>
+            </div>
+          `;
+          
+          console.log('[DEBUG] Link tooltip HTML generated:', tooltipElement.innerHTML);
+        } else {
+          console.log('[DEBUG] Could not find source or target node for link tooltip:', {
+            sourceId: tooltipContent.sourceId,
+            targetId: tooltipContent.targetId,
+            availableNodes: rechartsData.nodes.map(n => ({ name: n.name, id: n.name }))
+          });
+          
+          // Fallback tooltip for link
+          tooltipElement.innerHTML = `
+            <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
+              Flow Information
+            </div>
+            <div style="color: #334155;">
+              <div style="font-size: 12px; color: #64748b;">Users</div>
+              <div style="font-weight: 600; font-size: 18px;">
+                ${(tooltipContent.value || 0).toLocaleString()}
+              </div>
+            </div>
+          `;
+        }
+      } else if (tooltipContent.type === 'node') {
+        // Handle node tooltip
+        const nodeValue = tooltipContent.value || 0;
+        const percentage = tooltipContent.percentage || 0;
+        const conversionRate = tooltipContent.conversionRate || 0;
+        
+        // Get the actual step name from the nodeMap
+        const stepName = nodeMap[tooltipContent.nodeId]?.name || tooltipContent.nodeId;
+        
+        console.log('[DEBUG] Node tooltip data:', {
+          nodeValue,
+          percentage,
+          conversionRate,
+          stepName
+        });
+        
+        tooltipElement.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
+            ${stepName}
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <div style="color: #334155;">
+              <div style="font-size: 12px; color: #64748b;">Users</div>
+              <div style="font-weight: 600; font-size: 18px;">
+                ${nodeValue.toLocaleString()}
+              </div>
+            </div>
+            <div style="color: #334155; text-align: right;">
+              <div style="font-size: 12px; color: #64748b;">% of Total</div>
+              <div style="font-weight: 600; font-size: 18px;">
+                ${percentage.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+          
+          ${conversionRate > 0 ? `
+            <div style="
+              padding: 8px 12px; 
+              background: ${conversionRate >= 75 ? '#f0fdf4' : conversionRate >= 40 ? '#fffbeb' : '#fef2f2'};
+              border-radius: 6px;
+              border: 1px solid ${conversionRate >= 75 ? '#bbf7d0' : conversionRate >= 40 ? '#fed7aa' : '#fecaca'};
+            ">
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">
+                Conversion Rate
+              </div>
+              <div style="
+                font-weight: 600;
+                color: ${conversionRate >= 75 ? '#059669' : conversionRate >= 40 ? '#d97706' : '#dc2626'};
+              ">
+                ${conversionRate.toFixed(1)}%
+              </div>
+            </div>
+          ` : ''}
+        `;
+        
+        console.log('[DEBUG] Node tooltip HTML generated:', tooltipElement.innerHTML);
+      } else {
+        console.log('[DEBUG] Unknown tooltip type:', tooltipContent.type);
+        
+        // Fallback tooltip for unknown type
+        tooltipElement.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
+            Information
+          </div>
+          <div style="color: #334155;">
+            <div style="font-size: 12px; color: #64748b;">Users</div>
+            <div style="font-weight: 600; font-size: 18px;">
+              ${(tooltipContent.value || 0).toLocaleString()}
+            </div>
+          </div>
+        `;
+      }
+      
+      console.log('[DEBUG] Tooltip element created:', {
+        id: tooltipElement.id,
+        style: tooltipElement.style.cssText,
+        content: tooltipElement.innerHTML,
+        position: { x: tooltipPosition.x, y: tooltipPosition.y }
+      });
+      
+      document.body.appendChild(tooltipElement);
+      
+      console.log('[DEBUG] Tooltip added to DOM:', {
+        bodyChildren: document.body.children.length,
+        tooltipInBody: document.body.contains(tooltipElement),
+        tooltipZIndex: tooltipElement.style.zIndex
+      });
+      
+      return () => {
+        console.log('[DEBUG] Cleaning up tooltip element');
+        if (document.body.contains(tooltipElement)) {
+          document.body.removeChild(tooltipElement);
+          console.log('[DEBUG] Tooltip removed from DOM');
+        }
+      };
+    } else {
+      console.log('[DEBUG] Tooltip conditions not met:', {
+        showTooltips,
+        tooltipVisible,
+        hasContent: !!tooltipContent
+      });
+    }
+  }, [showTooltips, tooltipVisible, tooltipContent, tooltipPosition]);
+  
   // Zoom state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -655,78 +953,40 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   }, [zoom]);
 
   const handleNodeHover = (event: any, node: any) => {
-    if (!showTooltips || !interactiveTooltips) return;
+    console.log('[DEBUG] Node hover triggered:', {
+      event: { clientX: event.clientX, clientY: event.clientY },
+      node,
+      showTooltips,
+      interactiveTooltips,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!showTooltips || !interactiveTooltips) {
+      console.log('[DEBUG] Tooltips disabled, returning');
+      return;
+    }
     
     const nodeValue = node.value || 0;
     const percentage = ((nodeValue / initialValue) * 100).toFixed(1);
     const conversionRate = node.conversionRate || 0;
     
-    setTooltipContent(
-      <div style={{
-        background: 'white',
-        padding: '16px',
-        borderRadius: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-        fontSize: '14px',
-        lineHeight: 1.5,
-        color: '#1e293b',
-        pointerEvents: 'none',
-        zIndex: 1000,
-        transition: 'opacity 0.2s ease',
-        maxWidth: '320px',
-        border: '1px solid #e2e8f0'
-      }}>
-        <div style={{ 
-          fontWeight: 600, 
-          marginBottom: 8, 
-          color: '#0f172a',
-          fontSize: '16px'
-        }}>
-          {node.name}
-        </div>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ color: '#334155' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Users</div>
-            <div style={{ fontWeight: 600, fontSize: '18px' }}>
-              {(nodeValue || 0).toLocaleString()}
-            </div>
-          </div>
-          <div style={{ color: '#334155', textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>% of Total</div>
-            <div style={{ fontWeight: 600, fontSize: '18px' }}>
-              {percentage}%
-            </div>
-          </div>
-        </div>
-        
-        {conversionRate > 0 && (
-          <div style={{ 
-            padding: '8px 12px', 
-            background: conversionRate >= 75 ? '#f0fdf4' : 
-                       conversionRate >= 40 ? '#fffbeb' : '#fef2f2',
-            borderRadius: '6px',
-            border: `1px solid ${conversionRate >= 75 ? '#bbf7d0' : 
-                                 conversionRate >= 40 ? '#fed7aa' : '#fecaca'}`
-          }}>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#64748b',
-              marginBottom: 2
-            }}>
-              Conversion Rate
-            </div>
-            <div style={{ 
-              fontWeight: 600,
-              color: conversionRate >= 75 ? '#059669' : 
-                     conversionRate >= 40 ? '#d97706' : '#dc2626'
-            }}>
-              {conversionRate.toFixed(1)}%
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    // Pass the node data as an object instead of a React element
+    const tooltipData = {
+      type: 'node',
+      nodeId: node.name || node.id,
+      value: nodeValue,
+      percentage: parseFloat(percentage),
+      conversionRate: conversionRate
+    };
+    
+    console.log('[DEBUG] Setting tooltip state in handleNodeHover:', {
+      position: { x: event.clientX, y: event.clientY },
+      visible: true,
+      content: 'Node data object created',
+      tooltipData
+    });
+    
+    setTooltipContent(tooltipData);
     
     setTooltipPosition({
       x: event.clientX,
@@ -734,11 +994,22 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     });
     
     setTooltipVisible(true);
-    setSelectedNode(node.name);
+    setSelectedNode(node.name || node.id);
   };
 
   const handleLinkHover = (event: any, link: any) => {
-    if (!showTooltips || !interactiveTooltips) return;
+    console.log('[DEBUG] Link hover triggered:', {
+      event: { clientX: event.clientX, clientY: event.clientY },
+      link,
+      showTooltips,
+      interactiveTooltips,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!showTooltips || !interactiveTooltips) {
+      console.log('[DEBUG] Tooltips disabled, returning');
+      return;
+    }
     
     const sourceNode = rechartsData.nodes.find(n => n.name === link.sourceId);
     const targetNode = rechartsData.nodes.find(n => n.name === link.targetId);
@@ -750,71 +1021,24 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     const percentage = ((linkValue / sourceValue) * 100).toFixed(1);
     const conversionRate = link.conversionRate || 0;
     
-    setTooltipContent(
-      <div style={{
-        background: 'white',
-        padding: '16px',
-        borderRadius: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-        fontSize: '14px',
-        lineHeight: 1.5,
-        color: '#1e293b',
-        pointerEvents: 'none',
-        zIndex: 1000,
-        transition: 'opacity 0.2s ease',
-        maxWidth: '320px',
-        border: '1px solid #e2e8f0'
-      }}>
-        <div style={{ 
-          fontWeight: 600, 
-          marginBottom: 8, 
-          color: '#0f172a',
-          fontSize: '16px'
-        }}>
-          {sourceNode.name} → {targetNode.name}
-        </div>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ color: '#334155' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Users</div>
-            <div style={{ fontWeight: 600, fontSize: '18px' }}>
-              {(linkValue || 0).toLocaleString()}
-            </div>
-          </div>
-          <div style={{ color: '#334155', textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Conversion</div>
-            <div style={{ fontWeight: 600, fontSize: '18px' }}>
-              {percentage}%
-            </div>
-          </div>
-        </div>
-        
-        <div style={{ 
-          padding: '8px 12px', 
-          background: conversionRate >= 75 ? '#f0fdf4' : 
-                     conversionRate >= 40 ? '#fffbeb' : '#fef2f2',
-          borderRadius: '6px',
-          border: `1px solid ${conversionRate >= 75 ? '#bbf7d0' : 
-                               conversionRate >= 40 ? '#fed7aa' : '#fecaca'}`
-        }}>
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#64748b',
-            marginBottom: 2
-          }}>
-            Performance
-          </div>
-          <div style={{ 
-            fontWeight: 600,
-            color: conversionRate >= 75 ? '#059669' : 
-                   conversionRate >= 40 ? '#d97706' : '#dc2626'
-          }}>
-            {conversionRate >= 75 ? 'Excellent' : 
-             conversionRate >= 40 ? 'Good' : 'Needs Improvement'}
-          </div>
-        </div>
-      </div>
-    );
+    // Pass the link data instead of a React element
+    const tooltipData = {
+      type: 'link',
+      sourceId: link.sourceId,
+      targetId: link.targetId,
+      value: linkValue,
+      sourceValue: sourceValue,
+      conversionRate: conversionRate
+    };
+    
+    console.log('[DEBUG] Setting tooltip state in handleLinkHover:', {
+      position: { x: event.clientX, y: event.clientY },
+      visible: true,
+      content: 'Link data object created',
+      tooltipData
+    });
+    
+    setTooltipContent(tooltipData);
     
     setTooltipPosition({
       x: event.clientX,
@@ -976,42 +1200,26 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
           transformOrigin: 'center',
           transition: isDragging ? 'none' : 'transform 0.1s ease',
           width: '100%',
-          height: '100%'
+          height: '100%',
+          overflow: 'visible'
         }}>
           <ResponsiveContainer width="100%" height="100%">
             <Sankey
               data={enhancedData}
-              node={(props) => <EnhancedNode {...props} onStepHeightChange={handleStepHeightChange} />}
-              link={(props) => <EnhancedLink {...props} stepHeights={stepHeights} />}
+              node={(props) => <EnhancedNode {...props} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} />}
+              link={(props) => <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} />}
               nodePadding={24}
               nodeWidth={20}
               width={dimensions.width}
               height={dimensions.height}
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+              margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
               iterations={64}
-              onMouseEnter={handleNodeHover}
-              onMouseLeave={() => {
-                setTooltipVisible(false);
-                setSelectedNode(null);
-              }}
             />
           </ResponsiveContainer>
         </div>
       </div>
       
-      {showTooltips && tooltipVisible && tooltipContent && (
-        <div
-          style={{
-            position: 'fixed',
-            left: tooltipPosition.x,
-            top: tooltipPosition.y,
-            transform: 'translate(-50%, -100%)',
-            zIndex: 1000
-          }}
-        >
-          {tooltipContent}
-        </div>
-      )}
+
     </div>
   );
 };

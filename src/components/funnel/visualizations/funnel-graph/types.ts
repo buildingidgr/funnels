@@ -57,6 +57,7 @@ export interface RechartsSankeyData {
     key?: string;
     color?: string;
     index?: number; // Recharts uses this internally
+    displayName?: string; // Add displayName for actual step names
   }>;
   links: Array<{
     source: number; // Must be a number for Recharts

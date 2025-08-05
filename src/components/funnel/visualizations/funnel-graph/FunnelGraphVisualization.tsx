@@ -81,6 +81,13 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
 
   // Transform data for SankeyVisualization
   const transformedData = useMemo(() => {
+    // Debug logging for rechartsData nodes
+    console.log('[DEBUG] rechartsData.nodes:', rechartsData.nodes.map(node => ({
+      name: node.name,
+      displayName: (node as any).displayName,
+      value: node.value
+    })));
+    
     // Create mapping from node ID to index for Recharts
     const nodeIdToIndex: Record<string, number> = {};
     
@@ -96,7 +103,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       color: node.color,
       index: index,
       id: node.name,
-      conversionRate: 0
+      conversionRate: 0,
+      displayName: (node as any).displayName || node.name // Add displayName property
     }));
 
     const transformedLinks = rechartsData.links.map(link => {
