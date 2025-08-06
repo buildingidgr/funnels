@@ -72,13 +72,13 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
           if (splitValue > 0) {
             // Create a lighter version of the parent color for the split
             const baseColor = color;
-            // Add the split step with distinctive styling
+            // Add the split step with transparent styling
             nodes.push({
               id: `step-${index}-split-${splitIndex}`,
               name: splitStep.name,
               value: splitValue,
-              // Make split step use a lighter/transparent version of parent color
-              color: baseColor + "80", // Add transparency to parent color
+              // Make split step transparent to avoid visual clutter
+              color: "transparent", // Make the node transparent
               mainStepColor: color, // Reference to parent color
               x: 0,
               y: 0,
@@ -95,34 +95,10 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
       }
       
       // Also handle splitVariations if they exist and split is not already processed
+      // For now, skip creating split nodes to avoid additional connection flows
       if (!step.split && step.splitVariations && step.splitVariations.length > 0) {
-        console.log(`[DEBUG] Processing splitVariations for step ${step.name}:`, step.splitVariations);
-        step.splitVariations.forEach((splitVariation, splitIndex) => {
-          const splitValue = splitVariation.visitorCount || 0;
-          // Only add split steps with values
-          if (splitValue > 0) {
-            // Create a lighter version of the parent color for the split
-            const baseColor = color;
-            // Add the split step with distinctive styling
-            nodes.push({
-              id: `step-${index}-split-${splitIndex}`,
-              name: splitVariation.name,
-              value: splitValue,
-              // Make split step use a lighter/transparent version of parent color
-              color: baseColor + "80", // Add transparency to parent color
-              mainStepColor: color, // Reference to parent color
-              x: 0,
-              y: 0,
-              width: 0,
-              height: 0
-            });
-            console.log(`[DEBUG] Created splitVariation node:`, {
-              id: `step-${index}-split-${splitIndex}`,
-              name: splitVariation.name,
-              value: splitValue
-            });
-          }
-        });
+        console.log(`[DEBUG] Skipping splitVariations for step ${step.name} to avoid additional connection flows`);
+        // Don't create split nodes - treat as regular step
       }
       
       previousValue = currentValue;
@@ -239,52 +215,21 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
                   value: splitFlowValue, // Use calculated flow value
                   sourceValue: splitValue, // Use the split value as source for percentage
                   path: "",
-                  color: (sourceNode?.color || "#cccccc") + "90",
+                  color: "transparent", // Make the link transparent
                   labelValue: `${splitFlowValue.toLocaleString()}`,
                   labelPercentage: `${formattedSplitPercentage}%`,
-                  sourceColor: (sourceNode?.color || "#cccccc") + "90",
-                  targetColor: nodes[i].color + "90"
+                  sourceColor: "transparent", // Make source transparent
+                  targetColor: "transparent" // Make target transparent
                 });
               }
             }
           });
         }
         
-        // Also handle splitVariations from previous step
+        // Also handle splitVariations from previous step - skip creating split links
         if (!prevStep.split && prevStep.splitVariations && prevStep.splitVariations.length > 0) {
-          prevStep.splitVariations.forEach((splitVariation, splitIndex) => {
-            // Link from each split to the current step
-            const splitValue = splitVariation.visitorCount || 0;
-            if (splitValue > 0) {
-              // Calculate how many users from this split actually reach the current step
-              const splitFlowValue = Math.round((splitValue / prevValue) * currentValue);
-              
-              const splitPercentage = prevValue > 0 ? ((splitValue / prevValue) * 100) : 0;
-              const formattedSplitPercentage = isNaN(splitPercentage) ? "0.0" : splitPercentage.toFixed(1);
-              
-              const sourceNode = nodes.find(n => n.id === `step-${i-1}-split-${splitIndex}`);
-              if (sourceNode) {
-                console.log(`[DEBUG] Creating splitVariation link from ${splitVariation.name} to ${currentStep.name}:`, {
-                  source: `step-${i-1}-split-${splitIndex}`,
-                  target: `step-${i}`,
-                  value: splitFlowValue, // Use calculated flow value
-                  percentage: formattedSplitPercentage
-                });
-                links.push({
-                  source: `step-${i-1}-split-${splitIndex}`,
-                  target: `step-${i}`,
-                  value: splitFlowValue, // Use calculated flow value
-                  sourceValue: splitValue, // Use the split value as source for percentage
-                  path: "",
-                  color: (sourceNode?.color || "#cccccc") + "90",
-                  labelValue: `${splitFlowValue.toLocaleString()}`,
-                  labelPercentage: `${formattedSplitPercentage}%`,
-                  sourceColor: (sourceNode?.color || "#cccccc") + "90",
-                  targetColor: nodes[i].color + "90"
-                });
-              }
-            }
-          });
+          console.log(`[DEBUG] Skipping splitVariation links from previous step ${prevStep.name} to avoid additional connection flows`);
+          // Don't create split links - treat as regular step
         }
       }
       
@@ -330,44 +275,10 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         });
       }
       
-      // Also handle splitVariations for current step
+      // Also handle splitVariations for current step - skip creating split links to avoid additional flows
       if (!currentStep.split && currentStep.splitVariations && currentStep.splitVariations.length > 0) {
-        currentStep.splitVariations.forEach((splitVariation, splitIndex) => {
-          const splitValue = splitVariation.visitorCount || 0;
-          
-          // Skip links to zero value nodes
-          if (currentValue === 0) {
-            return;
-          }
-          
-          // Check for zero or undefined values to avoid NaN
-          const splitPercentage = currentValue > 0 ? ((splitValue / currentValue) * 100) : 0;
-          // Format percentage safely
-          const formattedSplitPercentage = isNaN(splitPercentage) ? "0.0" : splitPercentage.toFixed(1);
-          
-          const targetNode = nodes.find(n => n.id === `step-${i}-split-${splitIndex}`);
-          
-          console.log(`[DEBUG] Creating link from ${currentStep.name} to splitVariation ${splitVariation.name}:`, {
-            source: `step-${i}`,
-            target: `step-${i}-split-${splitIndex}`,
-            value: splitValue, // Use the actual split value for flow
-            percentage: formattedSplitPercentage
-          });
-          
-          links.push({
-            source: `step-${i}`,
-            target: `step-${i}-split-${splitIndex}`,
-            value: splitValue, // Use the actual split value for flow
-            sourceValue: currentValue, // Add source value for percentage calculation
-            path: "",
-            color: (targetNode?.color || "#cccccc") + "90",
-            labelValue: `${splitValue.toLocaleString()}`,
-            labelPercentage: `${formattedSplitPercentage}%`,
-            // Add source and target colors for gradient
-            sourceColor: nodes[i].color + "90",
-            targetColor: (targetNode?.color || "#cccccc") + "90"
-          });
-        });
+        console.log(`[DEBUG] Skipping splitVariation links for ${currentStep.name} to avoid additional connection flows`);
+        // Don't create split links - treat as regular step
       }
       
       // Check for optional step logic (bypass link generation)

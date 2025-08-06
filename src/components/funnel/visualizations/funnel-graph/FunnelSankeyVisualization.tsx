@@ -311,7 +311,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       }
     }
 
-    // Handle split variations
+    // Handle split variations - only create flows when there are actual calculated values
     if (step.splitVariations && step.splitVariations.length > 0) {
       console.log(`DEBUGFIX: Processing splits for step:`, {
         name: step.name,
@@ -345,88 +345,98 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
         variations: variationValues
       });
       
-      // Process each variation
-      variationValues.forEach(({ id, value, name }, variationIndex) => {
-        const splitId = getNodeId(id);
-        
-        // IMPORTANT: Create a local constant to ensure we don't lose the value
-        const splitValue = value;
-        
-        console.log(`DEBUGFIX: Added split node:`, {
-          name: name,
-          id: splitId,
-          originalId: id,
-          value: splitValue,
-          isSplit: true,
-          column: index + 1
-        });
-        
-        // Add split node with exact API value
-        sankeyData.nodes.push({
-          id: splitId,
-          name: name,
-          value: splitValue,
-          color: getStepColor(step, index + variationIndex + 1) // Different color for each split
+      // Only create split flows if there are actual calculated values
+      if (totalVariationValue > 0) {
+        // Process each variation
+        variationValues.forEach(({ id, value, name }, variationIndex) => {
+          const splitId = getNodeId(id);
+          
+          // IMPORTANT: Create a local constant to ensure we don't lose the value
+          const splitValue = value;
+          
+          // Only create split nodes and links if the split has a value
+          if (splitValue > 0) {
+            console.log(`DEBUGFIX: Added split node:`, {
+              name: name,
+              id: splitId,
+              originalId: id,
+              value: splitValue,
+              isSplit: true,
+              column: index + 1
+            });
+            
+            // Add split node with exact API value
+            sankeyData.nodes.push({
+              id: splitId,
+              name: name,
+              value: splitValue,
+              color: getStepColor(step, index + variationIndex + 1) // Different color for each split
+            });
+
+            // Add link from main step to split with exact API value
+            console.log(`DEBUGFIX: Added split link:`, {
+              source: stepId,
+              target: splitId,
+              value: splitValue,
+              sourceId: stepId,
+              targetId: splitId,
+              percentage: `${((splitValue / stepValue) * 100).toFixed(1)}%`
+            });
+            
+            sankeyData.links.push({
+              source: stepId,
+              target: splitId,
+              value: splitValue,
+              color: getLinkColor(index + variationIndex + 1, false),
+              percentage: `${((splitValue / stepValue) * 100).toFixed(1)}%`
+            });
+
+            // Add link from split to next step if it exists
+            if (index < steps.length - 1) {
+              const nextStep = steps[index + 1];
+              const nextStepId = getNodeId(nextStep.id);
+              const nextStepValue = calculatedResults?.[nextStep.id] || 0;
+              
+              // Calculate the split's contribution to the next step based on its proportion
+              const splitNextValue = Math.round(nextStepValue * (splitValue / totalVariationValue));
+              
+              console.log(`DEBUGFIX: Added split-to-next link:`, {
+                source: splitId,
+                target: nextStepId,
+                value: splitNextValue,
+                totalVariationValue,
+                variationValue: splitValue,
+                nextValue: nextStepValue,
+                sourceId: splitId,
+                targetId: nextStepId,
+                percentage: `${((splitNextValue / splitValue) * 100).toFixed(1)}%`
+              });
+              
+              sankeyData.links.push({
+                source: splitId,
+                target: nextStepId,
+                value: splitNextValue,
+                color: '#0891b290',
+                percentage: `${((splitNextValue / splitValue) * 100).toFixed(1)}%`
+              });
+            }
+          } else {
+            console.log(`DEBUGFIX: Skipping split node for ${name} - no calculated value`);
+          }
         });
 
-        // Add link from main step to split with exact API value
-        console.log(`DEBUGFIX: Added split link:`, {
-          source: stepId,
-          target: splitId,
-          value: splitValue,
-          sourceId: stepId,
-          targetId: splitId,
-          percentage: `${((splitValue / stepValue) * 100).toFixed(1)}%`
-        });
-        
-        sankeyData.links.push({
-          source: stepId,
-          target: splitId,
-          value: splitValue,
-          color: getLinkColor(index + variationIndex + 1, false),
-          percentage: `${((splitValue / stepValue) * 100).toFixed(1)}%`
-        });
+        // Remove the main step link since we're using split variations
+        sankeyData.links = sankeyData.links.filter(link => 
+          !(link.source === sourceId && link.target === stepId)
+        );
 
-        // Add link from split to next step if it exists
-        if (index < steps.length - 1) {
-          const nextStep = steps[index + 1];
-          const nextStepId = getNodeId(nextStep.id);
-          const nextStepValue = calculatedResults?.[nextStep.id] || 0;
-          
-          // Calculate the split's contribution to the next step based on its proportion
-          const splitNextValue = Math.round(nextStepValue * (splitValue / totalVariationValue));
-          
-          console.log(`DEBUGFIX: Added split-to-next link:`, {
-            source: splitId,
-            target: nextStepId,
-            value: splitNextValue,
-            totalVariationValue,
-            variationValue: splitValue,
-            nextValue: nextStepValue,
-            sourceId: splitId,
-            targetId: nextStepId,
-            percentage: `${((splitNextValue / splitValue) * 100).toFixed(1)}%`
-          });
-          
-          sankeyData.links.push({
-            source: splitId,
-            target: nextStepId,
-            value: splitNextValue,
-            color: '#0891b290',
-            percentage: `${((splitNextValue / splitValue) * 100).toFixed(1)}%`
-          });
+        // Update the main step node value to match the total variation value
+        const mainStepNode = sankeyData.nodes.find(node => node.id === stepId);
+        if (mainStepNode) {
+          mainStepNode.value = totalVariationValue;
         }
-      });
-
-      // Remove the main step link since we're using split variations
-      sankeyData.links = sankeyData.links.filter(link => 
-        !(link.source === sourceId && link.target === stepId)
-      );
-
-      // Update the main step node value to match the total variation value
-      const mainStepNode = sankeyData.nodes.find(node => node.id === stepId);
-      if (mainStepNode) {
-        mainStepNode.value = totalVariationValue;
+      } else {
+        console.log(`DEBUGFIX: No calculated values for splits in step ${step.name}, treating as regular step`);
       }
     }
   });

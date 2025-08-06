@@ -24,7 +24,7 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
     return enabledSteps.map(step => ({
       ...step,
       value: step.visitorCount || 0,
-      // Also map split variations if they exist
+      // Map split variations but they will be handled differently in visualization
       split: step.splitVariations?.map(variation => ({
         name: variation.name,
         value: variation.visitorCount || 0

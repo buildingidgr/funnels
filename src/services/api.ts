@@ -4,6 +4,7 @@ import { exampleFunnel4 } from "@/types/funnelExample4";
 import { exampleFunnel5 } from "@/types/funnelExample5";
 import { exampleFunnel6 } from "@/types/funnelExample6";
 import { exampleFunnel7 } from "@/types/funnelExample7";
+import { exampleFunnel8 } from "@/types/funnelExample8";
 import { toast } from "sonner";
 
 // Mock API service (would be replaced with actual API calls)
@@ -83,6 +84,13 @@ const defaultFunnels: Funnel[] = [
   {
     ...exampleFunnel7,
     id: 'content-marketing-funnel-001',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    lastCalculatedAt: null
+  },
+  {
+    ...exampleFunnel8,
+    id: 'product-purchase-dropoff-funnel-001',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     lastCalculatedAt: null

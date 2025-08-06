@@ -171,6 +171,13 @@ export default function FunnelAnalysisPage() {
             {getFunnelOptimizationTip(funnel)}
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/dashboard">
+              <Button variant="default" size="sm">
+                <Home className="h-4 w-4 mr-2" />
+                Go to Dashboard
+              </Button>
+            </Link>
+            
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Data

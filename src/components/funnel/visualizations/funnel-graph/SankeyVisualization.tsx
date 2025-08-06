@@ -78,28 +78,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
     isLastNode
   });
   
-  // Calculate text positioning based on node position
-  const textX = x + width / 2;
-  const textY = y - 12;
-  
-  // Create a temporary element to measure text width
-  const textContent = `${payload.displayName || payload.name} (${payload.value?.toLocaleString() || 0})`;
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  context.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  const textWidth = context.measureText(textContent).width;
-  
-  // Add some padding around the text
-  const padding = 16;
-  const backgroundWidth = Math.max(textWidth + padding * 2, 120); // Minimum width of 120px
-  
-  // Ensure the background doesn't extend beyond reasonable bounds
-  const maxBackgroundWidth = 300; // Maximum background width
-  const finalBackgroundWidth = Math.min(backgroundWidth, maxBackgroundWidth);
-  const backgroundX = textX - finalBackgroundWidth / 2;
-  
-  // Ensure the background is properly centered
-  const adjustedBackgroundX = Math.max(0, backgroundX); // Don't let it go negative
+  // Removed text positioning calculations since step names are no longer displayed
   
   const isSplit = payload.id.includes('split');
   const isDomestic = payload.name.toLowerCase().includes('domestic');
@@ -176,6 +155,8 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
     }
   }, [height, payload.name, props.onStepHeightChange]);
 
+
+
   return (
     <g 
       className={`sankey-node-group ${isSplit ? 'sankey-split-node' : ''}`}
@@ -227,52 +208,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
       
 
       
-      {/* Enhanced background rectangle for better text visibility */}
-      <rect
-        x={adjustedBackgroundX}
-        y={y - 35}
-        width={finalBackgroundWidth}
-        height={30}
-        fill="rgba(255, 255, 255, 0.98)"
-        rx={8}
-        ry={8}
-        style={{
-          filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
-          stroke: 'rgba(0, 0, 0, 0.1)',
-          strokeWidth: 1
-        }}
-      />
-      
-      {/* Enhanced step name label - positioned above the node with background */}
-      <foreignObject
-        x={adjustedBackgroundX}
-        y={y - 40}
-        width={finalBackgroundWidth}
-        height={35}
-        style={{ overflow: 'visible' }}
-      >
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '13px',
-            fontWeight: '700',
-            color: '#1f2937',
-            textAlign: 'center',
-            lineHeight: '1.3',
-            whiteSpace: 'nowrap',
-            overflow: 'visible',
-            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
-            margin: 0,
-            padding: '0 4px'
-          }}
-        >
-          {payload.displayName || payload.name} ({payload.value?.toLocaleString() || 0})
-        </div>
-      </foreignObject>
+      {/* Removed static step name labels */}
       
       {/* REMOVED WHITE TEXT - User count no longer displayed inside node */}
       
@@ -319,7 +255,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
 };
 
 // Enhanced link component with better visual feedback and performance indicators
-const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, ...props }: any) => {
+const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, nodes, ...props }: any) => {
   const [isHovered, setIsHovered] = useState(false);
   
   console.log('[DEBUG] EnhancedLink rendered:', {
@@ -332,6 +268,23 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   const handleLinkHover = props.handleLinkHover;
   
   const isSplit = payload.sourceId?.includes('split') || payload.targetId?.includes('split');
+  const isSplitToNext = payload.sourceId?.includes('split') && payload.targetId?.includes('step-') && !payload.targetId?.includes('split');
+  // Hide the main step → next step connection ONLY when there are split steps in between
+  const isMainStepToNextStep = payload.sourceId?.includes('step-') && !payload.sourceId?.includes('-split-') && payload.targetId?.includes('step-') && !payload.targetId?.includes('-split-');
+  // Only hide if this is a direct step-to-step connection AND there are split nodes for this step
+  const shouldHideMainConnection = isMainStepToNextStep && 
+    // Check if the source step has split variations by looking for split nodes with the same step number
+    (() => {
+      const sourceStepNum = payload.sourceId?.match(/step-(\d+)/)?.[1];
+      if (!sourceStepNum) return false;
+      
+      // Check if there are split nodes for this step by looking for nodes with the same step number + "-split-"
+      const hasSplitNodes = nodes?.some(node => 
+        node.name?.includes(`step-${sourceStepNum}-split-`)
+      );
+      
+      return hasSplitNodes;
+    })();
   const isDomestic = payload.sourceId?.includes('domestic') || payload.targetId?.includes('international');
   const isBypass = payload.sourceId === 'initial' && !payload.targetId?.includes('step-1');
   const isOptional = payload.sourceId?.includes('step-') && payload.targetId?.includes('step-') && 
@@ -344,7 +297,8 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   
   let linkColor = STEP_COLORS.links.main;
   if (isSplit) {
-    linkColor = isDomestic ? STEP_COLORS.links.domestic : STEP_COLORS.links.international;
+    // Make split links completely invisible
+    linkColor = 'transparent';
   } else if (isHighConversion) {
     linkColor = STEP_COLORS.links.high;
   } else if (isLowConversion) {
@@ -472,7 +426,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         d={path}
         fill="none"
         stroke={`url(#gradient-${payload.sourceId}-${payload.targetId})`}
-        strokeWidth={hoverFlowWidth + 4}
+        strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth + 4}
         strokeOpacity={isHovered ? 0.8 : 0.5}
         strokeLinecap="round"
         className={`sankey-link-background ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}
@@ -487,7 +441,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         d={path}
         fill="none"
         stroke={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'}
-        strokeWidth={hoverFlowWidth}
+        strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth}
         strokeOpacity={isHovered ? 1 : 0.95}
         strokeLinecap="round"
         className={`sankey-link-path ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}
@@ -516,7 +470,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         d={path}
         fill="none"
         stroke={`url(#flow-gradient-${payload.sourceId}-${payload.targetId})`}
-        strokeWidth={Math.max(hoverFlowWidth / 1.5, 2)}
+        strokeWidth={shouldHideMainConnection ? 0 : Math.max(hoverFlowWidth / 1.5, 2)}
         strokeOpacity={isHovered ? 0.8 : 0.5}
         strokeLinecap="round"
         className="sankey-link-flow"
@@ -531,7 +485,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
       {/* Removed built-in tooltip - using custom tooltip system instead */}
       
       {/* Enhanced conversion rate label on link */}
-      {conversionRate > 0 && payload.value > 20 && !isHovered && (
+      {conversionRate > 0 && payload.value > 20 && !isHovered && !shouldHideMainConnection && (
         <>
           {/* Background for conversion rate label */}
           <rect
@@ -1396,7 +1350,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                                        Math.abs(parseInt(props.payload.sourceId.split('-')[1]) - parseInt(props.payload.targetId.split('-')[1])) > 1;
                   
                   if (!isOptionalLink) {
-                    return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} />;
+                    return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
                   }
                   return null;
                 }}
@@ -1420,7 +1374,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                                          Math.abs(parseInt(props.payload.sourceId.split('-')[1]) - parseInt(props.payload.targetId.split('-')[1])) > 1;
                     
                     if (isOptionalLink) {
-                      return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} />;
+                      return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
                     }
                     return null;
                   }}
