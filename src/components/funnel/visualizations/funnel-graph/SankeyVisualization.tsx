@@ -693,7 +693,9 @@ const styles = `
 
 // Performance metrics component
 const PerformanceMetrics = ({ data, initialValue }: { data: any, initialValue: number }) => {
-  const totalUsers = data.nodes.reduce((sum: number, node: any) => sum + node.value, 0);
+  // Find the final step (last node) to get the total users who completed the flow
+  const finalNode = data.nodes[data.nodes.length - 1];
+  const totalUsers = finalNode?.value || 0;
   const overallConversion = ((totalUsers / initialValue) * 100);
   
   const bestPerformingNode = data.nodes.reduce((best: any, current: any) => 
