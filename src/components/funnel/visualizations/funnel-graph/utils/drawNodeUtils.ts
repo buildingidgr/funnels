@@ -9,7 +9,7 @@ import { highlightConnectedPaths } from "./connectionUtils";
 export const drawNode = (
   group: SVGElement, 
   node: SankeyNode, 
-  steps: FunnelStep[], 
+  enabledSteps: FunnelStep[], 
   initialValue: number,
   styles: Record<string, string>
 ) => {
@@ -110,7 +110,7 @@ export const drawNode = (
   tooltipDiv.style.zIndex = "9999";
   
   // Generate step details
-  const stepDetails = getStepDetails(node, steps, initialValue);
+  const stepDetails = getStepDetails(node, enabledSteps, initialValue);
   
   // Extract step number for enhanced tooltip
   let stepNumber = "";
@@ -122,8 +122,8 @@ export const drawNode = (
     const idParts = node.id.split('-');
     if (idParts.length >= 2) {
       const stepIndex = parseInt(idParts[1]);
-      if (stepIndex >= 0 && stepIndex < steps.length) {
-        stepNumber = `Step ${steps[stepIndex].order}: `;
+      if (stepIndex >= 0 && stepIndex < enabledSteps.length) {
+        stepNumber = `Step ${enabledSteps[stepIndex].order}: `;
         
         // Check if this is a split
         if (idParts.length > 2 && idParts[2] === 'split') {

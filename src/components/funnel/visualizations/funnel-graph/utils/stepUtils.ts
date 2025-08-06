@@ -5,12 +5,14 @@ import { FunnelStep } from "@/types/funnel";
 /**
  * Get details for a specific step in the funnel
  */
-export const getStepDetails = (node: SankeyNode, steps: FunnelStep[], initialValue: number): StepDetails => {
-  // Find the corresponding step in the steps array
+export const getStepDetails = (node: SankeyNode, enabledSteps: FunnelStep[], initialValue: number): StepDetails => {
+  // Find the corresponding step in the enabledSteps array
   let stepIndex = -1;
   let stepName = node.name;
   let value = node.value;
   let previousValue = initialValue;
+  
+
   
   // Special case for initial node
   if (node.id === "initial") {
@@ -29,8 +31,9 @@ export const getStepDetails = (node: SankeyNode, steps: FunnelStep[], initialVal
     stepIndex = parseInt(idParts[1]);
     
     // Set previous step value
-    if (stepIndex > 0 && steps[stepIndex - 1]) {
-      previousValue = steps[stepIndex - 1].value || initialValue;
+    if (stepIndex > 0 && enabledSteps[stepIndex - 1]) {
+      // Use value or visitorCount, whichever is available
+      previousValue = enabledSteps[stepIndex - 1].value || enabledSteps[stepIndex - 1].visitorCount || initialValue;
     } else if (stepIndex === 0) {
       previousValue = initialValue;
     }

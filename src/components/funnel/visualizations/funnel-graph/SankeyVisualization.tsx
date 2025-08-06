@@ -1151,6 +1151,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     console.log('[DEBUG] Node hover triggered:', {
       event: { clientX: event.clientX, clientY: event.clientY },
       node,
+      nodeId: node.id,
+      nodeName: node.name,
+      nodeValue: node.value,
       showTooltips,
       interactiveTooltips,
       timestamp: new Date().toISOString()
@@ -1161,14 +1164,19 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       return;
     }
     
-    const nodeValue = node.value || 0;
+    // Get the correct node data from nodeMap or enhancedData
+    const nodeId = node.name || node.id;
+    const correctNode = nodeMap[nodeId] || enhancedData.nodes.find(n => n.name === nodeId);
+    const nodeValue = correctNode?.value || node.value || 0;
     const percentage = ((nodeValue / initialValue) * 100).toFixed(1);
     const conversionRate = node.conversionRate || 0;
+    
+
     
     // Pass the node data as an object instead of a React element
     const tooltipData = {
       type: 'node',
-      nodeId: node.name || node.id,
+      nodeId: nodeId,
       value: nodeValue,
       percentage: parseFloat(percentage),
       conversionRate: conversionRate
