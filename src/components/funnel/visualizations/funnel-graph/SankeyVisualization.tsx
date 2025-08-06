@@ -1,11 +1,9 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Sankey, ResponsiveContainer } from 'recharts';
 import { SankeyNode, SankeyLink } from './types';
 import { SankeyLegend } from './components/SankeyLegend';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, Target, AlertCircle, Info, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SankeyVisualizationProps {
@@ -773,6 +771,36 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [stepHeights, setStepHeights] = useState<Record<string, number>>({});
   
+  // Update dimensions when container resizes
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight
+        });
+      }
+    };
+    
+    // Initial measurement
+    updateDimensions();
+    
+    // Create a ResizeObserver to track container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    
+    // Start observing the container
+    resizeObserver.observe(containerRef.current);
+    
+    // Clean up
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+  
   // Render tooltip outside component lifecycle
   useEffect(() => {
     console.log('[DEBUG] Tooltip useEffect triggered:', {
@@ -1017,7 +1045,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
 
   const handleZoomOut = () => {
     setZoom(prev => {
-      const newZoom = Math.max(prev / 1.2, 0.3);
+      const newZoom = Math.max(prev / 1.2, 0.9);
       return newZoom;
     });
   };
@@ -1054,7 +1082,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(prev => {
-      const newZoom = Math.max(0.3, Math.min(3, prev * delta));
+      const newZoom = Math.max(0.9, Math.min(3, prev * delta));
       return newZoom;
     });
   };
@@ -1104,7 +1132,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       setZoom(prev => {
-        const newZoom = Math.max(0.3, Math.min(3, prev * delta));
+        const newZoom = Math.max(0.9, Math.min(3, prev * delta));
         return newZoom;
       });
     };
@@ -1220,7 +1248,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       minHeight: '400px',
       background: '#f8fafc',
       borderRadius: '12px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       {/* Performance Metrics */}
       {/* REMOVE the PerformanceMetrics legend grid and its function */}
@@ -1275,11 +1305,11 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
               <TooltipTrigger asChild>
                 <button
                   onClick={handleZoomOut}
-                  disabled={zoom <= 0.3}
+                  disabled={zoom <= 0.9}
                   style={{
                     width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                    background: zoom <= 0.3 ? '#f1f5f9' : '#ffffff', color: zoom <= 0.3 ? '#94a3b8' : '#64748b',
-                    cursor: zoom <= 0.3 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: zoom <= 0.9 ? '#f1f5f9' : '#ffffff', color: zoom <= 0.9 ? '#94a3b8' : '#64748b',
+                    cursor: zoom <= 0.9 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                   }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -1315,13 +1345,16 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       
       <div 
         style={{
+          flex: 1,
           width: '100%',
-          height: '100%',
           overflow: 'hidden',
           background: '#f8fafc',
           borderRadius: '12px',
           padding: '24px',
-          cursor: isDragging ? 'grabbing' : 'grab'
+          cursor: isDragging ? 'grabbing' : 'grab',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }} 
         ref={containerRef}
         onMouseDown={handleMouseDown}
@@ -1338,7 +1371,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
           overflow: 'visible'
         }}>
           <ResponsiveContainer width="100%" height="100%">
-            <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ position: 'relative', zIndex: 1, height: '100%', minHeight: '400px' }}>
               {/* Render nodes first */}
               <Sankey
                 data={enhancedData}
@@ -1356,9 +1389,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                 }}
                 nodePadding={200}
                 nodeWidth={20}
-                width={dimensions.width * 4}
+                width={dimensions.width}
                 height={dimensions.height}
-                margin={{ top: 80, right: 500, bottom: 80, left: 500 }}
+                margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
                 iterations={64}
               />
               
@@ -1380,9 +1413,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                   }}
                   nodePadding={200}
                   nodeWidth={20}
-                  width={dimensions.width * 4}
+                  width={dimensions.width}
                   height={dimensions.height}
-                  margin={{ top: 80, right: 500, bottom: 80, left: 500 }}
+                  margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
                   iterations={64}
                 />
               </div>

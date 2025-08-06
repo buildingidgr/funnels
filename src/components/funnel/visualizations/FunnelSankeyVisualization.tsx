@@ -3,7 +3,6 @@ import { ResponsiveSankey, SankeyNodeDatum, SankeyLinkDatum } from '@nivo/sankey
 import { FunnelStep } from '@/types/funnel';
 import { FunnelApi } from '@/services/api';
 import { Chip } from '@nivo/tooltip';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface FunnelSankeyVisualizationProps {
   steps: FunnelStep[];

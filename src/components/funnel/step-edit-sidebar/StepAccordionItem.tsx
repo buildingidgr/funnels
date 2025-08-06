@@ -1,4 +1,4 @@
-import React from "react";
+  
 import { FunnelStep, Conditions } from "@/types/funnel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ interface StepAccordionItemProps {
   onUpdateSplit: (splitIndex: number, field: string, value: any) => void;
   onUpdateSplitConditions: (splitIndex: number, conditions: Conditions) => void;
   onRemoveSplit: (splitIndex: number) => void;
-}
+  }
 
 export function StepAccordionItem({
   step,

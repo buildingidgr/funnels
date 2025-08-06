@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { FunnelStep } from "@/types/funnel";
-import { SankeyData, SankeyNode, SankeyLink, RechartsSankeyData } from "../types";
+import { SankeyNode, RechartsSankeyData } from "../types";
 import useSankeyDataRoot from "../useSankeyData"; // Import the root implementation
 
 console.log("[DEBUG] Loading useSankeyFormatting hook");

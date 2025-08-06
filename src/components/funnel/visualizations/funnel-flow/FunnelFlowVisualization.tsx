@@ -3,7 +3,6 @@ import { FunnelStep } from "@/types/funnel";
 import { 
   calculateConversion,
   calculateDropoff,
-  getConversionColor 
 } from "./utils";
 import FlowStep from "./FlowStep";
 import FlowConnection from "./FlowConnection";

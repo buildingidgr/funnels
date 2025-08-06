@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Funnel, FunnelStep } from "@/types/funnel";
-import { BarChart3, ChevronDown, ChevronRight } from "lucide-react";
+import { Funnel } from "@/types/funnel";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 

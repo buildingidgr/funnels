@@ -437,7 +437,6 @@ export const FunnelApi = {
               const variationId = `${step.id}-variation-${varIndex + 1}`;
               if (results[variationId] !== undefined) {
                 variation.visitorCount = results[variationId];
-                variation.value = results[variationId];
               }
             });
           }

@@ -1,5 +1,4 @@
 import React from "react";
-import { FunnelStep } from "@/types/funnel";
 
 interface NodeTooltipProps {
   payload: any;

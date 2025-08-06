@@ -1,16 +1,13 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { FunnelStep } from "@/types/funnel";
-import { Card } from "@/components/ui/card";
-import { Info, TrendingUp, TrendingDown, Users, Target, AlertCircle } from "lucide-react";
+import { Info, Users, Target, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import our components
-import StepLabels from "./components/StepLabels";
 import EmptyState from "./components/EmptyState";
 import { SankeyVisualization } from "./SankeyVisualization";
 import useSankeyFormatting from "./hooks/useSankeyFormatting";
 import useNodeSelection from "./hooks/useNodeSelection";
-import styles from "./FunnelGraph.module.css";
 
 console.log("[DEBUG] Loading FunnelGraphVisualization component");
 

@@ -1,5 +1,4 @@
-import React from "react";
-import { ArrowDown, Users, SkipForward, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowDown, SkipForward, TrendingDown, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 

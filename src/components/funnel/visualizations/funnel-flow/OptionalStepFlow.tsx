@@ -1,7 +1,6 @@
-import React from "react";
 import { FunnelStep } from "@/types/funnel";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowDown, Users, CheckCircle, SkipForward, ArrowUpRight, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowDown, Users, CheckCircle, SkipForward, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 

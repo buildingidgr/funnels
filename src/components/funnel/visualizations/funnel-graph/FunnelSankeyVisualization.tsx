@@ -103,10 +103,76 @@ const CustomLink: React.FC<CustomLinkProps> = ({ link, sankeyData }) => {
 
 const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ steps, initialValue, funnelId }) => {
   const isHoveringRef = useRef(false);
-  const sankeyWidth = 1200;
-  const [calculatedResults, setCalculatedResults] = useState<Record<string, number> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(1000);
+  const [calculatedResults, setCalculatedResults] = useState<Record<string, number> | null>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  // Calculate dynamic width based on number of steps and container width
+  const calculateSankeyWidth = useCallback(() => {
+    if (!containerRef.current) return 1200; // fallback
+    
+    const containerWidth = containerRef.current.clientWidth;
+    const stepCount = steps.length;
+    
+    // Calculate minimum spacing needed between steps
+    const minStepSpacing = 150; // minimum pixels between steps
+    const maxStepSpacing = 300; // maximum pixels between steps
+    
+    // Calculate available space for step spacing
+    const totalStepSpacing = containerWidth - (stepCount * 100); // Reserve 100px per step for node width
+    const stepSpacing = Math.max(
+      minStepSpacing,
+      Math.min(maxStepSpacing, totalStepSpacing / (stepCount + 1))
+    );
+    
+    // Calculate the total width needed
+    const requiredWidth = (stepCount * stepSpacing) + (stepCount * 100) + 200; // 200px for padding
+    
+    // Use the container width, but ensure minimum width
+    const finalWidth = Math.max(requiredWidth, containerWidth);
+    
+    console.log('[DEBUG] Width calculation:', {
+      containerWidth,
+      stepCount,
+      minStepSpacing,
+      maxStepSpacing,
+      totalStepSpacing,
+      stepSpacing,
+      requiredWidth,
+      finalWidth
+    });
+    
+    return finalWidth;
+  }, [steps.length, containerWidth]);
+
+  const sankeyWidth = calculateSankeyWidth();
+
+  // Debug log for width calculation
+  useEffect(() => {
+    console.log('[DEBUG] Final width values:', {
+      sankeyWidth,
+      containerWidth,
+      stepsCount: steps.length,
+      containerRef: containerRef.current?.clientWidth
+    });
+  }, [sankeyWidth, containerWidth, steps.length]);
+
+  // Update container dimensions when window resizes
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const height = Math.max(containerRef.current.clientHeight, 1000);
+        const width = containerRef.current.clientWidth;
+        setContainerHeight(height);
+        setContainerWidth(width);
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
   
   // Create a map to store node IDs and their corresponding UUIDs
   const nodeIdMap = useRef(new Map<string, string>());
@@ -125,20 +191,6 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       if (id === uuid) return originalId;
     }
     return null;
-  }, []);
-  
-  // Update container height when window resizes
-  useEffect(() => {
-    const updateHeight = () => {
-      if (containerRef.current) {
-        const height = Math.max(containerRef.current.clientHeight, 1000);
-        setContainerHeight(height);
-      }
-    };
-
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
   }, []);
   
   // Fetch calculated results when funnelId changes or when steps change
@@ -589,10 +641,10 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '1000px' }}>
       <Sankey
-        width={sankeyWidth}
+        width={containerWidth || sankeyWidth}
         height={containerHeight}
         data={sankeyData}
-        margin={{ top: 100, right: 10, bottom: 60, left: 10 }}
+        margin={{ top: 100, right: 50, bottom: 60, left: 50 }}
         align="justify"
         colors={getNodeColor}
         nodeOpacity={0.95}

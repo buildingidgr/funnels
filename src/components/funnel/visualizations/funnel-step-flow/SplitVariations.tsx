@@ -1,17 +1,17 @@
 import React from "react";
-import { SplitStep, FunnelStepCondition } from "@/types/funnel";
+import { SplitVariation } from "@/types/funnel";
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 
 interface SplitVariationsProps {
-  split?: SplitStep[];
+  split?: SplitVariation[];
   parentValue?: number;
 }
 
 const SplitVariations: React.FC<SplitVariationsProps> = ({ split, parentValue }) => {
   if (!split || split.length === 0) return null;
   
-  const renderCondition = (condition: FunnelStepCondition, i: number) => {
+  const renderCondition = (condition: any, i: number) => {
     return (
       <div key={condition.id || i} className="mb-2 p-2 bg-gray-50 rounded border border-gray-100">
         <div className="font-medium text-gray-700 flex items-center gap-2">
@@ -30,7 +30,7 @@ const SplitVariations: React.FC<SplitVariationsProps> = ({ split, parentValue })
           <div className="ml-4 mt-1">
             <div className="text-xs text-gray-500">Properties:</div>
             <ul className="list-disc ml-4">
-              {condition.properties.map((prop, idx) => (
+              {condition.properties.map((prop: any, idx: number) => (
                 <li key={idx} className="text-xs text-gray-700">
                   {prop.property} {prop.operator} {prop.value}
                 </li>
@@ -70,19 +70,19 @@ const SplitVariations: React.FC<SplitVariationsProps> = ({ split, parentValue })
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-800">{splitStep.name}</span>
               <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
-                {((splitStep.value || 0) / (parentValue || 1) * 100).toFixed(1)}%
+                {((splitStep.visitorCount || 0) / (parentValue || 1) * 100).toFixed(1)}%
               </span>
             </div>
             <div className="mt-2 flex items-center text-sm text-gray-600">
               <Users className="w-4 h-4 mr-2 text-gray-400" />
-              {splitStep.value?.toLocaleString() || 0} users
+              {splitStep.visitorCount?.toLocaleString() || 0} users
             </div>
             
             {/* Conditions */}
-            {splitStep.conditions && splitStep.conditions.length > 0 && (
+            {splitStep.conditions && splitStep.conditions.orEventGroups && splitStep.conditions.orEventGroups.length > 0 && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <div className="grid grid-cols-1 gap-1">
-                  {splitStep.conditions.map(renderCondition)}
+                  {splitStep.conditions.orEventGroups.map(renderCondition)}
                 </div>
               </div>
             )}

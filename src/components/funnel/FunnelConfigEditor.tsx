@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { Funnel, FunnelStep, SplitVariation, Conditions } from '@/types/funnel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Settings, Users, Calendar, Target, Plus, Edit3, Bot, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Trash2, Split } from 'lucide-react';
+import { Settings, Target, Plus, Edit3, CheckCircle, AlertCircle, Trash2, Split } from 'lucide-react';
 import { StepConditionBuilder } from './step-condition-builder/StepConditionBuilder';
 
 interface FunnelConfigEditorProps {

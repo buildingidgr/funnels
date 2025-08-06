@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Funnel, FunnelStep, SplitStep, FunnelStepCondition } from "@/types/funnel";
+import { Funnel, FunnelStep} from "@/types/funnel";
 import { toast } from "sonner";
 import { FunnelApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
         from: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
         to: Date.now(),
       },
-      performed: "all",
+      performedBy: "all",
       steps: [],
     }
   );
@@ -68,11 +68,14 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
 
   const addStep = () => {
     const newStep: FunnelStep = {
+      id: `step-${Date.now()}`,
       name: "",
-      number: funnel.steps.length + 1,
-      enable: true,
-      required: true,
-      conditions: {},
+      order: funnel.steps.length + 1,
+      isEnabled: true,
+      isRequired: true,
+      conditions: {
+        orEventGroups: []
+      },
       split: [],
     };
 
@@ -102,7 +105,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     }
   };
 
-  const updateStepCondition = (stepIndex: number, conditions: FunnelStepCondition[]) => {
+  const updateStepCondition = (stepIndex: number, conditions: any) => {
     const updatedSteps = [...funnel.steps];
     updatedSteps[stepIndex].conditions = conditions;
     const updatedFunnel = {
@@ -117,8 +120,10 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
 
   const removeStepCondition = (stepIndex: number, key: string) => {
     const updatedSteps = [...funnel.steps];
-    const { [key]: _, ...restConditions } = updatedSteps[stepIndex].conditions;
-    updatedSteps[stepIndex].conditions = restConditions;
+    // For now, just reset conditions to empty structure
+    updatedSteps[stepIndex].conditions = {
+      orEventGroups: []
+    };
 
     const updatedFunnel = {
       ...funnel,
@@ -133,8 +138,19 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
 
   const addStepCondition = (stepIndex: number) => {
     const updatedSteps = [...funnel.steps];
-    const conditionKey = `condition${Object.keys(updatedSteps[stepIndex].conditions).length + 1}`;
-    updatedSteps[stepIndex].conditions[conditionKey] = "";
+    // Add a simple condition to orEventGroups
+    const currentConditions = updatedSteps[stepIndex].conditions;
+    const newCondition = {
+      eventName: "",
+      operator: "equals" as const,
+      count: 1,
+      properties: []
+    };
+    
+    updatedSteps[stepIndex].conditions = {
+      ...currentConditions,
+      orEventGroups: [...(currentConditions.orEventGroups || []), newCondition]
+    };
 
     const updatedFunnel = {
       ...funnel,
@@ -152,7 +168,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     
     // Renumber remaining steps
     updatedSteps.forEach((step, i) => {
-      step.number = i + 1;
+      step.order = i + 1;
     });
 
     const updatedFunnel = {
@@ -174,10 +190,9 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       step.split = [];
     }
     
-    const newSplit: SplitStep = {
+    const newSplit = {
       name: "",
-      number: (step.split.length || 0) + 1,
-      conditions: {},
+      value: 0,
     };
     
     step.split.push(newSplit);
@@ -215,81 +230,12 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     }
   };
 
-  const updateSplitCondition = (stepIndex: number, splitIndex: number, key: string, value: string) => {
-    const updatedSteps = [...funnel.steps];
-    const step = updatedSteps[stepIndex];
-    
-    if (step.split && step.split[splitIndex]) {
-      step.split[splitIndex].conditions = {
-        ...step.split[splitIndex].conditions,
-        [key]: value,
-      };
-    }
-    
-    const updatedFunnel = {
-      ...funnel,
-      steps: updatedSteps,
-    };
-    
-    setFunnel(updatedFunnel);
-    if (onFunnelChange) {
-      onFunnelChange(updatedFunnel);
-    }
-  };
-
-  const addSplitCondition = (stepIndex: number, splitIndex: number) => {
-    const updatedSteps = [...funnel.steps];
-    const step = updatedSteps[stepIndex];
-    
-    if (step.split && step.split[splitIndex]) {
-      const conditionKey = `condition${Object.keys(step.split[splitIndex].conditions).length + 1}`;
-      step.split[splitIndex].conditions[conditionKey] = "";
-    }
-    
-    const updatedFunnel = {
-      ...funnel,
-      steps: updatedSteps,
-    };
-    
-    setFunnel(updatedFunnel);
-    if (onFunnelChange) {
-      onFunnelChange(updatedFunnel);
-    }
-  };
-
-  const removeSplitCondition = (stepIndex: number, splitIndex: number, key: string) => {
-    const updatedSteps = [...funnel.steps];
-    const step = updatedSteps[stepIndex];
-    
-    if (step.split && step.split[splitIndex]) {
-      const { [key]: _, ...restConditions } = step.split[splitIndex].conditions;
-      step.split[splitIndex].conditions = restConditions;
-    }
-    
-    const updatedFunnel = {
-      ...funnel,
-      steps: updatedSteps,
-    };
-    
-    setFunnel(updatedFunnel);
-    if (onFunnelChange) {
-      onFunnelChange(updatedFunnel);
-    }
-  };
-
   const removeSplit = (stepIndex: number, splitIndex: number) => {
     const updatedSteps = [...funnel.steps];
     const step = updatedSteps[stepIndex];
     
     if (step.split) {
       step.split = step.split.filter((_, i) => i !== splitIndex);
-      
-      // Renumber remaining splits
-      if (step.split.length > 0) {
-        step.split.forEach((split, i) => {
-          split.number = i + 1;
-        });
-      }
     }
     
     const updatedFunnel = {
@@ -310,9 +256,9 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       updatedSteps[index] = updatedSteps[index - 1];
       updatedSteps[index - 1] = temp;
       
-      // Update step numbers
+      // Update step orders
       updatedSteps.forEach((step, i) => {
-        step.number = i + 1;
+        step.order = i + 1;
       });
       
       const updatedFunnel = {
@@ -334,9 +280,9 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       updatedSteps[index] = updatedSteps[index + 1];
       updatedSteps[index + 1] = temp;
       
-      // Update step numbers
+      // Update step orders
       updatedSteps.forEach((step, i) => {
-        step.number = i + 1;
+        step.order = i + 1;
       });
       
       const updatedFunnel = {
@@ -368,7 +314,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     // Validate each step has a name
     for (const step of funnel.steps) {
       if (!step.name.trim()) {
-        toast.error(`Step ${step.number} needs a name`);
+        toast.error(`Step ${step.order} needs a name`);
         return;
       }
       
@@ -376,7 +322,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       if (step.split) {
         for (const split of step.split) {
           if (!split.name.trim()) {
-            toast.error(`Split ${split.number} in step ${step.number} needs a name`);
+            toast.error(`Split in step ${step.order} needs a name`);
             return;
           }
         }
@@ -487,7 +433,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
             <Card key={stepIndex} className="overflow-visible">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-md">
-                  Step {step.number}: {step.name || "Unnamed Step"}
+                  Step {step.order}: {step.name || "Unnamed Step"}
                 </CardTitle>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -537,16 +483,16 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id={`step-enable-${stepIndex}`}
-                      checked={step.enable}
-                      onCheckedChange={(checked) => updateStep(stepIndex, "enable", checked)}
+                      checked={step.isEnabled}
+                      onCheckedChange={(checked) => updateStep(stepIndex, "isEnabled", checked)}
                     />
                     <Label htmlFor={`step-enable-${stepIndex}`}>Enable Step</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id={`step-required-${stepIndex}`}
-                      checked={step.required}
-                      onCheckedChange={(checked) => updateStep(stepIndex, "required", checked)}
+                      checked={step.isRequired}
+                      onCheckedChange={(checked) => updateStep(stepIndex, "isRequired", checked)}
                     />
                     <Label htmlFor={`step-required-${stepIndex}`}>Required Step</Label>
                   </div>
@@ -567,38 +513,52 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
                     </Button>
                   </div>
 
-                  {Object.keys(step.conditions).length === 0 ? (
+                  {(!step.conditions.orEventGroups || step.conditions.orEventGroups.length === 0) ? (
                     <p className="text-sm text-muted-foreground">No conditions added yet</p>
                   ) : (
                     <div className="space-y-2">
-                      {Object.entries(step.conditions).map(([key, value], condIndex) => (
+                      {step.conditions.orEventGroups.map((condition, condIndex) => (
                         <div key={`condition-${stepIndex}-${condIndex}`} className="flex items-center space-x-2">
                           <Input
-                            placeholder="Condition Key"
-                            value={key}
+                            placeholder="Event Name"
+                            value={condition.eventName}
                             onChange={(e) => {
-                              const newKey = e.target.value;
-                              const updatedSteps = [...funnel.steps];
-                              const { [key]: oldValue, ...restConditions } = updatedSteps[stepIndex].conditions;
-                              updatedSteps[stepIndex].conditions = {
-                                ...restConditions,
-                                [newKey]: oldValue,
+                              const updatedConditions = {
+                                ...step.conditions,
+                                orEventGroups: step.conditions.orEventGroups.map((c, i) => 
+                                  i === condIndex ? { ...c, eventName: e.target.value } : c
+                                )
                               };
-                              setFunnel({ ...funnel, steps: updatedSteps });
+                              updateStepCondition(stepIndex, updatedConditions);
                             }}
                             className="w-1/3"
                           />
                           <Input
-                            placeholder="Condition Value"
-                            value={value}
-                            onChange={(e) => updateStepCondition(stepIndex, [e.target.value])}
-                            className="w-1/2"
+                            placeholder="Count"
+                            type="number"
+                            value={condition.count}
+                            onChange={(e) => {
+                              const updatedConditions = {
+                                ...step.conditions,
+                                orEventGroups: step.conditions.orEventGroups.map((c, i) => 
+                                  i === condIndex ? { ...c, count: parseInt(e.target.value) || 1 } : c
+                                )
+                              };
+                              updateStepCondition(stepIndex, updatedConditions);
+                            }}
+                            className="w-1/4"
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeStepCondition(stepIndex, key)}
+                            onClick={() => {
+                              const updatedConditions = {
+                                ...step.conditions,
+                                orEventGroups: step.conditions.orEventGroups.filter((_, i) => i !== condIndex)
+                              };
+                              updateStepCondition(stepIndex, updatedConditions);
+                            }}
                             className="h-8 w-8 text-destructive hover:text-destructive/90"
                           >
                             <Trash className="h-4 w-4" />
@@ -631,7 +591,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
                       {step.split.map((split, splitIndex) => (
                         <div key={`split-${stepIndex}-${splitIndex}`} className="border rounded-md p-4 space-y-4">
                           <div className="flex justify-between items-center">
-                            <h4 className="font-medium">Split {split.number}: {split.name || "Unnamed Split"}</h4>
+                            <h4 className="font-medium">Split {splitIndex + 1}: {split.name || "Unnamed Split"}</h4>
                             <Button
                               type="button"
                               size="icon"
@@ -654,62 +614,13 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
                           </div>
 
                           <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <Label>Split Conditions</Label>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => addSplitCondition(stepIndex, splitIndex)}
-                                className="h-8 px-2 text-xs"
-                              >
-                                <Plus className="mr-1 h-3 w-3" />
-                                Add Condition
-                              </Button>
-                            </div>
-
-                            {Object.keys(split.conditions).length === 0 ? (
-                              <p className="text-sm text-muted-foreground">No conditions added yet</p>
-                            ) : (
-                              <div className="space-y-2">
-                                {Object.entries(split.conditions).map(([key, value], condIndex) => (
-                                  <div key={`split-condition-${stepIndex}-${splitIndex}-${condIndex}`} className="flex items-center space-x-2">
-                                    <Input
-                                      placeholder="Condition Key"
-                                      value={key}
-                                      onChange={(e) => {
-                                        const newKey = e.target.value;
-                                        const updatedSteps = [...funnel.steps];
-                                        if (updatedSteps[stepIndex].split) {
-                                          const { [key]: oldValue, ...restConditions } = updatedSteps[stepIndex].split![splitIndex].conditions;
-                                          updatedSteps[stepIndex].split![splitIndex].conditions = {
-                                            ...restConditions,
-                                            [newKey]: oldValue,
-                                          };
-                                          setFunnel({ ...funnel, steps: updatedSteps });
-                                        }
-                                      }}
-                                      className="w-1/3"
-                                    />
-                                    <Input
-                                      placeholder="Condition Value"
-                                      value={value}
-                                      onChange={(e) => updateSplitCondition(stepIndex, splitIndex, key, e.target.value)}
-                                      className="w-1/2"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => removeSplitCondition(stepIndex, splitIndex, key)}
-                                      className="h-8 w-8 text-destructive hover:text-destructive/90"
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <Label htmlFor={`split-value-${stepIndex}-${splitIndex}`}>Split Value</Label>
+                            <Input
+                              id={`split-value-${stepIndex}-${splitIndex}`}
+                              type="number"
+                              value={split.value || 0}
+                              onChange={(e) => updateSplit(stepIndex, splitIndex, "value", parseInt(e.target.value) || 0)}
+                            />
                           </div>
                         </div>
                       ))}

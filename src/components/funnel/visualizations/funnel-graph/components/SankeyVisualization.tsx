@@ -2,11 +2,8 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { 
   ResponsiveContainer, 
   Sankey,
-  Tooltip,
   Rectangle,
-  Layer
 } from "recharts";
-import SankeyTooltip from "./SankeyTooltip";
 import CustomTooltip from "./CustomTooltip";
 import { RechartsSankeyData } from "../types";
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { FunnelStep } from "@/types/funnel";
 import { Accordion } from "@/components/ui/accordion";
 import { StepAccordionItem } from "./StepAccordionItem";

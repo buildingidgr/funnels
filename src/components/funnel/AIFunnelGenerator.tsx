@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Sparkles, Loader2, CheckCircle, AlertCircle, Plus, Settings, Users } from "lucide-react";
+import { Bot, Sparkles, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { FunnelStep, ConditionItem } from "@/types/funnel";
 import { predefinedEvents } from "./step-condition-builder/data";
 

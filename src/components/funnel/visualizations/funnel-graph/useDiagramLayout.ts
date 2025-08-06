@@ -48,9 +48,9 @@ export const useDiagramLayout = ({
     svg.setAttribute("width", containerWidth.toString());
     svg.setAttribute("height", containerHeight.toString());
     
-    // Calculate node positions and dimensions with significantly improved spacing
-    const horizontalPadding = 120; // Increased for much more side padding
-    const verticalPadding = 100; // Increased for more top/bottom padding
+    // Calculate node positions and dimensions with improved spacing
+    const horizontalPadding = 120; // Side padding
+    const verticalPadding = 100; // Top/bottom padding
     const usableWidth = containerWidth - (horizontalPadding * 2);
     const usableHeight = containerHeight - (verticalPadding * 2);
     
@@ -65,9 +65,6 @@ export const useDiagramLayout = ({
         
         // Determine column index - main steps and their split steps are in the same column
         let columnIndex = stepIndex;
-        
-        // Both main steps and split steps use the same column index
-        // Remove the extra 0.9 offset for split steps
         
         const colKey = columnIndex.toString();
         if (!nodesByColumn[colKey]) {
@@ -90,18 +87,33 @@ export const useDiagramLayout = ({
       }))
     });
     
-    // Calculate width for each column (even narrower nodes for better spacing)
-    const columnWidth = usableWidth / (columnCount + 2.0); // Reduced from 4.0 to 2.0 to make columns wider
+    // Calculate optimal spacing based on container width and number of steps
+    const minStepSpacing = 150; // Minimum pixels between steps
+    const maxStepSpacing = 300; // Maximum pixels between steps
+    
+    // Calculate available space for step spacing
+    const totalStepSpacing = usableWidth - (columnCount * 100); // Reserve 100px per step for node width
+    const stepSpacing = Math.max(
+      minStepSpacing,
+      Math.min(maxStepSpacing, totalStepSpacing / (columnCount + 1))
+    );
+    
+    console.log("[DEBUG] Step spacing calculation:", {
+      usableWidth,
+      columnCount,
+      totalStepSpacing,
+      stepSpacing,
+      minStepSpacing,
+      maxStepSpacing
+    });
     
     // Calculate node dimensions for each column
     columnKeys.forEach((columnKey, columnIndex) => {
       const nodes = nodesByColumn[columnKey];
       const totalValue = nodes.reduce((sum, node) => sum + node.value, 0);
       
-      // Calculate x position for this column
-      // Use the original columnKey (which might be a decimal for split steps) to position
-      const colOffset = (parseFloat(columnKey) + 1) * columnWidth;
-      const x = horizontalPadding + colOffset;
+      // Calculate x position for this column with proper spacing
+      const x = horizontalPadding + (columnIndex * stepSpacing) + (columnIndex * 100); // 100px for node width
       
       // Calculate heights based on values with additional spacing between nodes
       let yOffset = verticalPadding;
@@ -153,7 +165,7 @@ export const useDiagramLayout = ({
         
         const heightRatio = totalValue > 0 ? node.value / totalValue : 0;
         const height = Math.max(heightRatio * maxHeight, 30); // Minimum height of 30
-        const width = columnWidth * 0.2; // Node width
+        const width = 100; // Fixed node width for consistency
         
         // Update node dimensions
         node.x = x - (width / 2);
@@ -195,7 +207,7 @@ export const useDiagramLayout = ({
           // Calculate dimensions based on value and parent
           const heightRatio = totalValue > 0 ? node.value / totalValue : 0;
           const height = Math.max(heightRatio * maxHeight, 20); // Smaller minimum height for split steps
-          const width = columnWidth * 0.18; // Slightly narrower than main steps for visual distinction
+          const width = 100; // Fixed node width for consistency
           
           // Position split steps at the same x as the main step but with a slight right offset
           // This creates a visual distinction while keeping them in the same column
@@ -241,7 +253,7 @@ export const useDiagramLayout = ({
       color: "#9b87f5",
       x: horizontalPadding,
       y: verticalPadding,
-      width: columnWidth * 0.2, // Matched to other nodes
+      width: 100, // Matched to other nodes
       height: usableHeight * 0.5 // Matched to other nodes
     };
     

@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useDiagramLayout } from "./useDiagramLayout";
 import SankeyRenderer from "./SankeyRenderer";
-import useNodeSelection from "./hooks/useNodeSelection";
 
 // Import the CSS module
 import styles from "./FunnelGraph.module.css";

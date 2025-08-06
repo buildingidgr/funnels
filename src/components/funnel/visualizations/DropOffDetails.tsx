@@ -1,7 +1,6 @@
 import React from "react";
 import { FunnelStep } from "@/types/funnel";
 import { AlertCircle, TrendingDown, TrendingUp, Users } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 
 interface DropOffDetailsProps {
   steps: FunnelStep[];

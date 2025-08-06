@@ -1,10 +1,8 @@
-import React, { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Info, Trash2 } from "lucide-react";
 import { Conditions, ConditionItem, EventProperty } from "@/types/funnel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { predefinedEvents, operators, eventProperties, propertyTypes } from "./data";
+import { predefinedEvents, eventProperties, propertyTypes } from "./data";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";

@@ -8,7 +8,7 @@ interface FunnelOverviewProps {
 
 export const FunnelOverview: React.FC<FunnelOverviewProps> = ({ steps }) => {
   // Filter out disabled steps
-  const enabledSteps = steps.filter(step => step.enable);
+  const enabledSteps = steps.filter(step => step.isEnabled);
   
   // Function to calculate overall funnel conversion
   const calculateOverallConversion = (): number => {

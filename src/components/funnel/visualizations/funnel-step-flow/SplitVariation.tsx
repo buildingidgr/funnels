@@ -3,10 +3,10 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { SplitStep } from "@/types/funnel";
+import { FunnelStep } from "@/types/funnel";
 
 interface SplitVariationProps {
-  splitStep: SplitStep;
+  splitStep: FunnelStep;
   parentValue: number | undefined;
 }
 
@@ -20,7 +20,7 @@ export const SplitVariation: React.FC<SplitVariationProps> = ({ splitStep, paren
   const formattedPercentage = isNaN(percentage) ? "0.0" : percentage.toFixed(1);
   
   return (
-    <Card key={splitStep.number} className="border-gray-100">
+    <Card key={splitStep.id} className="border-gray-100">
       <CardContent className="p-2 text-xs">
         <div className="flex justify-between items-start mb-1">
           <h4 className="font-medium">{splitStep.name}</h4>

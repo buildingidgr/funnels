@@ -1,4 +1,3 @@
-import React from "react";
 import { SplitVariation, Conditions } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

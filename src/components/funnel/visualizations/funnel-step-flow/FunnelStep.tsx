@@ -1,13 +1,11 @@
 import React from "react";
 import { FunnelStep as FunnelStepType, ConditionItem } from "@/types/funnel";
-import StepMetrics from "./StepMetrics";
 import SplitVariations from "./SplitVariations";
 import { 
   Users,
   TrendingUp,
   TrendingDown,
   ChevronRight,
-  AlertCircle,
   CheckCircle,
   SkipForward
 } from "lucide-react";
