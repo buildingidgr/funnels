@@ -266,12 +266,12 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     current.conversionRate < worst.conversionRate ? current : worst
   );
 
-  // Find the final step (last enabled step) to get the total users who completed the flow
-  const finalStep = enabledSteps[enabledSteps.length - 1];
-  const finalStepValue = finalStep?.value || finalStep?.visitorCount || 0;
+  // Find the last step (final users who completed the flow)
+  const lastStep = data.nodes.length > 0 ? data.nodes[data.nodes.length - 1] : null;
+  const totalUsers = lastStep ? lastStep.value : 0;
   
   const performanceInsights = {
-    totalUsers: finalStepValue, // Use the final step value instead of summing all nodes
+    totalUsers: totalUsers,
     overallConversion: conversionRate,
     bestPerformingStep: bestPerformingStep.step,
     worstPerformingStep: worstPerformingStep.step,

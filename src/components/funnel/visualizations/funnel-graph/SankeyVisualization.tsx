@@ -693,9 +693,10 @@ const styles = `
 
 // Performance metrics component
 const PerformanceMetrics = ({ data, initialValue }: { data: any, initialValue: number }) => {
-  // Find the final step (last node) to get the total users who completed the flow
-  const finalNode = data.nodes[data.nodes.length - 1];
-  const totalUsers = finalNode?.value || 0;
+  // Find the last step (final users who completed the flow)
+  // The last step should be the one with the highest index or the last node in the array
+  const lastStep = data.nodes.length > 0 ? data.nodes[data.nodes.length - 1] : null;
+  const totalUsers = lastStep ? lastStep.value : 0;
   const overallConversion = ((totalUsers / initialValue) * 100);
   
   const bestPerformingNode = data.nodes.reduce((best: any, current: any) => 
