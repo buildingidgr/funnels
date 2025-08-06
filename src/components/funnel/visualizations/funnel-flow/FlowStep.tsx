@@ -50,7 +50,7 @@ const FlowStep: React.FC<FlowStepProps> = ({
 
   const colorClass = getConversionColor(conversionRate);
   const isImprovement = conversionRate > 100;
-  const dropoff = previousValue - (step.value || 0);
+  const dropoff = previousValue - (step.value || step.visitorCount || 0);
   const dropoffPercentage = previousValue ? (dropoff / previousValue) * 100 : 0;
   const [isExpanded, setIsExpanded] = React.useState(false);
   const stepColor = getStepColor(index);
@@ -104,7 +104,7 @@ const FlowStep: React.FC<FlowStepProps> = ({
           >
             <Users className="w-6 h-6 text-gray-400" />
             <span className="text-3xl font-bold text-gray-800">
-              {step.value?.toLocaleString() || 0}
+              {step.value?.toLocaleString() || step.visitorCount?.toLocaleString() || 0}
             </span>
           </motion.div>
         </div>
@@ -260,7 +260,7 @@ const FlowStep: React.FC<FlowStepProps> = ({
                     <span className="text-base font-medium text-gray-600">Total Conversion</span>
                   </div>
                   <span className="text-xl font-semibold text-gray-800">
-                    {((step.value || 0) / previousValue * 100).toFixed(1)}%
+                    {((step.value || step.visitorCount || 0) / previousValue * 100).toFixed(1)}%
                   </span>
                 </div>
 

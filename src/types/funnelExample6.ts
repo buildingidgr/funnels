@@ -114,7 +114,7 @@ export const exampleFunnel6: Funnel = {
       name: "Agent Assigned",
       displayColor: "#EF4444",
       order: 4,
-      visitorCount: 2160,
+      visitorCount: 1080,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -146,7 +146,7 @@ export const exampleFunnel6: Funnel = {
       name: "First Response Sent",
       displayColor: "#8B5CF6",
       order: 5,
-      visitorCount: 1944,
+      visitorCount: 972,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -178,7 +178,7 @@ export const exampleFunnel6: Funnel = {
       name: "Customer Reply",
       displayColor: "#06B6D4",
       order: 6,
-      visitorCount: 1166,
+      visitorCount: 583,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -210,7 +210,7 @@ export const exampleFunnel6: Funnel = {
       name: "Issue Resolved",
       displayColor: "#10B981",
       order: 7,
-      visitorCount: 1050,
+      visitorCount: 525,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -242,7 +242,7 @@ export const exampleFunnel6: Funnel = {
       name: "Satisfaction Survey Completed (Optional)",
       displayColor: "#F59E0B",
       order: 8,
-      visitorCount: 525,
+      visitorCount: 263,
       isEnabled: true,
       isRequired: false,
       conditions: {

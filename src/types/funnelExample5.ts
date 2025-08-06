@@ -50,7 +50,7 @@ export const exampleFunnel5: Funnel = {
       name: "App Installation",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 4000,
+      visitorCount: 800,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -76,7 +76,7 @@ export const exampleFunnel5: Funnel = {
       name: "First App Open",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 3200,
+      visitorCount: 480,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -102,7 +102,7 @@ export const exampleFunnel5: Funnel = {
       name: "Permissions Granted",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 2560,
+      visitorCount: 240,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -126,7 +126,7 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-1-critical",
           name: "Critical Permissions",
-          visitorCount: 1792,
+          visitorCount: 1254,
           conditions: {
             orEventGroups: [
               {
@@ -148,7 +148,7 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-2-optional",
           name: "Optional Permissions",
-          visitorCount: 768,
+          visitorCount: 538,
           conditions: {
             orEventGroups: [
               {
@@ -174,7 +174,7 @@ export const exampleFunnel5: Funnel = {
       name: "Onboarding Completed",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 1920,
+      visitorCount: 101,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -206,7 +206,7 @@ export const exampleFunnel5: Funnel = {
       name: "Core Feature Used",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 1344,
+      visitorCount: 50,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -236,7 +236,7 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-1-social",
           name: "Social Features",
-          visitorCount: 672,
+          visitorCount: 43,
           conditions: {
             orEventGroups: [
               {
@@ -258,7 +258,7 @@ export const exampleFunnel5: Funnel = {
         {
           id: "variation-2-content",
           name: "Content Features",
-          visitorCount: 672,
+          visitorCount: 29,
           conditions: {
             orEventGroups: [
               {
@@ -284,7 +284,7 @@ export const exampleFunnel5: Funnel = {
       name: "Daily Active User",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 940,
+      visitorCount: 40,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -316,7 +316,7 @@ export const exampleFunnel5: Funnel = {
       name: "Monetization Action",
       displayColor: "#FFD93D",
       order: 8,
-      visitorCount: 470,
+      visitorCount: 12,
       isEnabled: true,
       isRequired: true,
       conditions: {

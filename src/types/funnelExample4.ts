@@ -50,7 +50,7 @@ export const exampleFunnel4: Funnel = {
       name: "Signup Started",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 3000,
+      visitorCount: 750,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -76,7 +76,7 @@ export const exampleFunnel4: Funnel = {
       name: "Account Created",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 2400,
+      visitorCount: 450,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -102,7 +102,7 @@ export const exampleFunnel4: Funnel = {
       name: "Onboarding Started",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 1920,
+      visitorCount: 225,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -126,7 +126,7 @@ export const exampleFunnel4: Funnel = {
         {
           id: "variation-1-guided",
           name: "Guided Tour",
-          visitorCount: 1152,
+          visitorCount: 90,
           conditions: {
             orEventGroups: [
               {
@@ -148,7 +148,7 @@ export const exampleFunnel4: Funnel = {
         {
           id: "variation-2-self-guided",
           name: "Self-Guided",
-          visitorCount: 768,
+          visitorCount: 60,
           conditions: {
             orEventGroups: [
               {
@@ -174,7 +174,7 @@ export const exampleFunnel4: Funnel = {
       name: "First Feature Used",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 1344,
+      visitorCount: 100,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -206,7 +206,7 @@ export const exampleFunnel4: Funnel = {
       name: "Weekly Active User",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 940,
+      visitorCount: 56,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -238,7 +238,7 @@ export const exampleFunnel4: Funnel = {
       name: "Subscription Started",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 470,
+      visitorCount: 15,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -267,15 +267,15 @@ export const exampleFunnel4: Funnel = {
       splitVariations: [
         {
           id: "variation-1-monthly",
-          name: "Monthly Plan",
-          visitorCount: 282,
+            name: "Monthly Plan",
+            visitorCount: 7,
           conditions: {
             orEventGroups: [
               {
                 eventName: "subscription_started",
                 operator: "equals",
                 count: 1,
-                properties: [
+                properties: [ 
                   {
                     name: "billing_cycle",
                     operator: "equals",
@@ -290,7 +290,7 @@ export const exampleFunnel4: Funnel = {
         {
           id: "variation-2-annual",
           name: "Annual Plan",
-          visitorCount: 188,
+          visitorCount: 4,  
           conditions: {
             orEventGroups: [
               {

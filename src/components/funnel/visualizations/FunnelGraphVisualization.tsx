@@ -103,6 +103,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
 
   // Process the data for the funnel chart
   const data = enabledSteps.flatMap((step, idx) => {
+    // Use the API-calculated value as the single source of truth
     const currentValue = step.value || step.visitorCount || 0;
     const previousValue = idx === 0 ? initialValue : (enabledSteps[idx - 1].value || enabledSteps[idx - 1].visitorCount || 0);
     const conversionRate = previousValue > 0 ? ((currentValue / previousValue) * 100).toFixed(1) : '0.0';
@@ -134,34 +135,29 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
 
       // Then add each split as a separate path
       const splitSteps = step.splitVariations.map((splitStep, splitIdx) => {
-        const splitValue = splitStep.visitorCount || 0;
-        let splitToNextValue = splitValue;
-        let splitConversionRate = '100.0';
-        let splitDropoff = 0;
-        // Use mapping if available
-        if (funnelId && splitToNextMap[funnelId]) {
-          const nextStep = enabledSteps[idx + 1];
-          const key = `${step.name}|${splitStep.name}|${nextStep ? nextStep.name : ''}`;
-          if (splitToNextMap[funnelId][key] !== undefined) {
-            splitToNextValue = splitToNextMap[funnelId][key];
-            splitConversionRate = splitValue > 0 ? ((splitToNextValue / splitValue) * 100).toFixed(1) : '0.0';
-            splitDropoff = splitValue - splitToNextValue;
-          } else {
-            splitConversionRate = splitValue > 0 ? ((splitToNextValue / splitValue) * 100).toFixed(1) : '0.0';
-            splitDropoff = splitValue - splitToNextValue;
-          }
-        }
+        // Calculate the split value based on the proportion from the funnel data
+        const totalSplitVisitorCount = step.splitVariations.reduce((total, variation) => {
+          return total + (variation.visitorCount || 0);
+        }, 0);
+        
+        const splitProportion = totalSplitVisitorCount > 0 ? (splitStep.visitorCount || 0) / totalSplitVisitorCount : 0;
+        const splitValue = Math.round(currentValue * splitProportion);
+        
+        // Calculate conversion rate from main step to this split
+        const splitConversionRate = currentValue > 0 ? ((splitValue / currentValue) * 100).toFixed(1) : '0.0';
+        const splitDropoff = currentValue - splitValue;
+        
         return {
           id: `${step.name} - ${splitStep.name}`,
-          value: splitToNextValue,
-          label: `${splitStep.name}\n${splitToNextValue.toLocaleString()} users`,
+          value: splitValue,
+          label: `${splitStep.name}\n${splitValue.toLocaleString()} users\n(${splitConversionRate}% of ${step.name})`,
           conversionRate: splitConversionRate,
           dropoff: splitDropoff,
-          previousValue: splitValue,
+          previousValue: currentValue,
           isSplit: true,
           type: 'split' as const,
           parentStep: step.name,
-          actualValue: splitToNextValue,
+          actualValue: splitValue,
           color: getSplitColor(idx, splitIdx)
         };
       });

@@ -50,7 +50,7 @@ export const exampleFunnel: Funnel = {
       name: "Product Interaction",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 18750,
+      visitorCount: 5000,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -76,7 +76,7 @@ export const exampleFunnel: Funnel = {
       name: "Add to Cart",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 5625,
+      visitorCount: 500,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -89,7 +89,7 @@ export const exampleFunnel: Funnel = {
               {
                 name: "product_available",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               }
             ]
@@ -100,7 +100,7 @@ export const exampleFunnel: Funnel = {
         {
           id: "variation-1-quick-add",
           name: "Quick Add (Mobile)",
-          visitorCount: 3375,
+          visitorCount: 140,
           conditions: {
             orEventGroups: [
               {
@@ -128,7 +128,7 @@ export const exampleFunnel: Funnel = {
         {
           id: "variation-2-standard-add",
           name: "Standard Add (Desktop)",
-          visitorCount: 2250,
+          visitorCount: 100,
           conditions: {
             orEventGroups: [
               {
@@ -160,7 +160,7 @@ export const exampleFunnel: Funnel = {
       name: "Cart Review",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 4500,
+      visitorCount: 192,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -186,7 +186,7 @@ export const exampleFunnel: Funnel = {
       name: "Checkout Started",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 3150,
+      visitorCount: 115,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -212,7 +212,7 @@ export const exampleFunnel: Funnel = {
       name: "Payment Information Entered",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 2520,
+      visitorCount: 86,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -238,7 +238,7 @@ export const exampleFunnel: Funnel = {
       name: "Purchase Completed",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 1890,
+      visitorCount: 60,
       isEnabled: true,
       isRequired: true,
       conditions: {

@@ -312,41 +312,27 @@ export const FunnelApi = {
         rate: '100%'
       });
 
-      // Base conversion rate ranges
-      const baseRequiredConvRate = { min: 0.30, max: 0.70 }; // e.g., 30-70%
-      const baseOptionalConvRate = { min: 0.10, max: 0.40 }; // e.g., 10-40%
-      const conversionDecayFactor = 0.05; // Reduce max conversion rate by 5% for each subsequent step
-
+      // Calculate realistic conversion rates based on funnel data structure
       funnel.steps.slice(1).forEach((step, index) => {
-        const effectiveIndex = index + 1; // True index in the funnel steps array
-        let minConv, maxConv;
-
-        if (!step.isRequired) {
-          minConv = baseOptionalConvRate.min;
-          maxConv = Math.max(baseOptionalConvRate.min, baseOptionalConvRate.max - (effectiveIndex * conversionDecayFactor));
-        } else {
-          minConv = baseRequiredConvRate.min;
-          maxConv = Math.max(baseRequiredConvRate.min, baseRequiredConvRate.max - (effectiveIndex * conversionDecayFactor));
-        }
+        // Use the visitor count from funnel data as the target value
+        const targetValue = step.visitorCount || 0;
+        const conversionRate = previousValue > 0 ? targetValue / previousValue : 0;
         
-        const conversionRate = minConv + Math.random() * (maxConv - minConv);
-        const newValue = Math.round(previousValue * conversionRate);
-        results[step.id] = newValue;
+        // The API calculates the same value as specified in the funnel data
+        results[step.id] = targetValue;
         
         console.log(`Step ${step.name}:`, {
           previousValue,
-          newValue,
+          calculatedValue: targetValue,
           rate: `${(conversionRate * 100).toFixed(1)}%`,
           isRequired: step.isRequired,
-          minConv: (minConv*100).toFixed(1),
-          maxConv: (maxConv*100).toFixed(1)
+          visitorCount: targetValue
         });
         
-        previousValue = newValue;
+        previousValue = targetValue;
         
         if (step.splitVariations && step.splitVariations.length > 0) {
           const stepValue = results[step.id];
-          let remainingValueForSplits = stepValue;
           const numVariations = step.splitVariations.length;
           
           console.log(`Processing splits for ${step.name}:`, {
@@ -354,39 +340,30 @@ export const FunnelApi = {
             variations: numVariations
           });
 
-          // Generate random proportions for splits
-          let proportions = Array.from({ length: numVariations }, () => Math.random());
-          const sumProportions = proportions.reduce((a, b) => a + b, 0);
-          proportions = proportions.map(p => p / sumProportions); // Normalize
+          // Calculate total visitor count from split variations to get proportions
+          const totalSplitVisitorCount = step.splitVariations.reduce((total, variation) => {
+            return total + (variation.visitorCount || 0);
+          }, 0);
 
           step.splitVariations.forEach((variation, varIndex) => {
             const variationId = `${step.id}-variation-${varIndex + 1}`;
-            let variationValue;
-
-            if (varIndex === numVariations - 1) {
-              variationValue = remainingValueForSplits; // Assign remaining to the last split
-            } else {
-              variationValue = Math.round(stepValue * proportions[varIndex]);
-              remainingValueForSplits -= variationValue;
-            }
-            // Ensure non-negative if previous rounding led to issues
-            variationValue = Math.max(0, variationValue);
-            if(remainingValueForSplits < 0 && varIndex < numVariations -1) remainingValueForSplits = 0;
-
+            
+            // Calculate proportion based on the actual visitor counts in the funnel data
+            const splitProportion = totalSplitVisitorCount > 0 ? (variation.visitorCount || 0) / totalSplitVisitorCount : 0;
+            const variationValue = Math.round(stepValue * splitProportion);
 
             results[variationId] = variationValue;
-            console.log(`Split ${variation.name}${varIndex === numVariations -1 ? ' (last)' : ''}:`, {
-              value: variationValue,
-              rate: stepValue > 0 ? `${((variationValue / stepValue) * 100).toFixed(1)}%` : '0.0%',
-              proportion: (proportions[varIndex]*100).toFixed(1)
+            console.log(`Split ${variation.name}:`, {
+              visitorCount: variation.visitorCount,
+              calculatedValue: variationValue,
+              proportion: totalSplitVisitorCount > 0 ? `${((variation.visitorCount || 0) / totalSplitVisitorCount * 100).toFixed(1)}%` : '0.0%',
+              rate: stepValue > 0 ? `${((variationValue / stepValue) * 100).toFixed(1)}%` : '0.0%'
             });
           });
         }
       });
       
-      // Post-calculation adjustments (e.g., capping rates if necessary)
-      // This part is simplified as the new logic should inherently produce more realistic rates.
-      // However, we can add a final check to ensure values are consistent.
+      // Post-calculation validation: Ensure each step has fewer users than the previous (except optional steps)
       funnel.steps.forEach((step, index) => {
         if (index === 0) return;
         
@@ -394,14 +371,14 @@ export const FunnelApi = {
         const currentValue = results[step.id];
         const prevValue = results[prevStep.id];
 
-        // Optional: Add a cap if a step somehow ended up with more than its predecessor (should not happen with current logic)
+        // CRITICAL: Each step must have fewer users than the previous (except optional steps)
         if (currentValue > prevValue && prevValue !== 0) {
-            console.warn(`Adjusting ${step.name} value as it exceeded previous step:`, {
-                from: currentValue,
-                to: prevValue,
-            });
+            console.warn(`VIOLATION: ${step.name} has ${currentValue} users but previous step ${prevStep.name} has ${prevValue} users. Capping at previous step value.`);
             results[step.id] = prevValue; // Cap at previous step's value
         }
+
+        // Log the validation result
+        console.log(`Validation: ${step.name}: ${currentValue} users (${prevValue > 0 ? ((currentValue / prevValue) * 100).toFixed(1) : 0}% of previous) - ${currentValue <= prevValue ? '✅ VALID' : '❌ INVALID'}`);
 
         // Ensure split variations sum up correctly to the parent step value
         if (step.splitVariations && step.splitVariations.length > 0) {
@@ -441,24 +418,28 @@ export const FunnelApi = {
       });
       
       console.log('Final results:', results);
-      // Update lastCalculatedAt timestamp for the funnel
+      
+      // Update the funnel data with the calculated results as the single source of truth
       const funnelIndex = mockFunnels.findIndex(f => f.id === id);
       if (funnelIndex !== -1) {
         mockFunnels[funnelIndex].lastCalculatedAt = new Date().toISOString();
         
-        // Update splitVariations with calculated values
+        // Update each step with the calculated values
         mockFunnels[funnelIndex].steps.forEach(step => {
+          if (results[step.id] !== undefined) {
+            step.value = results[step.id]; // Set the calculated value
+            step.visitorCount = results[step.id]; // Also update visitorCount for consistency
+          }
+          
+          // Update split variations with calculated values
           if (step.splitVariations && step.splitVariations.length > 0) {
             step.splitVariations.forEach((variation, varIndex) => {
               const variationId = `${step.id}-variation-${varIndex + 1}`;
-              variation.visitorCount = results[variationId] || 0;
+              if (results[variationId] !== undefined) {
+                variation.visitorCount = results[variationId];
+                variation.value = results[variationId];
+              }
             });
-          }
-          
-          // Update the main step value with the calculated result
-          if (results[step.id] !== undefined) {
-            step.visitorCount = results[step.id];
-            step.value = results[step.id]; // Also update the value property
           }
         });
         

@@ -42,7 +42,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
     
     // Create nodes for main steps
     enabledSteps.forEach((step, index) => {
-      const currentValue = step.value || 0;
+      const currentValue = step.value || step.visitorCount || 0;
       const color = nodeColors[index % nodeColors.length];
       
       console.log(`[DEBUG] Creating node for step ${step.name}:`, {
@@ -113,12 +113,12 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
     // Create links between nodes
     for (let i = 0; i < enabledSteps.length; i++) {
       const currentStep = enabledSteps[i];
-      const currentValue = currentStep.value || 0;
+      const currentValue = currentStep.value || currentStep.visitorCount || 0;
       
       console.log(`[DEBUG] Processing link for step ${i}: ${currentStep.name}`, {
         currentValue,
         isRequired: currentStep.isRequired,
-        hasSplit: currentStep.split && currentStep.split.length > 0,
+        hasSplit: currentStep.splitVariations && currentStep.splitVariations.length > 0,
         hasSplitVariations: currentStep.splitVariations && currentStep.splitVariations.length > 0
       });
       
@@ -148,96 +148,98 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         // Format percentage safely
         const formattedPercentage = isNaN(percentage) ? "0.0" : percentage.toFixed(1);
         
-        // Only create the direct link from previous -> current if the previous step is required
-        // (or if there is no step before the previous one to form a bypass).
-        if (prevStep.isRequired || i < 2) {
-          // Calculate the actual flow value (how many users went from prev to current)
-          const flowValue = currentValue; // For required steps, all users flow through
+        // Check if previous step has splitVariations - if so, create split links instead of main link
+        if (prevStep.splitVariations && prevStep.splitVariations.length > 0) {
+          console.log(`[DEBUG] Creating splitVariation links from previous step ${prevStep.name} to ${currentStep.name}`);
           
-          console.log(`[DEBUG] Required step link calculation:`, {
-            prevStep: prevStep.name,
-            currentStep: currentStep.name,
-            prevValue,
-            currentValue,
-            flowValue,
-            percentage: formattedPercentage
-          });
+          // Calculate total split visitor count
+          const totalSplitVisitorCount = prevStep.splitVariations.reduce((total, variation) => {
+            return total + (variation.visitorCount || 0);
+          }, 0);
           
-          console.log(`[DEBUG] Creating link from ${prevStep.name} to ${currentStep.name}:`, {
-            source: `step-${i - 1}`,
-            target: `step-${i}`,
-            value: flowValue, // Use actual flow value
-            sourceValue: prevValue,
-            percentage: formattedPercentage
-          });
-          links.push({
-            source: `step-${i - 1}`,
-            target: `step-${i}`,
-            value: flowValue, // Use actual flow value instead of currentValue
-            sourceValue: prevValue, // Add source value for percentage calculation
-            path: "", 
-            color: nodes[i].color + "90",
-            labelValue: `${flowValue.toLocaleString()}`,
-            labelPercentage: `${formattedPercentage}%`,
-            // Add source and target colors for gradient
-            sourceColor: nodes[i-1].color + "90",
-            targetColor: nodes[i].color + "90"
-          });
-        } else {
-          // This is an optional step - we'll handle it in the optional step logic below
-          console.log(`[DEBUG] Skipping direct link from optional step ${prevStep.name} to ${currentStep.name} - will be handled by optional step logic`);
-        }
-        
-        // Handle links from previous step splits to current step if they exist
-        // Add null check for prevStep.split
-        if (prevStep.split && prevStep.split.length > 0) {
-          prevStep.split.forEach((splitStep, splitIndex) => {
-            // Link from each split to the current step
-            const splitValue = splitStep.value || 0;
+          prevStep.splitVariations.forEach((splitVariation, splitIndex) => {
+            const splitValue = splitVariation.visitorCount || 0;
             if (splitValue > 0) {
-              // Calculate how many users from this split actually reach the current step
-              const splitFlowValue = Math.round((splitValue / prevValue) * currentValue);
+              // Calculate proportion of this split that flows to current step
+              const splitProportion = totalSplitVisitorCount > 0 ? splitValue / totalSplitVisitorCount : 0;
+              const splitFlowValue = Math.round(currentValue * splitProportion);
               
-              const splitPercentage = prevValue > 0 ? ((splitValue / prevValue) * 100) : 0;
+              const splitPercentage = totalSplitVisitorCount > 0 ? (splitValue / totalSplitVisitorCount * 100) : 0;
               const formattedSplitPercentage = isNaN(splitPercentage) ? "0.0" : splitPercentage.toFixed(1);
               
               const sourceNode = nodes.find(n => n.id === `step-${i-1}-split-${splitIndex}`);
               if (sourceNode) {
-                console.log(`[DEBUG] Creating split link from ${splitStep.name} to ${currentStep.name}:`, {
+                console.log(`[DEBUG] Creating splitVariation link from ${splitVariation.name} to ${currentStep.name}:`, {
                   source: `step-${i-1}-split-${splitIndex}`,
                   target: `step-${i}`,
-                  value: splitFlowValue, // Use calculated flow value
+                  value: splitFlowValue,
                   percentage: formattedSplitPercentage
                 });
                 links.push({
                   source: `step-${i-1}-split-${splitIndex}`,
                   target: `step-${i}`,
-                  value: splitFlowValue, // Use calculated flow value
-                  sourceValue: splitValue, // Use the split value as source for percentage
+                  value: splitFlowValue,
+                  sourceValue: splitValue,
                   path: "",
                   color: "transparent", // Make the link transparent
                   labelValue: `${splitFlowValue.toLocaleString()}`,
                   labelPercentage: `${formattedSplitPercentage}%`,
-                  sourceColor: "transparent", // Make source transparent
-                  targetColor: "transparent" // Make target transparent
+                  sourceColor: "transparent",
+                  targetColor: "transparent"
                 });
               }
             }
           });
+        } else {
+          // Only create the direct link from previous -> current if the previous step is required
+          // (or if there is no step before the previous one to form a bypass).
+          if (prevStep.isRequired || i < 2) {
+            // Calculate the actual flow value (how many users went from prev to current)
+            const flowValue = currentValue; // For required steps, all users flow through
+            
+            console.log(`[DEBUG] Required step link calculation:`, {
+              prevStep: prevStep.name,
+              currentStep: currentStep.name,
+              prevValue,
+              currentValue,
+              flowValue,
+              percentage: formattedPercentage
+            });
+            
+            console.log(`[DEBUG] Creating link from ${prevStep.name} to ${currentStep.name}:`, {
+              source: `step-${i - 1}`,
+              target: `step-${i}`,
+              value: flowValue, // Use actual flow value
+              sourceValue: prevValue,
+              percentage: formattedPercentage
+            });
+            links.push({
+              source: `step-${i - 1}`,
+              target: `step-${i}`,
+              value: flowValue, // Use actual flow value instead of currentValue
+              sourceValue: prevValue, // Add source value for percentage calculation
+              path: "", 
+              color: nodes[i].color + "90",
+              labelValue: `${flowValue.toLocaleString()}`,
+              labelPercentage: `${formattedPercentage}%`,
+              // Add source and target colors for gradient
+              sourceColor: nodes[i-1].color + "90",
+              targetColor: nodes[i].color + "90"
+            });
+          } else {
+            // This is an optional step - we'll handle it in the optional step logic below
+            console.log(`[DEBUG] Skipping direct link from optional step ${prevStep.name} to ${currentStep.name} - will be handled by optional step logic`);
+          }
         }
         
-        // Also handle splitVariations from previous step - skip creating split links
-        if (!prevStep.split && prevStep.splitVariations && prevStep.splitVariations.length > 0) {
-          console.log(`[DEBUG] Skipping splitVariation links from previous step ${prevStep.name} to avoid additional connection flows`);
-          // Don't create split links - treat as regular step
-        }
+
       }
       
       // Handle splits if they exist for the current step
-      // Add null check for currentStep.split
-      if (currentStep.split && currentStep.split.length > 0) {
-        currentStep.split.forEach((splitStep, splitIndex) => {
-          const splitValue = splitStep.value || 0;
+      // Add null check for currentStep.splitVariations
+      if (currentStep.splitVariations && currentStep.splitVariations.length > 0) {
+        currentStep.splitVariations.forEach((splitVariation, splitIndex) => {
+          const splitValue = splitVariation.visitorCount || 0;
           
           // Skip links to zero value nodes - fixed to properly scope the continue
           if (currentValue === 0) {
@@ -251,7 +253,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
           
           const targetNode = nodes.find(n => n.id === `step-${i}-split-${splitIndex}`);
           
-          console.log(`[DEBUG] Creating link from ${currentStep.name} to split ${splitStep.name}:`, {
+          console.log(`[DEBUG] Creating link from ${currentStep.name} to split ${splitVariation.name}:`, {
             source: `step-${i}`,
             target: `step-${i}-split-${splitIndex}`,
             value: splitValue, // Use the actual split value for flow
@@ -275,11 +277,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
         });
       }
       
-      // Also handle splitVariations for current step - skip creating split links to avoid additional flows
-      if (!currentStep.split && currentStep.splitVariations && currentStep.splitVariations.length > 0) {
-        console.log(`[DEBUG] Skipping splitVariation links for ${currentStep.name} to avoid additional connection flows`);
-        // Don't create split links - treat as regular step
-      }
+      // Note: splitVariations are handled above in the main logic
       
       // Check for optional step logic (bypass link generation)
       if (i >= 2) {

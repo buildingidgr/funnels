@@ -50,7 +50,7 @@ export const exampleFunnel7: Funnel = {
       name: "Content Engagement",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 15000,
+      visitorCount: 2500,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -82,7 +82,7 @@ export const exampleFunnel7: Funnel = {
       name: "Email Newsletter Signup",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 3000,
+      visitorCount: 125,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -112,7 +112,7 @@ export const exampleFunnel7: Funnel = {
         {
           id: "variation-1-popup",
           name: "Popup Signup",
-          visitorCount: 1500,
+          visitorCount: 1050,
           conditions: {
             orEventGroups: [
               {
@@ -134,7 +134,7 @@ export const exampleFunnel7: Funnel = {
         {
           id: "variation-2-inline",
           name: "Inline Signup",
-          visitorCount: 1500,
+          visitorCount: 900,
           conditions: {
             orEventGroups: [
               {
@@ -160,7 +160,7 @@ export const exampleFunnel7: Funnel = {
       name: "Gated Content Download",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 1200,
+      visitorCount: 35,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -192,7 +192,7 @@ export const exampleFunnel7: Funnel = {
       name: "Webinar Registration",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 600,
+      visitorCount: 15,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -224,7 +224,7 @@ export const exampleFunnel7: Funnel = {
       name: "Webinar Attendance",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 420,
+      visitorCount: 8,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -256,7 +256,7 @@ export const exampleFunnel7: Funnel = {
       name: "Demo Request",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 210,
+      visitorCount: 4,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -288,7 +288,7 @@ export const exampleFunnel7: Funnel = {
       name: "Demo Completed",
       displayColor: "#FFD93D",
       order: 8,
-      visitorCount: 147,
+      visitorCount: 2,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -320,7 +320,7 @@ export const exampleFunnel7: Funnel = {
       name: "Free Trial Started",
       displayColor: "#A8E6CF",
       order: 9,
-      visitorCount: 88,
+      visitorCount: 1,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -352,7 +352,7 @@ export const exampleFunnel7: Funnel = {
       name: "Paid Conversion",
       displayColor: "#FF8A80",
       order: 10,
-      visitorCount: 35,
+      visitorCount: 1,
       isEnabled: true,
       isRequired: true,
       conditions: {

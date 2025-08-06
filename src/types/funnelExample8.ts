@@ -50,7 +50,7 @@ export const exampleFunnel8: Funnel = {
       name: "Product Detail Engagement",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 35000,
+      visitorCount: 7200, 
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -80,7 +80,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-1-high-engagement",
           name: "High Engagement (2+ interactions)",
-          visitorCount: 17500,
+          visitorCount: 1470,
           conditions: {
             orEventGroups: [
               {
@@ -102,7 +102,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-2-low-engagement",
           name: "Low Engagement (1 interaction)",
-          visitorCount: 17500,
+              visitorCount: 2205,
           conditions: {
             orEventGroups: [
               {
@@ -128,7 +128,7 @@ export const exampleFunnel8: Funnel = {
       name: "Add to Cart Intent",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 17500,
+      visitorCount: 525,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -141,7 +141,7 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "product_available",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               },
               {
@@ -160,7 +160,7 @@ export const exampleFunnel8: Funnel = {
       name: "Successfully Added to Cart",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 14000,
+      visitorCount: 315,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -190,7 +190,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-1-single-item",
           name: "Single Item Cart",
-          visitorCount: 8400,
+          visitorCount: 154,
           conditions: {
             orEventGroups: [
               {
@@ -212,7 +212,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-2-multiple-items",
           name: "Multiple Items Cart",
-          visitorCount: 5600,
+          visitorCount: 67,
           conditions: {
             orEventGroups: [
               {
@@ -238,7 +238,7 @@ export const exampleFunnel8: Funnel = {
       name: "Cart Review & Optimization",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 11200,
+      visitorCount: 176,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -270,7 +270,7 @@ export const exampleFunnel8: Funnel = {
       name: "Checkout Process Started",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 7840,
+      visitorCount: 114,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -300,7 +300,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-1-guest-checkout",
           name: "Guest Checkout",
-          visitorCount: 3920,
+          visitorCount: 48,
           conditions: {
             orEventGroups: [
               {
@@ -322,7 +322,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-2-account-checkout",
           name: "Account Checkout",
-          visitorCount: 3920,
+          visitorCount: 31,
           conditions: {
             orEventGroups: [
               {
@@ -348,7 +348,7 @@ export const exampleFunnel8: Funnel = {
       name: "Shipping Information Entered",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 6272,
+      visitorCount: 64,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -361,13 +361,13 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "shipping_address_complete",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               },
               {
                 name: "shipping_method_selected",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               }
             ]
@@ -380,7 +380,7 @@ export const exampleFunnel8: Funnel = {
       name: "Payment Method Selected",
       displayColor: "#9B59B6",
       order: 8,
-      visitorCount: 5018,
+      visitorCount: 48,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -399,7 +399,7 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "payment_method_valid",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               }
             ]
@@ -412,7 +412,7 @@ export const exampleFunnel8: Funnel = {
       name: "Payment Information Entered",
       displayColor: "#E74C3C",
       order: 9,
-      visitorCount: 4014,
+      visitorCount: 29,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -425,13 +425,13 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "payment_info_complete",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               },
               {
                 name: "payment_validation_passed",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               }
             ]
@@ -444,7 +444,7 @@ export const exampleFunnel8: Funnel = {
       name: "Order Review & Confirmation",
       displayColor: "#F39C12",
       order: 10,
-      visitorCount: 3211,
+      visitorCount: 18,
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -457,13 +457,13 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "order_summary_complete",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               },
               {
                 name: "terms_accepted",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               }
             ]
@@ -476,11 +476,11 @@ export const exampleFunnel8: Funnel = {
       name: "Purchase Completed",
       displayColor: "#27AE60",
       order: 11,
-      visitorCount: 2569,
+      visitorCount: 8,
       isEnabled: true,
       isRequired: true,
       conditions: {
-        orEventGroups: [
+        orEventGroups: [  
           {
             eventName: "purchase_completed",
             operator: "equals",
@@ -495,7 +495,7 @@ export const exampleFunnel8: Funnel = {
               {
                 name: "order_confirmation_sent",
                 operator: "isTrue",
-                value: true,
+                value: "true",
                 type: "boolean"
               },
               {
@@ -512,7 +512,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-1-first-time",
           name: "First-Time Purchase",
-          visitorCount: 1285,
+          visitorCount: 6,
           conditions: {
             orEventGroups: [
               {
@@ -534,7 +534,7 @@ export const exampleFunnel8: Funnel = {
         {
           id: "variation-2-returning",
           name: "Returning Customer",
-          visitorCount: 1284,
+          visitorCount: 4,
           conditions: {
             orEventGroups: [
               {

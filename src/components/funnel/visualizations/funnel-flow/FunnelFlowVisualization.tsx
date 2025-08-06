@@ -114,7 +114,14 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                       </div>
                       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {step.splitVariations.map((splitStep, splitIndex) => {
-                          const splitValue = splitStep.visitorCount || 0;
+                          // Calculate the split value based on the proportion from the funnel data
+                          const totalSplitVisitorCount = step.splitVariations.reduce((total, variation) => {
+                            return total + (variation.visitorCount || 0);
+                          }, 0);
+                          
+                          const splitProportion = totalSplitVisitorCount > 0 ? (splitStep.visitorCount || 0) / totalSplitVisitorCount : 0;
+                          const splitValue = Math.round(currentValue * splitProportion);
+                          const splitPercentage = currentValue > 0 ? (splitValue / currentValue * 100) : 0;
                           
                           // Only show split variations with actual values
                           if (splitValue > 0) {
@@ -143,7 +150,7 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                                   <div className="flex justify-between items-center mb-3">
                                     <span className="font-semibold text-gray-800">{splitStep.name}</span>
                                     <span className="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">
-                                      {((splitValue) / (currentValue || 1) * 100).toFixed(1)}%
+                                      {splitPercentage.toFixed(1)}%
                                     </span>
                                   </div>
                                   <div className="mt-3 flex items-center text-sm text-gray-600">
@@ -151,6 +158,9 @@ const FunnelFlowVisualization: React.FC<FunnelFlowVisualizationProps> = ({
                                     <span className="font-semibold text-gray-800">
                                       {splitValue.toLocaleString()} users
                                     </span>
+                                  </div>
+                                  <div className="mt-2 text-xs text-gray-500">
+                                    {splitStep.visitorCount?.toLocaleString()} original visitors
                                   </div>
                                 </div>
                               </motion.div>
