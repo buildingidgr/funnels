@@ -98,6 +98,7 @@ export interface Funnel {
   createdAt?: string;
   updatedAt?: string;
   lastCalculatedAt?: string;
+  lastUpdated?: number;
   timeframe: Timeframe;
   performedBy: string;
   steps: FunnelStep[];

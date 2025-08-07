@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { FunnelStep } from "@/types/funnel";
-import { Info, Users, Target, AlertCircle } from "lucide-react";
+import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import our components
@@ -14,11 +14,13 @@ console.log("[DEBUG] Loading FunnelGraphVisualization component");
 interface FunnelGraphVisualizationProps {
   steps: FunnelStep[];
   initialValue: number;
+  lastUpdated?: number;
 }
 
 const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ 
   steps, 
-  initialValue 
+  initialValue,
+  lastUpdated
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const { activeNode, handleNodeHover, handleNodeLeave, setActiveNode } = useNodeSelection();
@@ -59,7 +61,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     hasSufficientData,
     hasValidLinks,
     conversionRate
-  } = useSankeyFormatting(steps, initialValue);
+  } = useSankeyFormatting(steps, initialValue, lastUpdated);
   
   // Debug data after formatting
   useEffect(() => {
@@ -90,7 +92,24 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     
     // Map all nodes (no initial node needed)
     rechartsData.nodes.forEach((node, index) => {
+      // The node.name is actually the ID (like 'step-0', 'step-1', etc.)
       nodeIdToIndex[node.name] = index;
+      // Also map by the node's display name if it exists
+      if ((node as any).displayName && (node as any).displayName !== node.name) {
+        nodeIdToIndex[(node as any).displayName] = index;
+      }
+    });
+
+    // Debug the node mapping
+    console.log('[DEBUG] Node mapping created:', {
+      nodeCount: rechartsData.nodes.length,
+      nodeMapping: Object.entries(nodeIdToIndex).map(([key, value]) => ({ key, value })),
+      nodes: rechartsData.nodes.map((node, index) => ({
+        index,
+        name: node.name,
+        displayName: (node as any).displayName,
+        value: node.value
+      }))
     });
 
     // Create nodes array (no initial node)
@@ -107,6 +126,17 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     const transformedLinks = rechartsData.links.map(link => {
       const sourceIndex = nodeIdToIndex[link.sourceId || ''] || 0;
       const targetIndex = nodeIdToIndex[link.targetId || ''] || 0;
+      
+      // Debug the link transformation
+      console.log('[DEBUG] Link transformation:', {
+        sourceId: link.sourceId,
+        targetId: link.targetId,
+        sourceIndex,
+        targetIndex,
+        sourceExists: nodeIdToIndex[link.sourceId || ''] !== undefined,
+        targetExists: nodeIdToIndex[link.targetId || ''] !== undefined,
+        availableKeys: Object.keys(nodeIdToIndex)
+      });
       
       // Find the source node to get its value
       const sourceNode = rechartsData.nodes.find(n => n.name === link.sourceId);
@@ -341,60 +371,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       
 
       
-      {/* Performance Insights Footer */}
-      <div className="mt-4 p-3 bg-white/80 rounded-lg border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-600" />
-            <div>
-              <div className="font-medium text-gray-700">Total Users</div>
-              <div className="text-lg font-bold text-blue-800">{performanceInsights.totalUsers.toLocaleString()}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-green-600" />
-            <div>
-              <div className="font-medium text-gray-700">Best Performing</div>
-              <div className="text-sm font-bold text-green-800">
-                {(() => {
-                  const stepName = performanceInsights.bestPerformingStep.name || 'Unknown Step';
-                  const conversionRate = performanceInsights.bestConversionRate.toFixed(1);
-                  console.log('[DEBUG] RENDERING Best Performing:', { stepName, conversionRate });
-                  return stepName;
-                })()}
-              </div>
-              <div className="text-xs text-green-600">
-                {(() => {
-                  const conversionRate = performanceInsights.bestConversionRate.toFixed(1);
-                  console.log('[DEBUG] RENDERING Best Conversion Rate:', conversionRate);
-                  return conversionRate;
-                })()}%
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-gray-600" />
-            <div>
-              <div className="font-medium text-gray-700">Needs Attention</div>
-              <div className="text-sm font-bold text-gray-800">
-                {(() => {
-                  const stepName = performanceInsights.worstPerformingStep.name || 'Unknown Step';
-                  const conversionRate = performanceInsights.worstConversionRate.toFixed(1);
-                  console.log('[DEBUG] RENDERING Needs Attention:', { stepName, conversionRate });
-                  return stepName;
-                })()}
-              </div>
-              <div className="text-xs text-gray-600">
-                {(() => {
-                  const conversionRate = performanceInsights.worstConversionRate.toFixed(1);
-                  console.log('[DEBUG] RENDERING Worst Conversion Rate:', conversionRate);
-                  return conversionRate;
-                })()}%
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

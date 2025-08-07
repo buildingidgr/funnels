@@ -6,9 +6,10 @@ interface FunnelVisualizationTabsProps {
   steps: FunnelStep[];
   initialValue: number;
   funnelId?: string;
+  lastUpdated?: number;
 }
 
-const FunnelVisualizationTabs: React.FC<FunnelVisualizationTabsProps> = ({ steps, initialValue, funnelId }) => {
+const FunnelVisualizationTabs: React.FC<FunnelVisualizationTabsProps> = ({ steps, initialValue, funnelId, lastUpdated }) => {
   // Filter out disabled steps using the correct property name
   const enabledSteps = steps.filter(step => step.isEnabled);
 
@@ -27,6 +28,7 @@ const FunnelVisualizationTabs: React.FC<FunnelVisualizationTabsProps> = ({ steps
       <FunnelGraphVisualization
         steps={enabledSteps}
         initialValue={initialValue}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

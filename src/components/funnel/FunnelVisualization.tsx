@@ -19,6 +19,18 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
   const enabledSteps = funnel.steps.filter(step => step.isEnabled);
   const initialValue = enabledSteps[0]?.visitorCount || 100;
   
+  // Helper function to determine funnel type from name
+  const getFunnelType = (funnelName: string): 'ecommerce' | 'saas' | 'lead-gen' | 'mobile-app' | 'content' | 'support' => {
+    const name = funnelName.toLowerCase();
+    if (name.includes('ecommerce') || name.includes('shop') || name.includes('cart') || name.includes('purchase')) return 'ecommerce';
+    if (name.includes('saas') || name.includes('onboarding') || name.includes('subscription')) return 'saas';
+    if (name.includes('lead') || name.includes('contact') || name.includes('inquiry')) return 'lead-gen';
+    if (name.includes('mobile') || name.includes('app') || name.includes('installation')) return 'mobile-app';
+    if (name.includes('content') || name.includes('marketing') || name.includes('blog')) return 'content';
+    if (name.includes('support') || name.includes('help') || name.includes('ticket')) return 'support';
+    return 'ecommerce'; // default
+  };
+  
   // Map steps to include the value property that visualization components expect
   const mappedSteps = useMemo(() => {
     return enabledSteps.map(step => ({
@@ -30,7 +42,7 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
         value: variation.visitorCount || 0
       })) || []
     }));
-  }, [enabledSteps]);
+  }, [enabledSteps, funnel.lastUpdated]);
   
   const [expandedSections, setExpandedSections] = useState({
     branching: true,
@@ -70,6 +82,7 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
                   steps={mappedSteps}
                   initialValue={initialValue}
                   funnelId={funnel.id}
+                  lastUpdated={funnel.lastUpdated}
                 />
               </div>
             )}
@@ -92,7 +105,11 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
             
             {expandedSections.dropoff && (
               <div className="mt-4">
-                <DropOffDetails steps={mappedSteps} initialValue={initialValue} />
+                <DropOffDetails 
+                  steps={mappedSteps} 
+                  initialValue={initialValue}
+                  funnelType={getFunnelType(funnel.name)}
+                />
               </div>
             )}
           </div>

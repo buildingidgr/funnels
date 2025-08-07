@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { FunnelStep } from "@/types/funnel";
 import { SankeyData, SankeyNode, SankeyLink } from "./types";
 
-export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number): SankeyData => {
+export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, lastUpdated?: number): SankeyData => {
   return useMemo(() => {
     console.log("[DEBUG] useSankeyData called with:", {
       enabledStepsCount: enabledSteps.length,
@@ -390,7 +390,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
       }))
     });
     return { nodes, links };
-  }, [enabledSteps, initialValue]);
+  }, [enabledSteps, initialValue, lastUpdated]);
 };
 
 export default useSankeyData;

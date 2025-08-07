@@ -36,7 +36,12 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
   const [expandedSplits, setExpandedSplits] = useState<{ [key: number]: boolean }>({});
 
   const handleSave = () => {
-    onSave({ ...editedFunnel });
+    // Add a timestamp to trigger re-renders in visualization components
+    const updatedFunnel = { 
+      ...editedFunnel, 
+      lastUpdated: Date.now() 
+    };
+    onSave(updatedFunnel);
   };
 
   const updateStepConditions = (stepIndex: number, newConditions: any) => {
@@ -277,17 +282,15 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
                             {step.splitVariations?.length || 0} splits
                           </Badge>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        <div
                           onClick={(e) => {
                             e.stopPropagation();
                             removeStep(index);
                           }}
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 flex items-center justify-center cursor-pointer rounded hover:bg-red-50"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button>
+                        </div>
                       </div>
                     </div>
                   </AccordionTrigger>

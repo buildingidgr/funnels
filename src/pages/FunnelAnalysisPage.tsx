@@ -6,11 +6,8 @@ import { Funnel } from "@/types/funnel";
 import { toast } from "sonner";
 import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { AlertCircle, Home, Loader2, BarChart3, RefreshCw, Edit, Settings, TrendingUp, TrendingDown } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { StepEditSidebar } from "@/components/funnel/step-edit-sidebar";
-import { FunnelConfigEditor } from '@/components/funnel/FunnelConfigEditor';
+import { AlertCircle, Home, Loader2, RefreshCw, Settings } from "lucide-react";
+import { SlidingConfigPanel } from '@/components/funnel/SlidingConfigPanel';
 
 // Add some CSS for the funnel visualization
 import "./FunnelAnalysisPage.css";
@@ -59,43 +56,7 @@ export default function FunnelAnalysisPage() {
     }
   };
 
-  // Utility to compute best converting and highest drop-off steps
-  function getFunnelOptimizationTip(funnel: Funnel) {
-    const enabledSteps = funnel.steps.filter(s => s.isEnabled);
-    if (enabledSteps.length < 2) return null;
-    const stepMetrics = enabledSteps.map((step, index) => {
-      const currentValue = step.visitorCount || 0;
-      const previousValue = index === 0 ? (enabledSteps[0].visitorCount || 0) : (enabledSteps[index - 1].visitorCount || 0);
-      const conversionRate = previousValue > 0 ? (currentValue / previousValue) * 100 : 0;
-      const dropOff = previousValue - currentValue;
-      const dropOffRate = previousValue > 0 ? (dropOff / previousValue) * 100 : 0;
-      return { step, conversionRate, dropOff, dropOffRate };
-    });
-    const bestConvertingStep = stepMetrics.reduce((best, current) =>
-      current.conversionRate > best.conversionRate ? current : best
-    );
-    const highestDropOffStep = stepMetrics.reduce((worst, current) =>
-      current.dropOffRate > worst.dropOffRate ? current : worst
-    );
-    return (
-      <div className="flex flex-wrap gap-6 items-center mt-2">
-        <div className="flex items-center gap-2 text-sm bg-green-50 px-3 py-1 rounded">
-          <TrendingUp className="h-4 w-4 text-green-600" />
-          <span className="text-gray-600">Best Converting:</span>
-          <span className="font-medium text-green-700">
-            {bestConvertingStep.step.name} ({bestConvertingStep.conversionRate.toFixed(1)}%)
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm bg-red-50 px-3 py-1 rounded">
-          <TrendingDown className="h-4 w-4 text-red-600" />
-          <span className="text-gray-600">Highest Drop-off:</span>
-          <span className="font-medium text-red-700">
-            {highestDropOffStep.step.name} ({highestDropOffStep.dropOffRate.toFixed(1)}%)
-          </span>
-        </div>
-      </div>
-    );
-  }
+
 
   if (loading) {
     return (
@@ -157,63 +118,62 @@ export default function FunnelAnalysisPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {funnel.name}
-            </h1>
-            <p className="text-gray-600">
-              {funnel.description || "No description provided"}
-            </p>
-            {/* Optimization Tip (now rendered here) */}
-            {getFunnelOptimizationTip(funnel)}
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard">
-              <Button variant="default" size="sm">
-                <Home className="h-4 w-4 mr-2" />
-                Go to Dashboard
-              </Button>
-            </Link>
-            
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Data
-            </Button>
-
-            <Sheet open={configPanelOpen} onOpenChange={setConfigPanelOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configure Funnel
+    <>
+      <DashboardLayout>
+        <div 
+          className={`space-y-6 transition-all duration-300 ease-in-out ${
+            configPanelOpen ? 'mr-[var(--panel-width,600px)]' : 'mr-0'
+          } ${configPanelOpen ? 'border-r border-gray-200' : ''}`}
+          style={configPanelOpen ? { '--panel-width': 'min(600px, 90vw)' } as React.CSSProperties : undefined}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {funnel.name}
+              </h1>
+              <p className="text-gray-600">
+                {funnel.description || "No description provided"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link to="/dashboard">
+                <Button variant="default" size="sm">
+                  <Home className="h-4 w-4 mr-2" />
+                  Go to Dashboard
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[1400px] xl:w-[1600px] max-w-none overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Funnel Configuration</SheetTitle>
-                  <SheetDescription>
-                    Configure your funnel steps, conditions, and split variations. Changes are saved automatically.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-6">
-                  <FunnelConfigEditor 
-                    funnel={funnel} 
-                    onSave={(updatedFunnel) => {
-                      setFunnel(updatedFunnel);
-                      toast.success("Funnel configuration updated!");
-                    }} 
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
+              </Link>
+              
+              <Button onClick={handleRefresh} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
 
-        {/* Graph Visualization */}
-        <FunnelVisualization funnel={funnel} />
-      </div>
-    </DashboardLayout>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setConfigPanelOpen(true)}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Configure Funnel
+              </Button>
+            </div>
+          </div>
+
+          {/* Graph Visualization */}
+          <FunnelVisualization funnel={funnel} />
+        </div>
+      </DashboardLayout>
+
+      {/* Sliding Config Panel */}
+      <SlidingConfigPanel
+        isOpen={configPanelOpen}
+        onClose={() => setConfigPanelOpen(false)}
+        funnel={funnel}
+        onSave={(updatedFunnel) => {
+          setFunnel(updatedFunnel);
+          toast.success("Funnel configuration updated!");
+        }}
+      />
+    </>
   );
 }

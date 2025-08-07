@@ -5,7 +5,7 @@ import useSankeyDataRoot from "../useSankeyData"; // Import the root implementat
 
 console.log("[DEBUG] Loading useSankeyFormatting hook");
 
-export default function useSankeyFormatting(steps: FunnelStep[], initialValue: number) {
+export default function useSankeyFormatting(steps: FunnelStep[], initialValue: number, lastUpdated?: number) {
   console.log("[DEBUG] useSankeyFormatting called with:", { 
     stepsCount: steps.length,
     initialValue,
@@ -14,7 +14,7 @@ export default function useSankeyFormatting(steps: FunnelStep[], initialValue: n
 
   // Use the root useSankeyData implementation to generate the initial data outside useMemo
   // This follows React hooks rules - hooks must be called at the top level
-  const sankeyData = useSankeyDataRoot(steps.filter(step => step.isEnabled), initialValue);
+  const sankeyData = useSankeyDataRoot(steps.filter(step => step.isEnabled), initialValue, lastUpdated);
 
   return useMemo(() => {
     console.log("[DEBUG] useSankeyFormatting memo recalculating");
@@ -137,7 +137,7 @@ export default function useSankeyFormatting(steps: FunnelStep[], initialValue: n
       hasValidLinks,
       conversionRate,
     };
-  }, [steps, initialValue]); // Removed sankeyData from dependencies to break infinite loop
+  }, [steps, initialValue, lastUpdated]); // Added lastUpdated to trigger recalculation when funnel data changes
 }
 
 // Helper function to calculate a color based on conversion rate

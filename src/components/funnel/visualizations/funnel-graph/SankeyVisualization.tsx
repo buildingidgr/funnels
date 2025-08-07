@@ -66,7 +66,6 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
   // Debug logging to see what's being passed to the node
   console.log(`[DEBUG] EnhancedNode props for index ${index}:`, {
     payload,
-    displayName: payload.displayName,
     name: payload.name,
     x,
     y,
@@ -78,7 +77,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
   
   // Removed text positioning calculations since step names are no longer displayed
   
-  const isSplit = payload.id.includes('split');
+  const isSplit = payload.name.includes('split');
   const isDomestic = payload.name.toLowerCase().includes('domestic');
   const isInternational = payload.name.toLowerCase().includes('international');
   
@@ -541,6 +540,17 @@ const styles = `
     }
     50% {
       filter: drop-shadow(0 4px 16px rgba(59, 130, 246, 0.8));
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
     }
   }
   
@@ -1040,20 +1050,25 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
 
   // Zoom controls
   const handleZoomIn = () => {
+    console.log('[DEBUG] Zoom in clicked, current zoom:', zoom);
     setZoom(prev => {
       const newZoom = Math.min(prev * 1.2, 3);
+      console.log('[DEBUG] New zoom level:', newZoom);
       return newZoom;
     });
   };
 
   const handleZoomOut = () => {
+    console.log('[DEBUG] Zoom out clicked, current zoom:', zoom);
     setZoom(prev => {
       const newZoom = Math.max(prev / 1.2, 0.9);
+      console.log('[DEBUG] New zoom level:', newZoom);
       return newZoom;
     });
   };
 
   const handleResetZoom = () => {
+    console.log('[DEBUG] Reset zoom clicked');
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
@@ -1061,6 +1076,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   // Pan controls
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) { // Left click only
+      console.log('[DEBUG] Mouse down - starting drag');
       setIsDragging(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
@@ -1072,6 +1088,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
       };
+      console.log('[DEBUG] Mouse move - pan:', newPan);
       setPan(newPan);
     }
   };
@@ -1083,9 +1100,11 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   // Wheel zoom
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    console.log('[DEBUG] Wheel event triggered:', { deltaY: e.deltaY, currentZoom: zoom });
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(prev => {
       const newZoom = Math.max(0.9, Math.min(3, prev * delta));
+      console.log('[DEBUG] Wheel zoom - old:', prev, 'new:', newZoom);
       return newZoom;
     });
   };
@@ -1093,9 +1112,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   // Transform data for Recharts Sankey with enhanced properties
   const enhancedData = {
     nodes: rechartsData.nodes.map((node, index) => ({
-      ...node,
       name: node.name,
       value: node.value || 0,
+      color: node.color,
       index,
       conversionRate: 0 // Will be calculated in the component
     })),
@@ -1111,6 +1130,36 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       };
     })
   };
+
+  // Debug the enhanced data structure
+  console.log('[DEBUG] Enhanced data structure:', {
+    nodesCount: enhancedData.nodes.length,
+    linksCount: enhancedData.links.length,
+    nodes: enhancedData.nodes.map(n => ({ name: n.name, value: n.value, index: n.index })),
+    links: enhancedData.links.map(l => ({ source: l.source, target: l.target, value: l.value })),
+    // Add more detailed debugging for potential issues
+    hasZeroValues: enhancedData.nodes.some(n => n.value === 0),
+    hasNegativeValues: enhancedData.nodes.some(n => n.value < 0),
+    hasInvalidLinks: enhancedData.links.some(l => l.source < 0 || l.target < 0 || l.source >= enhancedData.nodes.length || l.target >= enhancedData.nodes.length),
+    linkSourceTargets: enhancedData.links.map(l => ({ source: l.source, target: l.target, sourceValid: l.source >= 0 && l.source < enhancedData.nodes.length, targetValid: l.target >= 0 && l.target < enhancedData.nodes.length }))
+  });
+
+  // Validate data before passing to Sankey
+  const isValidData = enhancedData.nodes.length > 0 && 
+                     enhancedData.links.length > 0 && 
+                     enhancedData.nodes.every(n => typeof n.value === 'number' && n.value > 0) &&
+                     enhancedData.links.every(l => typeof l.value === 'number' && l.value > 0) &&
+                     enhancedData.links.every(l => l.source >= 0 && l.target >= 0 && l.source < enhancedData.nodes.length && l.target < enhancedData.nodes.length);
+
+  console.log('[DEBUG] Data validation:', {
+    isValidData,
+    nodesValid: enhancedData.nodes.every(n => typeof n.value === 'number' && n.value > 0),
+    linksValid: enhancedData.links.every(l => typeof l.value === 'number' && l.value > 0),
+    linkIndicesValid: enhancedData.links.every(l => l.source >= 0 && l.target >= 0 && l.source < enhancedData.nodes.length && l.target < enhancedData.nodes.length),
+    nodeValues: enhancedData.nodes.map(n => n.value),
+    linkValues: enhancedData.links.map(l => l.value),
+    linkIndices: enhancedData.links.map(l => ({ source: l.source, target: l.target, nodesLength: enhancedData.nodes.length }))
+  });
 
   // Handle step height changes
   const handleStepHeightChange = React.useCallback((stepName: string, height: number) => {
@@ -1145,7 +1194,26 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     return () => {
       container.removeEventListener('wheel', handleWheelEvent);
     };
-  }, [zoom]);
+  }, []);
+
+  // Debug container dimensions
+  useEffect(() => {
+    console.log('[DEBUG] Container dimensions:', { 
+      width: containerRef.current?.clientWidth, 
+      height: containerRef.current?.clientHeight,
+      isValidData,
+      nodesCount: enhancedData.nodes.length,
+      linksCount: enhancedData.links.length
+    });
+    if (isValidData) {
+      console.log('[DEBUG] Rendering Sankey with data:', { nodesCount: enhancedData.nodes.length, linksCount: enhancedData.links.length });
+    }
+  }, [isValidData, enhancedData.nodes.length, enhancedData.links.length]);
+
+  // Debug zoom and pan changes
+  useEffect(() => {
+    console.log('[DEBUG] Zoom/Pan state changed:', { zoom, pan, isDragging });
+  }, [zoom, pan, isDragging]);
 
   const handleNodeHover = (event: any, node: any) => {
     console.log('[DEBUG] Node hover triggered:', {
@@ -1268,6 +1336,29 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       
       <SankeyLegend />
       
+      {/* Zoom Instructions */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        zIndex: 10,
+        background: 'rgba(255,255,255,0.9)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        fontSize: '11px',
+        color: '#64748b',
+        maxWidth: '200px',
+        opacity: zoom === 1 && pan.x === 0 && pan.y === 0 ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        pointerEvents: 'none'
+      }}>
+        <div style={{fontWeight: '600', marginBottom: '4px'}}>Navigation</div>
+        <div>• Scroll to zoom</div>
+        <div>• Drag to pan</div>
+        <div>• Use controls to reset</div>
+      </div>
+      
       {/* Zoom Controls */}
       {/* REMOVE the Zoom Controls div */}
       
@@ -1277,18 +1368,35 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         bottom: '20px',
         right: '20px',
         zIndex: 10,
-        background: 'rgba(255,255,255,0.9)',
+        background: 'rgba(255,255,255,0.95)',
         padding: '8px 12px',
         borderRadius: '8px',
-        border: '1px solid #e2e8f0',
+        border: zoom !== 1 || pan.x !== 0 || pan.y !== 0 ? '2px solid #3b82f6' : '1px solid #e2e8f0',
         fontSize: '12px',
         color: '#64748b',
         fontWeight: '500',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px'
+        gap: '12px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        backdropFilter: 'blur(8px)',
+        transition: 'all 0.2s ease'
       }}>
-        <span style={{minWidth: 40, textAlign: 'right'}}>{Math.round(zoom * 100)}%</span>
+        <span style={{
+          minWidth: 40, 
+          textAlign: 'right', 
+          fontWeight: '600',
+          color: zoom !== 1 || pan.x !== 0 || pan.y !== 0 ? '#3b82f6' : '#64748b'
+        }}>{Math.round(zoom * 100)}%</span>
+        {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+          <div style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: '#3b82f6',
+            animation: 'pulse 2s infinite'
+          }} />
+        )}
         <div style={{display: 'flex', gap: '8px'}}>
           <TooltipProvider>
             <Tooltip>
@@ -1358,32 +1466,33 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         style={{
           flex: 1,
           width: '100%',
-          overflow: 'hidden',
+          height: '400px',
           background: '#f8fafc',
           borderRadius: '12px',
           padding: '24px',
           cursor: isDragging ? 'grabbing' : 'grab',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+          overflow: 'hidden',
+          position: 'relative'
         }} 
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
-        <div style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transformOrigin: 'center',
-          transition: isDragging ? 'none' : 'transform 0.1s ease',
-          width: '100%',
-          height: '100%',
-          overflow: 'visible'
-        }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <div style={{ position: 'relative', zIndex: 1, height: '100%', minHeight: '400px' }}>
-              {/* Render nodes first */}
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            transformOrigin: 'center center',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+            cursor: isDragging ? 'grabbing' : 'grab'
+          }}
+        >
+          {isValidData ? (
+            <ResponsiveContainer width="100%" height="100%">
               <Sankey
                 data={enhancedData}
                 node={(props) => <EnhancedNode {...props} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} />}
@@ -1400,38 +1509,15 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                 }}
                 nodePadding={200}
                 nodeWidth={20}
-                width={dimensions.width}
-                height={dimensions.height}
                 margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
                 iterations={64}
               />
-              
-              {/* Render links on top, but only for optional steps */}
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-                <Sankey
-                  data={enhancedData}
-                  node={() => null} // Don't render nodes in overlay
-                  link={(props) => {
-                    // Only render links that involve optional steps
-                    const isOptionalLink = props.payload.sourceId?.includes('step-') && 
-                                         props.payload.targetId?.includes('step-') && 
-                                         Math.abs(parseInt(props.payload.sourceId.split('-')[1]) - parseInt(props.payload.targetId.split('-')[1])) > 1;
-                    
-                    if (isOptionalLink) {
-                      return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
-                    }
-                    return null;
-                  }}
-                  nodePadding={200}
-                  nodeWidth={20}
-                  width={dimensions.width}
-                  height={dimensions.height}
-                  margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
-                  iterations={64}
-                />
-              </div>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
+              <p>Invalid data for visualization</p>
             </div>
-          </ResponsiveContainer>
+          )}
         </div>
       </div>
       
