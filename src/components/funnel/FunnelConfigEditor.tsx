@@ -12,7 +12,7 @@ import { StepConditionBuilder } from './step-condition-builder/StepConditionBuil
 
 interface FunnelConfigEditorProps {
   funnel: Funnel;
-  onSave: (updatedFunnel: Funnel) => void;
+  onSave: (updatedFunnel: Funnel) => Promise<void>;
 }
 
 const TIME_FRAMES = [
@@ -34,14 +34,24 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
   const [audience, setAudience] = useState<string>(AUDIENCES[0]);
   const [expandedConditions, setExpandedConditions] = useState<{ [key: number]: boolean }>({});
   const [expandedSplits, setExpandedSplits] = useState<{ [key: number]: boolean }>({});
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    // Add a timestamp to trigger re-renders in visualization components
-    const updatedFunnel = { 
-      ...editedFunnel, 
-      lastUpdated: Date.now() 
-    };
-    onSave(updatedFunnel);
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Add a timestamp to trigger re-renders in visualization components
+      const updatedFunnel = { 
+        ...editedFunnel, 
+        lastUpdated: Date.now() 
+      };
+      
+      await onSave(updatedFunnel);
+    } catch (error) {
+      console.error('Error saving funnel configuration:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateStepConditions = (stepIndex: number, newConditions: any) => {
@@ -431,8 +441,19 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
 
       {/* Save Button */}
       <div className="pt-2">
-        <Button onClick={handleSave} className="w-full">
-          Save Configuration
+        <Button 
+          onClick={handleSave} 
+          className="w-full"
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Calculating...
+            </>
+          ) : (
+            'Save Configuration'
+          )}
         </Button>
       </div>
     </div>

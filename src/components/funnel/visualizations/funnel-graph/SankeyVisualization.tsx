@@ -58,12 +58,16 @@ const STEP_COLORS = {
 };
 
 // Enhanced node component with better visual feedback
-const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) => {
+const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHeights, ...props }: any) => {
   // Determine if this is the first or last node to adjust text positioning
   const isFirstNode = index === 0;
   const isLastNode = index === (props.totalNodes - 1);
   
   // Debug logging to see what's being passed to the node
+  const finalHeight = preCalculatedStepHeights[payload.name] || (height > 0 ? height : 30);
+  const yOffset = (finalHeight - height) / 2;
+  const finalY = y - yOffset;
+  
   console.log(`[DEBUG] EnhancedNode props for index ${index}:`, {
     payload,
     name: payload.name,
@@ -71,6 +75,11 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
     y,
     width,
     height,
+    preCalculatedHeight: preCalculatedStepHeights[payload.name],
+    validatedHeight: finalHeight,
+    yOffset,
+    finalY,
+    nodeValue: payload.value,
     isFirstNode,
     isLastNode
   });
@@ -148,9 +157,27 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
   // Store the step height for use in link calculations
   React.useEffect(() => {
     if (props.onStepHeightChange) {
-      props.onStepHeightChange(payload.name, height);
+      // Use our pre-calculated proportional height instead of Sankey-calculated height
+      const preCalculatedHeight = preCalculatedStepHeights[payload.name];
+      
+      // Use pre-calculated height if available, otherwise calculate based on node value
+      let validHeight = preCalculatedHeight;
+      if (!validHeight) {
+        const nodeValue = payload.value || 0;
+        const maxValue = 10000; // Assume max value for scaling
+        const minHeight = 30; // Minimum reasonable height
+        const maxHeight = 200; // Maximum reasonable height
+        
+        // Calculate height proportionally based on node value
+        validHeight = minHeight;
+        if (maxValue > 0) {
+          validHeight = Math.max(minHeight, Math.min(maxHeight, (nodeValue / maxValue) * 150 + 30));
+        }
+      }
+      
+      props.onStepHeightChange(payload.name, validHeight);
     }
-  }, [height, payload.name, props.onStepHeightChange]);
+  }, [height, payload.name, payload.value, props.onStepHeightChange, preCalculatedStepHeights]);
 
 
 
@@ -187,10 +214,10 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
     >
       {/* Node background with enhanced styling - COMPLETELY REMOVED STROKES */}
       <rect
-        x={x}
-        y={y}
-        width={width * 1.5} // INCREASED WIDTH
-        height={height}
+        x={x} // Use original x coordinate
+        y={finalY} // Center the node vertically
+        width={width * 1.5} // Use original width
+        height={finalHeight} // Use pre-calculated height
         fill={nodeColor}
         rx={8}
         ry={8}
@@ -215,7 +242,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
           {/* Background for conversion rate */}
           <rect
             x={x + (width * 1.5) / 2 - 40}
-            y={y + height + 10}
+            y={finalY + finalHeight + 10}
             width={80}
             height={25}
             fill={isHighConversion ? 'rgba(16, 185, 129, 0.9)' : isLowConversion ? 'rgba(107, 114, 128, 0.9)' : 'rgba(251, 191, 36, 0.9)'}
@@ -230,7 +257,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
                     {/* Conversion rate text */}
           <text
             x={x + (width * 1.5) / 2}
-            y={y + height + 25}
+            y={finalY + finalHeight + 25}
             textAnchor="middle"
             fill="white"
             fontSize={12}
@@ -252,7 +279,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, ...props }: any) =>
 };
 
 // Enhanced link component with better visual feedback and performance indicators
-const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, nodes, ...props }: any) => {
+const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, nodes, preCalculatedStepHeights, ...props }: any) => {
   const [isHovered, setIsHovered] = useState(false);
   
   console.log('[DEBUG] EnhancedLink rendered:', {
@@ -335,8 +362,35 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   const sourceValue = payload.sourceValue || payload.value;
   const percentage = sourceValue > 0 ? (payload.value / sourceValue) * 100 : 0;
   
-  // Get the actual source step height from the stepHeights state
-  const sourceStepHeight = stepHeights[payload.sourceId] || 60; // Fallback to 60 if not available
+  // Get the actual source step height - prioritize pre-calculated heights for consistency
+  // Try multiple keys to find the correct step height
+  const possibleKeys = [
+    payload.sourceId,
+    `step-${payload.source}`,
+    payload.sourceId?.replace('step-', ''),
+    payload.sourceId?.replace('step-', 'step-')
+  ];
+  
+  // Prioritize pre-calculated heights for consistent proportional sizing
+  const sourceStepHeight = preCalculatedStepHeights[payload.sourceId] ||
+                          preCalculatedStepHeights[`step-${payload.source}`] ||
+                          preCalculatedStepHeights[payload.sourceId?.replace('step-', '')] ||
+                          stepHeights[payload.sourceId] || 
+                          stepHeights[`step-${payload.source}`] || 
+                          stepHeights[payload.sourceId?.replace('step-', '')] ||
+                          60; // Use original height
+                          
+  // Debug the step height lookup
+  console.log('[DEBUG] Step height lookup:', {
+    sourceId: payload.sourceId,
+    source: payload.source,
+    possibleKeys,
+    stepHeightsKeys: Object.keys(stepHeights),
+    preCalculatedKeys: Object.keys(preCalculatedStepHeights),
+    foundHeight: sourceStepHeight,
+    allStepHeights: stepHeights,
+    preCalculatedHeights: preCalculatedStepHeights
+  });
   
   // Calculate flow width based on the actual percentage of the source step height
   // This should represent the actual height the flow occupies on the source step
@@ -362,6 +416,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
     flowWidth: flowWidth.toFixed(1),
     scaledFlowWidth: scaledFlowWidth.toFixed(1),
     actualFlowWidth: actualFlowWidth.toFixed(1),
+    hoverFlowWidth: hoverFlowWidth.toFixed(1),
     isSplit: payload.sourceId?.includes('split') || payload.targetId?.includes('split')
   });
   
@@ -1161,19 +1216,98 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     linkIndices: enhancedData.links.map(l => ({ source: l.source, target: l.target, nodesLength: enhancedData.nodes.length }))
   });
 
+  // Pre-calculate step heights based on node values to avoid first render issues
+  const preCalculatedStepHeights = useMemo(() => {
+    const heights: Record<string, number> = {};
+    
+    enhancedData.nodes.forEach((node, index) => {
+      const nodeValue = node.value || 0;
+      const maxValue = Math.max(...enhancedData.nodes.map(n => n.value || 0));
+      const minHeight = 30;
+      const maxHeight = 200;
+      
+      // Calculate height proportionally based on node value
+      let calculatedHeight = minHeight;
+      if (maxValue > 0) {
+        calculatedHeight = Math.max(minHeight, Math.min(maxHeight, (nodeValue / maxValue) * 150 + 30));
+      }
+      
+      // Use the node name as the key
+      heights[node.name] = calculatedHeight;
+      
+      // Also store with step-X format for compatibility
+      heights[`step-${index}`] = calculatedHeight;
+    });
+    
+    console.log('[DEBUG] Pre-calculated step heights:', heights);
+    return heights;
+  }, [enhancedData.nodes]);
+
+  // Calculate dynamic container height based on split variations
+  const dynamicContainerHeight = useMemo(() => {
+    const splitNodes = enhancedData.nodes.filter(node => node.name.includes('split'));
+    const maxSplits = Math.max(...enhancedData.nodes.map(node => {
+      const stepName = node.name;
+      const stepIndex = enhancedData.nodes.findIndex(n => n.name === stepName);
+      const nextStep = enhancedData.nodes[stepIndex + 1];
+      if (nextStep && nextStep.name.includes('split')) {
+        return enhancedData.nodes.filter(n => n.name.includes('split') && n.name.startsWith(stepName.split('-')[0])).length;
+      }
+      return 0;
+    }));
+    
+    // Base height plus extra space for splits
+    const baseHeight = 514;
+    const extraHeightPerSplit = 150; // Increased from 100 to 150 for more space
+    const totalExtraHeight = maxSplits * extraHeightPerSplit;
+    
+    console.log('[DEBUG] Dynamic container height calculation:', {
+      splitNodes: splitNodes.length,
+      maxSplits,
+      baseHeight,
+      totalExtraHeight,
+      finalHeight: baseHeight + totalExtraHeight
+    });
+    
+    return baseHeight + totalExtraHeight;
+  }, [enhancedData.nodes]);
+
   // Handle step height changes
   const handleStepHeightChange = React.useCallback((stepName: string, height: number) => {
     setStepHeights(prev => {
+      // Use our pre-calculated proportional height instead of Sankey-calculated height
+      const preCalculatedHeight = preCalculatedStepHeights[stepName];
+      
+      // Use pre-calculated height if available, otherwise use provided height
+      let validHeight = preCalculatedHeight || height;
+      
+      // Only fix truly problematic values
+      if (validHeight <= 0) {
+        // For negative heights, use a reasonable default
+        validHeight = 60;
+      } else if (validHeight < 5) {
+        // For extremely small positive heights, use a minimum
+        validHeight = 30;
+      }
+      
       // Only update if the height actually changed
-      if (prev[stepName] !== height) {
+      if (prev[stepName] !== validHeight) {
+        console.log('[DEBUG] Updating step height:', {
+          stepName,
+          originalHeight: height,
+          preCalculatedHeight,
+          validHeight,
+          allStepHeights: { ...prev, [stepName]: validHeight }
+        });
+        
         return {
           ...prev,
-          [stepName]: height
+          [stepName]: validHeight
         };
       }
       return prev;
     });
-  }, []);
+  }, [preCalculatedStepHeights]);
 
   // Add wheel event listener with non-passive mode
   useEffect(() => {
@@ -1198,17 +1332,23 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
 
   // Debug container dimensions
   useEffect(() => {
-    console.log('[DEBUG] Container dimensions:', { 
+        console.log('[DEBUG] Container dimensions:', {
       width: containerRef.current?.clientWidth, 
       height: containerRef.current?.clientHeight,
+      dynamicHeight: dynamicContainerHeight,
       isValidData,
       nodesCount: enhancedData.nodes.length,
       linksCount: enhancedData.links.length
     });
-    if (isValidData) {
-      console.log('[DEBUG] Rendering Sankey with data:', { nodesCount: enhancedData.nodes.length, linksCount: enhancedData.links.length });
-    }
-  }, [isValidData, enhancedData.nodes.length, enhancedData.links.length]);
+          if (isValidData) {
+        console.log('[DEBUG] Rendering Sankey with data:', { 
+          nodesCount: enhancedData.nodes.length, 
+          linksCount: enhancedData.links.length,
+          containerHeight: dynamicContainerHeight,
+          responsiveContainerHeight: dynamicContainerHeight
+        });
+      }
+      }, [isValidData, enhancedData.nodes.length, enhancedData.links.length, dynamicContainerHeight]);
 
   // Debug zoom and pan changes
   useEffect(() => {
@@ -1463,17 +1603,21 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       </div>
       
       <div 
-        style={{
-          flex: 1,
-          width: '100%',
-          height: '400px',
-          background: '#f8fafc',
-          borderRadius: '12px',
-          padding: '24px',
-          cursor: isDragging ? 'grabbing' : 'grab',
-          overflow: 'hidden',
-          position: 'relative'
-        }} 
+                  style={{
+            flex: 1,
+            width: '100%',
+            minHeight: `${dynamicContainerHeight}px`,
+            height: `${dynamicContainerHeight}px`,
+            maxHeight: `${dynamicContainerHeight}px`,
+            background: dynamicContainerHeight > 514 ? '#e0f2fe' : '#f8fafc', // Blue background when expanded
+            borderRadius: '12px',
+            padding: '24px',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            overflow: 'hidden',
+            position: 'relative',
+            border: dynamicContainerHeight > 514 ? '2px solid #0284c7' : '1px solid #e2e8f0', // Blue border when expanded
+            boxSizing: 'border-box'
+          }}  
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1491,11 +1635,11 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
             cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
-          {isValidData ? (
-            <ResponsiveContainer width="100%" height="100%">
+                      {isValidData ? (
+              <ResponsiveContainer width="100%" height={dynamicContainerHeight}>
               <Sankey
                 data={enhancedData}
-                node={(props) => <EnhancedNode {...props} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} />}
+                node={(props) => <EnhancedNode {...props} preCalculatedStepHeights={preCalculatedStepHeights} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} />}
                 link={(props) => {
                   // Only render regular (non-optional) links in the main component
                   const isOptionalLink = props.payload.sourceId?.includes('step-') && 
@@ -1503,7 +1647,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                                        Math.abs(parseInt(props.payload.sourceId.split('-')[1]) - parseInt(props.payload.targetId.split('-')[1])) > 1;
                   
                   if (!isOptionalLink) {
-                    return <EnhancedLink {...props} stepHeights={stepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
+                    return <EnhancedLink {...props} stepHeights={stepHeights} preCalculatedStepHeights={preCalculatedStepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
                   }
                   return null;
                 }}

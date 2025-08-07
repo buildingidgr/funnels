@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FunnelApi } from "@/services/api";
+import { EnhancedFunnelApi } from "@/services/enhancedApi";
+import { mockFunnelCalculationService } from "@/services/mockFunnelCalculationService";
 import { Funnel } from "@/types/funnel";
 import { toast } from "sonner";
 import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Home, Loader2, RefreshCw, Settings } from "lucide-react";
+import { AlertCircle, Home, Loader2, RefreshCw, Settings, Calculator } from "lucide-react";
 import { SlidingConfigPanel } from '@/components/funnel/SlidingConfigPanel';
 
 // Add some CSS for the funnel visualization
@@ -41,16 +43,58 @@ export default function FunnelAnalysisPage() {
   }, [id]);
 
   const handleRefresh = async () => {
-    if (!id) return;
+    if (!id || !funnel) return;
     
     try {
       setLoading(true);
-      const data = await FunnelApi.getFunnel(id);
-      setFunnel(data);
-      toast.success("Funnel data refreshed successfully!");
+      
+      // Recalculate funnel data using the mock calculation service directly
+      const results = await mockFunnelCalculationService.calculateFunnel({
+        funnel,
+        initialValue: 10000, // You can make this configurable
+        options: {
+          includeSplitVariations: true,
+          includeMetrics: true,
+          includeInsights: true
+        }
+      });
+      
+      // Update the funnel with recalculated visitor counts
+      const recalculatedFunnel: Funnel = {
+        ...funnel,
+        steps: funnel.steps.map(step => {
+          const calculatedValue = results.calculatedResults[step.id];
+          
+          // Update split variations with calculated values
+          const updatedSplitVariations = step.splitVariations?.map((variation, index) => {
+            const variationId = `${step.id}-variation-${index + 1}`;
+            const calculatedVariationValue = results.calculatedResults[variationId];
+            
+            return {
+              ...variation,
+              visitorCount: calculatedVariationValue || 0
+            };
+          });
+
+          return {
+            ...step,
+            visitorCount: calculatedValue || 0,
+            value: calculatedValue || 0,
+            splitVariations: updatedSplitVariations
+          };
+        })
+      };
+      
+      setFunnel(recalculatedFunnel);
+      
+      // Show success message with calculation details
+      const overallConversion = results.insights.overallConversionRate.toFixed(1);
+      const totalVisitors = results.metadata.initialValue.toLocaleString();
+      toast.success(`Funnel recalculated! ${overallConversion}% conversion rate from ${totalVisitors} visitors`);
+      
     } catch (err) {
-      console.error('Error refreshing funnel:', err);
-      toast.error("Failed to refresh funnel data");
+      console.error('Error recalculating funnel:', err);
+      toast.error("Failed to recalculate funnel data");
     } finally {
       setLoading(false);
     }
@@ -81,8 +125,8 @@ export default function FunnelAnalysisPage() {
             <p className="text-gray-600 mb-4">{error}</p>
             <div className="flex gap-2 justify-center">
               <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Try Again
+                <Calculator className="h-4 w-4 mr-2" />
+                Re-Calculate Data
               </Button>
               <Link to="/funnels">
                 <Button variant="outline">
@@ -144,8 +188,8 @@ export default function FunnelAnalysisPage() {
               </Link>
               
               <Button onClick={handleRefresh} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Data
+                <Calculator className="h-4 w-4 mr-2" />
+                Re-Calculate Funnel Data
               </Button>
 
               <Button 
@@ -169,9 +213,62 @@ export default function FunnelAnalysisPage() {
         isOpen={configPanelOpen}
         onClose={() => setConfigPanelOpen(false)}
         funnel={funnel}
-        onSave={(updatedFunnel) => {
-          setFunnel(updatedFunnel);
-          toast.success("Funnel configuration updated!");
+        onSave={async (updatedFunnel) => {
+          try {
+            setLoading(true);
+            
+            // Recalculate funnel data using the mock calculation service
+            const results = await mockFunnelCalculationService.calculateFunnel({
+              funnel: updatedFunnel,
+              initialValue: 10000, // You can make this configurable
+              options: {
+                includeSplitVariations: true,
+                includeMetrics: true,
+                includeInsights: true
+              }
+            });
+            
+            // Update the funnel with recalculated visitor counts
+            const recalculatedFunnel: Funnel = {
+              ...updatedFunnel,
+              steps: updatedFunnel.steps.map(step => {
+                const calculatedValue = results.calculatedResults[step.id];
+                
+                // Update split variations with calculated values
+                const updatedSplitVariations = step.splitVariations?.map((variation, index) => {
+                  const variationId = `${step.id}-variation-${index + 1}`;
+                  const calculatedVariationValue = results.calculatedResults[variationId];
+                  
+                  return {
+                    ...variation,
+                    visitorCount: calculatedVariationValue || 0
+                  };
+                });
+
+                return {
+                  ...step,
+                  visitorCount: calculatedValue || 0,
+                  value: calculatedValue || 0,
+                  splitVariations: updatedSplitVariations
+                };
+              })
+            };
+            
+            setFunnel(recalculatedFunnel);
+            
+            // Show success message with calculation details
+            const overallConversion = results.insights.overallConversionRate.toFixed(1);
+            const totalVisitors = results.metadata.initialValue.toLocaleString();
+            toast.success(`Configuration saved and data recalculated! ${overallConversion}% conversion rate from ${totalVisitors} visitors`);
+            
+          } catch (err) {
+            console.error('Error recalculating funnel after configuration save:', err);
+            // Fallback to just updating the funnel without recalculation
+            setFunnel(updatedFunnel);
+            toast.success("Funnel configuration updated!");
+          } finally {
+            setLoading(false);
+          }
         }}
       />
     </>

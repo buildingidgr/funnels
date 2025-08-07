@@ -1,5 +1,7 @@
 import { Funnel } from './funnel';
 
+// Base funnel structure without hardcoded visitor counts
+// The calculation service will generate realistic visitor counts
 export const exampleFunnel: Funnel = {
   id: 'ecommerce-funnel-001',
   name: "E-commerce Conversion Funnel",
@@ -18,7 +20,7 @@ export const exampleFunnel: Funnel = {
       name: "Product Page Visit",
       displayColor: "#4A90E2",
       order: 1,
-      visitorCount: 25000,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -50,7 +52,7 @@ export const exampleFunnel: Funnel = {
       name: "Product Interaction",
       displayColor: "#7ED321",
       order: 2,
-      visitorCount: 5000,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -76,7 +78,7 @@ export const exampleFunnel: Funnel = {
       name: "Add to Cart",
       displayColor: "#F5A623",
       order: 3,
-      visitorCount: 500,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -96,12 +98,12 @@ export const exampleFunnel: Funnel = {
           }
         ]
       },
-      splitVariations: [
-        {
-          id: "variation-1-quick-add",
-          name: "Quick Add (Mobile)",
-          visitorCount: 140,
-          conditions: {
+                splitVariations: [
+            {
+              id: "variation-1-quick-add",
+              name: "Quick Add (Mobile)",
+              // visitorCount will be calculated by the service
+              conditions: {
             orEventGroups: [
               {
                 eventName: "add_to_cart",
@@ -125,11 +127,11 @@ export const exampleFunnel: Funnel = {
             ]
           }
         },
-        {
-          id: "variation-2-standard-add",
-          name: "Standard Add (Desktop)",
-          visitorCount: 100,
-          conditions: {
+                    {
+              id: "variation-2-standard-add",
+              name: "Standard Add (Desktop)",
+              // visitorCount will be calculated by the service
+              conditions: {
             orEventGroups: [
               {
                 eventName: "add_to_cart",
@@ -160,7 +162,7 @@ export const exampleFunnel: Funnel = {
       name: "Cart Review",
       displayColor: "#D0021B",
       order: 4,
-      visitorCount: 192,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -186,7 +188,7 @@ export const exampleFunnel: Funnel = {
       name: "Checkout Started",
       displayColor: "#9013FE",
       order: 5,
-      visitorCount: 115,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -212,7 +214,7 @@ export const exampleFunnel: Funnel = {
       name: "Payment Information Entered",
       displayColor: "#50E3C2",
       order: 6,
-      visitorCount: 86,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {
@@ -238,7 +240,7 @@ export const exampleFunnel: Funnel = {
       name: "Purchase Completed",
       displayColor: "#FF6B6B",
       order: 7,
-      visitorCount: 60,
+      // visitorCount will be calculated by the service
       isEnabled: true,
       isRequired: true,
       conditions: {

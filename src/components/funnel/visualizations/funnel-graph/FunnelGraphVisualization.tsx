@@ -8,6 +8,7 @@ import EmptyState from "./components/EmptyState";
 import { SankeyVisualization } from "./SankeyVisualization";
 import useSankeyFormatting from "./hooks/useSankeyFormatting";
 import useNodeSelection from "./hooks/useNodeSelection";
+import useFunnelCalculation from "@/hooks/useFunnelCalculation";
 
 console.log("[DEBUG] Loading FunnelGraphVisualization component");
 
@@ -29,16 +30,25 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   const [showTooltips, setShowTooltips] = useState(true);
   const [interactiveTooltips, setInteractiveTooltips] = useState(true);
 
+  // Use the funnel calculation hook to automatically calculate visitor counts
+  const { calculatedSteps, isLoading, error } = useFunnelCalculation({
+    steps,
+    initialValue,
+    autoCalculate: true
+  });
+
   // Debug log render
   useEffect(() => {
     console.log("[DEBUG] FunnelGraphVisualization rendered with:", {
-      steps: steps.length,
+      steps: calculatedSteps.length,
       initialValue,
-      hasActiveSplits: steps.some(step => step.split && step.split.length > 0),
-      hasSplitVariations: steps.some(step => step.splitVariations && step.splitVariations.length > 0),
+      hasActiveSplits: calculatedSteps.some(step => step.split && step.split.length > 0),
+      hasSplitVariations: calculatedSteps.some(step => step.splitVariations && step.splitVariations.length > 0),
       tooltipsEnabled: showTooltips,
       tooltipsInteractive: interactiveTooltips,
-      stepDetails: steps.map(step => ({
+      isLoading,
+      error,
+      stepDetails: calculatedSteps.map(step => ({
         name: step.name,
         value: step.value,
         visitorCount: step.visitorCount,
@@ -50,7 +60,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
         splitVariationsCount: step.splitVariations?.length || 0
       }))
     });
-  }, [steps, initialValue, showTooltips, interactiveTooltips]);
+  }, [calculatedSteps, initialValue, showTooltips, interactiveTooltips, isLoading, error]);
   
   // Use our custom hook to handle data formatting
   const { 
@@ -61,7 +71,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     hasSufficientData,
     hasValidLinks,
     conversionRate
-  } = useSankeyFormatting(steps, initialValue, lastUpdated);
+  } = useSankeyFormatting(calculatedSteps, initialValue, lastUpdated);
   
   // Debug data after formatting
   useEffect(() => {
@@ -218,6 +228,37 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   if (!hasSufficientData) {
     console.log("[DEBUG] No sufficient data, showing empty state");
     return <EmptyState message="Insufficient data available for visualization" />;
+  }
+
+  // Show loading state
+  if (isLoading) {
+    console.log("[DEBUG] Showing loading state");
+    return (
+      <div className="relative bg-white rounded-lg p-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Calculating funnel data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    console.log("[DEBUG] Showing error state:", error);
+    return (
+      <div className="relative bg-white rounded-lg p-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">⚠️</div>
+            <p className="text-red-600 font-medium">Calculation Error</p>
+            <p className="text-gray-600 text-sm mt-2">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // If no valid links, show message

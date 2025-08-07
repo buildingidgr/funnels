@@ -5,6 +5,7 @@ import { exampleFunnel5 } from "@/types/funnelExample5";
 import { exampleFunnel6 } from "@/types/funnelExample6";
 import { exampleFunnel7 } from "@/types/funnelExample7";
 import { exampleFunnel8 } from "@/types/funnelExample8";
+import { mockFunnelCalculationService } from "./mockFunnelCalculationService";
 import { toast } from "sonner";
 
 // Mock API service (would be replaced with actual API calls)
@@ -51,51 +52,156 @@ export const generateIncrementalId = (): string => {
   return `funnel-${paddedCounter}`;
 };
 
-// Default funnel examples
-const defaultFunnels: Funnel[] = [
-  {
-    ...exampleFunnel,
-    id: 'ecommerce-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
-  },
-  {
-    ...exampleFunnel4,
-    id: 'saas-onboarding-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
-  },
-  {
-    ...exampleFunnel5,
-    id: 'mobile-app-engagement-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
-  },
-  {
-    ...exampleFunnel6,
-    id: 'customer-support-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
-  },
-  {
-    ...exampleFunnel7,
-    id: 'content-marketing-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
-  },
-  {
-    ...exampleFunnel8,
-    id: 'product-purchase-dropoff-funnel-001',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastCalculatedAt: null
+// Default funnel examples - will be populated with calculated visitor counts
+let defaultFunnels: Funnel[] = [];
+
+// Initialize default funnels with calculated visitor counts
+const initializeDefaultFunnels = async () => {
+  try {
+    console.log('[DEBUG] Initializing default funnels with calculated visitor counts...');
+    
+    const baseFunnels = [
+      {
+        ...exampleFunnel,
+        id: 'ecommerce-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel4,
+        id: 'saas-onboarding-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel5,
+        id: 'mobile-app-engagement-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel6,
+        id: 'customer-support-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel7,
+        id: 'content-marketing-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel8,
+        id: 'product-purchase-dropoff-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      }
+    ];
+
+    // Calculate visitor counts for each funnel
+    const calculatedFunnels = await Promise.all(
+      baseFunnels.map(async (funnel, index) => {
+        const initialValues = [25000, 15000, 12000, 5000, 20000, 8000]; // Different initial values for variety
+        const results = await mockFunnelCalculationService.calculateFunnel({
+          funnel,
+          initialValue: initialValues[index],
+          options: {
+            includeSplitVariations: true,
+            includeMetrics: true,
+            includeInsights: true
+          }
+        });
+
+        // Update funnel with calculated visitor counts
+        const calculatedFunnel: Funnel = {
+          ...funnel,
+          steps: funnel.steps.map(step => {
+            const calculatedValue = results.calculatedResults[step.id];
+            
+            // Update split variations with calculated values
+            const updatedSplitVariations = step.splitVariations?.map((variation, varIndex) => {
+              const variationId = `${step.id}-variation-${varIndex + 1}`;
+              const calculatedVariationValue = results.calculatedResults[variationId];
+              
+              return {
+                ...variation,
+                visitorCount: calculatedVariationValue || 0
+              };
+            });
+
+            return {
+              ...step,
+              visitorCount: calculatedValue || 0,
+              value: calculatedValue || 0,
+              splitVariations: updatedSplitVariations
+            };
+          })
+        };
+
+        console.log(`[DEBUG] Calculated funnel ${index + 1}: ${calculatedFunnel.name}`);
+        return calculatedFunnel;
+      })
+    );
+
+    defaultFunnels = calculatedFunnels;
+    console.log('[DEBUG] Default funnels initialized with calculated visitor counts');
+    
+  } catch (error) {
+    console.error('[ERROR] Failed to initialize default funnels:', error);
+    // Fallback to original funnels
+    defaultFunnels = [
+      {
+        ...exampleFunnel,
+        id: 'ecommerce-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel4,
+        id: 'saas-onboarding-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel5,
+        id: 'mobile-app-engagement-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel6,
+        id: 'customer-support-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel7,
+        id: 'content-marketing-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel8,
+        id: 'product-purchase-dropoff-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      }
+    ];
   }
-];
+};
 
 // Initialize mock funnels from localStorage or use default
 let mockFunnels: Funnel[] = [];
@@ -152,6 +258,11 @@ const loadFunnelsFromStorage = (): void => {
 
 // Initialize on module load
 loadFunnelsFromStorage();
+
+// Initialize default funnels with calculated visitor counts
+initializeDefaultFunnels().catch(error => {
+  console.error('[ERROR] Failed to initialize default funnels:', error);
+});
 
 // Save funnels to localStorage
 const saveFunnels = (): void => {

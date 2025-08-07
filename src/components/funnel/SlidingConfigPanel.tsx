@@ -8,7 +8,7 @@ interface SlidingConfigPanelProps {
   isOpen: boolean;
   onClose: () => void;
   funnel: Funnel | null;
-  onSave: (updatedFunnel: Funnel) => void;
+  onSave: (updatedFunnel: Funnel) => Promise<void>;
 }
 
 export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingConfigPanelProps) {
