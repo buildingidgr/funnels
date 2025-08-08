@@ -5,6 +5,7 @@ import { SankeyLegend } from './components/SankeyLegend';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Users, Target, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import CustomTooltip from './components/CustomTooltip';
 
 interface SankeyVisualizationProps {
   rechartsData: {
@@ -62,6 +63,11 @@ const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHe
   // Determine if this is the first or last node to adjust text positioning
   const isFirstNode = index === 0;
   const isLastNode = index === (props.totalNodes - 1);
+  const isOptionalNode = !!props?.rechartsNodes?.[index]?.isOptional || !!payload?.isOptional;
+  const optionalFlagOrigin = {
+    fromRechartsNode: !!props?.rechartsNodes?.[index]?.isOptional,
+    fromPayload: !!payload?.isOptional
+  };
   
   // Debug logging to see what's being passed to the node
   const finalHeight = preCalculatedStepHeights[payload.name] || (height > 0 ? height : 30);
@@ -81,8 +87,33 @@ const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHe
     finalY,
     nodeValue: payload.value,
     isFirstNode,
-    isLastNode
+    isLastNode,
+    isOptionalNode,
+    optionalFlagOrigin
   });
+
+  // Report layout to parent for cross-checking link endpoints vs node edges
+  React.useEffect(() => {
+    const computedWidth = width * 1.5;
+    const layoutMetrics = {
+      x,
+      yOriginal: y,
+      widthOriginal: width,
+      heightOriginal: height,
+      xLeft: x,
+      xRight: x + computedWidth,
+      yTop: finalY,
+      yBottom: finalY + finalHeight,
+      yCenter: finalY + finalHeight / 2,
+      width: computedWidth,
+      height: finalHeight,
+    };
+    if (props.onNodeLayout && typeof props.onNodeLayout === 'function') {
+      props.onNodeLayout(payload.name, layoutMetrics);
+    }
+    console.log('[DEBUG] Node layout computed:', { id: payload.name, ...layoutMetrics });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [x, y, width, height, finalY, finalHeight, payload?.name]);
   
   // Removed text positioning calculations since step names are no longer displayed
   
@@ -212,7 +243,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHe
         }
       }}
     >
-      {/* Node background with enhanced styling - COMPLETELY REMOVED STROKES */}
+      {/* Node background with enhanced styling */}
       <rect
         x={x} // Use original x coordinate
         y={finalY} // Center the node vertically
@@ -225,11 +256,86 @@ const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHe
         style={{
           filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))',
           transition: 'all 0.3s ease',
-          stroke: 'transparent', // COMPLETELY REMOVED ALL STROKES
+          // keep base rect without stroke; draw optional outline as a separate overlay so it stays on top
+          stroke: 'transparent',
           strokeWidth: 0
         }}
       />
-      
+
+      {/* Optional indicator INSIDE the column */}
+      {isOptionalNode && (() => {
+        // Compute inline marker positions so we can log them
+        // Place badge inside top-left of the column for maximum contrast and to avoid right-edge overlaps
+        const markerRectW = 28;
+        const markerRectH = 16;
+        const markerRectX = x + 8;
+        const markerRectY = finalY + 6;
+        const markerTextX = markerRectX + markerRectW / 2;
+        const markerTextY = markerRectY + markerRectH * 0.68;
+        // Compute containment and overlap diagnostics
+        const nodeBounds = {
+          left: x,
+          right: x + (width * 1.5),
+          top: finalY,
+          bottom: finalY + finalHeight,
+          width: width * 1.5,
+          height: finalHeight
+        };
+        const markerBounds = {
+          left: markerRectX,
+          right: markerRectX + markerRectW,
+          top: markerRectY,
+          bottom: markerRectY + markerRectH,
+          width: markerRectW,
+          height: markerRectH
+        };
+        const isContained = 
+          markerBounds.left >= nodeBounds.left &&
+          markerBounds.right <= nodeBounds.right &&
+          markerBounds.top >= nodeBounds.top &&
+          markerBounds.bottom <= nodeBounds.bottom;
+        try {
+          console.log('[DEBUG] Optional marker inline render:', {
+            nodeId: payload.name,
+            index,
+            isOptionalNode,
+            optionalFlagOrigin,
+            rect: { x: markerRectX, y: markerRectY, w: markerRectW, h: markerRectH },
+            text: { x: markerTextX, y: markerTextY },
+            nodeBounds,
+            markerBounds,
+            isContained
+          });
+        } catch {}
+        return (
+          <g className="sankey-node-optional-inline" style={{ pointerEvents: 'none' }}>
+            <rect
+              x={markerRectX}
+              y={markerRectY}
+              width={markerRectW}
+              height={markerRectH}
+              rx={7}
+              ry={7}
+              fill={'rgba(255,255,255,0.95)'}
+              stroke={'#7c3aed'}
+              strokeWidth={1.25}
+              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}
+            />
+            <text
+              x={markerTextX}
+              y={markerTextY}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={800}
+              fill={'#4c1d95'}
+              style={{ letterSpacing: 0.5, paintOrder: 'stroke', stroke: 'white', strokeWidth: 2 }}
+            >
+              OPT
+            </text>
+          </g>
+        );
+      })()}
+
 
       
       {/* Removed static step name labels */}
@@ -274,6 +380,7 @@ const EnhancedNode = ({ x, y, width, height, index, payload, preCalculatedStepHe
           </text>
         </>
       )}
+
     </g>
   );
 };
@@ -310,9 +417,24 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
       return hasSplitNodes;
     })();
   const isDomestic = payload.sourceId?.includes('domestic') || payload.targetId?.includes('international');
-  const isBypass = payload.sourceId === 'initial' && !payload.targetId?.includes('step-1');
+  const isInitialBypass = payload.sourceId === 'initial' && !payload.targetId?.includes('step-1');
   const isOptional = payload.sourceId?.includes('step-') && payload.targetId?.includes('step-') && 
                      Math.abs(parseInt(payload.sourceId.split('-')[1]) - parseInt(payload.targetId.split('-')[1])) > 1;
+  const isBypass = isInitialBypass || isOptional;
+
+  // Classification log for link types
+  try {
+    console.log('[DEBUG] Link classification:', {
+      sourceId: payload.sourceId,
+      targetId: payload.targetId,
+      isSplit,
+      isMainStepToNextStep,
+      isSplitToNext,
+      isOptional,
+      isBypass,
+      shouldHideMainConnection
+    });
+  } catch {}
   
   // Calculate conversion rate for this link
   const conversionRate = payload.conversionRate || 0;
@@ -330,32 +452,130 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   } else {
     linkColor = STEP_COLORS.links.medium;
   }
+  // Force a distinct color for bypass/optional so it visibly stands out
+  if (isBypass) {
+    linkColor = '#7c3aed'; // vivid violet
+  }
+
+  // Use adjusted endpoints that match our custom node rectangles
+  let adjustedSourceX = sourceX;
+  let adjustedSourceY = sourceY;
+  let adjustedTargetX = targetX;
+  let adjustedTargetY = targetY;
+
+  try {
+    if (props.getNodeLayout && typeof props.getNodeLayout === 'function') {
+      const sourceLayout = props.getNodeLayout(payload.sourceId);
+      const targetLayout = props.getNodeLayout(payload.targetId);
+      if (sourceLayout) {
+        adjustedSourceX = sourceLayout.xRight; // attach from the drawn right edge
+        adjustedSourceY = sourceLayout.yCenter; // attach at vertical center of drawn node
+      }
+      if (targetLayout) {
+        adjustedTargetX = targetLayout.xLeft; // attach to the drawn left edge
+        adjustedTargetY = targetLayout.yCenter; // attach at vertical center
+      }
+      // If bypass, re-route anchors to avoid overlapping: snap near top or bottom edges
+      if (isBypass && (sourceLayout || targetLayout)) {
+        const sourceStepNum = parseInt((payload.sourceId || '').split('-')[1] || '0', 10);
+        const routeAbove = isNaN(sourceStepNum) ? true : sourceStepNum % 2 === 0; // alternate to reduce collisions
+        const sourceEdgeOffset = sourceLayout ? Math.min(12, Math.max(8, sourceLayout.height * 0.2)) : 10;
+        const targetEdgeOffset = targetLayout ? Math.min(12, Math.max(8, targetLayout.height * 0.2)) : 10;
+        if (sourceLayout) {
+          adjustedSourceY = routeAbove ? (sourceLayout.yTop + sourceEdgeOffset) : (sourceLayout.yBottom - sourceEdgeOffset);
+        }
+        if (targetLayout) {
+          adjustedTargetY = routeAbove ? (targetLayout.yTop + targetEdgeOffset) : (targetLayout.yBottom - targetEdgeOffset);
+        }
+        console.log('[DEBUG] Bypass routing anchors adjusted:', {
+          sourceId: payload.sourceId,
+          targetId: payload.targetId,
+          routeAbove,
+          adjustedSourceY,
+          adjustedTargetY,
+          sourceEdgeOffset,
+          targetEdgeOffset
+        });
+      }
+      console.log('[DEBUG] Adjusted link endpoints:', {
+        sourceId: payload.sourceId,
+        targetId: payload.targetId,
+        adjustedSourceX,
+        adjustedSourceY,
+        adjustedTargetX,
+        adjustedTargetY
+      });
+      if (sourceLayout) {
+        console.log('[DEBUG] Adjusted vs Source node alignment:', {
+          sourceId: payload.sourceId,
+          nodeRightEdge: sourceLayout.xRight,
+          nodeCenterY: sourceLayout.yCenter,
+          adjustedSourceX,
+          adjustedSourceY,
+          deltaX: adjustedSourceX - sourceLayout.xRight,
+          deltaY: adjustedSourceY - sourceLayout.yCenter
+        });
+      }
+      if (targetLayout) {
+        console.log('[DEBUG] Adjusted vs Target node alignment:', {
+          targetId: payload.targetId,
+          nodeLeftEdge: targetLayout.xLeft,
+          nodeCenterY: targetLayout.yCenter,
+          adjustedTargetX,
+          adjustedTargetY,
+          deltaX: adjustedTargetX - targetLayout.xLeft,
+          deltaY: adjustedTargetY - targetLayout.yCenter
+        });
+      }
+    }
+  } catch {}
 
   // Calculate path with different curvature based on link type
   let path;
-  const distance = Math.abs(targetX - sourceX);
+  const distance = Math.abs(adjustedTargetX - adjustedSourceX);
   const curveOffset = Math.min(distance * 0.15, 30); // Subtle curve, max 30px
+
+  // Strategic log: raw link endpoints and positions
+  console.log('[DEBUG] Link endpoints & positions:', {
+    sourceId: payload.sourceId,
+    targetId: payload.targetId,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    distance,
+    curveOffset,
+    shouldHideMainConnection,
+    isSplit,
+    isOptional,
+    isBypass
+  });
   
   if (isBypass) {
-    // Bypass links: more curved to show they skip steps
-    const midX = (sourceX + targetX) / 2;
-    const midY = (sourceY + targetY) / 2;
-    const bypassOffset = Math.min(distance * 0.25, 50);
-    path = `M${sourceX},${sourceY} C${midX - bypassOffset},${sourceY} ${midX + bypassOffset},${targetY} ${targetX},${targetY}`;
+    // Bypass links: route with a noticeable vertical arc above/below other flows
+    const midX = (adjustedSourceX + adjustedTargetX) / 2;
+    const arcHeight = Math.max(40, Math.min(120, distance * 0.35));
+    const sourceStepNum = parseInt((payload.sourceId || '').split('-')[1] || '0', 10);
+    const routeAbove = isNaN(sourceStepNum) ? true : sourceStepNum % 2 === 0; // alternate pathing
+    const verticalShift = routeAbove ? -arcHeight : arcHeight;
+    path = `M${adjustedSourceX},${adjustedSourceY} C${midX - 40},${adjustedSourceY + verticalShift} ${midX + 40},${adjustedTargetY + verticalShift} ${adjustedTargetX},${adjustedTargetY}`;
+    console.log('[DEBUG] Bypass curvature:', { arcHeight, routeAbove, verticalShift, midX });
   } else if (isOptional) {
     // Optional step links: moderate curve
-    const midX = (sourceX + targetX) / 2;
-    path = `M${sourceX},${sourceY} C${midX - curveOffset},${sourceY} ${midX + curveOffset},${targetY} ${targetX},${targetY}`;
+    const midX = (adjustedSourceX + adjustedTargetX) / 2;
+    path = `M${adjustedSourceX},${adjustedSourceY} C${midX - curveOffset},${adjustedSourceY} ${midX + curveOffset},${adjustedTargetY} ${adjustedTargetX},${adjustedTargetY}`;
   } else if (isSplit) {
     // Split links: very subtle curve
-    const midX = (sourceX + targetX) / 2;
+    const midX = (adjustedSourceX + adjustedTargetX) / 2;
     const splitOffset = Math.min(distance * 0.1, 20);
-    path = `M${sourceX},${sourceY} C${midX - splitOffset},${sourceY} ${midX + splitOffset},${targetY} ${targetX},${targetY}`;
+    path = `M${adjustedSourceX},${adjustedSourceY} C${midX - splitOffset},${adjustedSourceY} ${midX + splitOffset},${adjustedTargetY} ${adjustedTargetX},${adjustedTargetY}`;
   } else {
     // Regular links: straight with minimal curve
-    const midX = (sourceX + targetX) / 2;
+    const midX = (adjustedSourceX + adjustedTargetX) / 2;
     const regularOffset = Math.min(distance * 0.08, 15);
-    path = `M${sourceX},${sourceY} C${midX - regularOffset},${sourceY} ${midX + regularOffset},${targetY} ${targetX},${targetY}`;
+    path = `M${adjustedSourceX},${adjustedSourceY} C${midX - regularOffset},${adjustedSourceY} ${midX + regularOffset},${adjustedTargetY} ${adjustedTargetX},${adjustedTargetY}`;
   }
   
   // Calculate the actual width of the flow path based on source step height
@@ -402,7 +622,11 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   const scaledFlowWidth = flowWidth * strokeWidthScale;
   const maxFlowWidth = 30; // Maximum stroke width
   const minFlowWidth = 2;  // Minimum stroke width
-  const actualFlowWidth = Math.max(minFlowWidth, Math.min(maxFlowWidth, scaledFlowWidth));
+  let actualFlowWidth = Math.max(minFlowWidth, Math.min(maxFlowWidth, scaledFlowWidth));
+  // Ensure bypass links are sufficiently thick to be visible over other flows
+  if (isBypass) {
+    actualFlowWidth = Math.max(actualFlowWidth, 6);
+  }
   
   // Enhanced flow width on hover
   const hoverFlowWidth = isHovered ? actualFlowWidth * 1.5 : actualFlowWidth;
@@ -419,6 +643,58 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
     hoverFlowWidth: hoverFlowWidth.toFixed(1),
     isSplit: payload.sourceId?.includes('split') || payload.targetId?.includes('split')
   });
+
+  // Compare link endpoints against node rectangles if available
+  try {
+    if (props.getNodeLayout && typeof props.getNodeLayout === 'function') {
+      const sourceLayout = props.getNodeLayout(payload.sourceId);
+      const targetLayout = props.getNodeLayout(payload.targetId);
+      if (sourceLayout) {
+        const sourceDeltaX = sourceX - sourceLayout.xRight;
+        const sourceDeltaY = sourceY - sourceLayout.yCenter;
+        console.log('[DEBUG] Link vs Source node alignment:', {
+          sourceId: payload.sourceId,
+          nodeRightEdge: sourceLayout.xRight,
+          nodeCenterY: sourceLayout.yCenter,
+          linkSourceX: sourceX,
+          linkSourceY: sourceY,
+          deltaX: sourceDeltaX,
+          deltaY: sourceDeltaY,
+          nodeRect: {
+            left: sourceLayout.xLeft,
+            right: sourceLayout.xRight,
+            top: sourceLayout.yTop,
+            bottom: sourceLayout.yBottom,
+            width: sourceLayout.width,
+            height: sourceLayout.height,
+          }
+        });
+      }
+      if (targetLayout) {
+        const targetDeltaX = targetX - targetLayout.xLeft;
+        const targetDeltaY = targetY - targetLayout.yCenter;
+        console.log('[DEBUG] Link vs Target node alignment:', {
+          targetId: payload.targetId,
+          nodeLeftEdge: targetLayout.xLeft,
+          nodeCenterY: targetLayout.yCenter,
+          linkTargetX: targetX,
+          linkTargetY: targetY,
+          deltaX: targetDeltaX,
+          deltaY: targetDeltaY,
+          nodeRect: {
+            left: targetLayout.xLeft,
+            right: targetLayout.xRight,
+            top: targetLayout.yTop,
+            bottom: targetLayout.yBottom,
+            width: targetLayout.width,
+            height: targetLayout.height,
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.log('[DEBUG] Error comparing link endpoints to node layouts:', e);
+  }
   
   // Create a proper filled flow path with actual width
   // For a true Sankey diagram, we need filled rectangles, not just strokes
@@ -477,14 +753,14 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
       <path
         d={path}
         fill="none"
-        stroke={`url(#gradient-${payload.sourceId}-${payload.targetId})`}
-        strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth + 4}
-        strokeOpacity={isHovered ? 0.8 : 0.5}
+        stroke={isBypass ? linkColor : `url(#gradient-${payload.sourceId}-${payload.targetId})`}
+        strokeWidth={shouldHideMainConnection ? 0 : (isBypass ? hoverFlowWidth + 6 : hoverFlowWidth + 4)}
+        strokeOpacity={isBypass ? 0.9 : (isHovered ? 0.8 : 0.5)}
         strokeLinecap="round"
         className={`sankey-link-background ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}
         style={{
           transition: 'all 0.4s ease',
-          filter: isHovered ? 'drop-shadow(0 4px 12px rgba(59, 130, 246, 0.5))' : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1))'
+          filter: isHovered ? 'drop-shadow(0 4px 12px rgba(59, 130, 246, 0.5))' : (isBypass ? 'drop-shadow(0 3px 10px rgba(124, 58, 237, 0.5))' : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1))')
         }}
       />
       
@@ -492,9 +768,9 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
       <path
         d={path}
         fill="none"
-        stroke={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'}
-        strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth}
-        strokeOpacity={isHovered ? 1 : 0.95}
+        stroke={isBypass ? linkColor : (isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6')}
+        strokeWidth={shouldHideMainConnection ? 0 : (isBypass ? hoverFlowWidth + 2 : hoverFlowWidth)}
+        strokeOpacity={isBypass ? 1 : (isHovered ? 1 : 0.95)}
         strokeLinecap="round"
         className={`sankey-link-path ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}
         style={{
@@ -502,9 +778,11 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
           strokeDasharray: isSplit ? '4,2' : isBypass ? '6,3' : 'none',
           filter: isHovered 
             ? 'drop-shadow(0 4px 16px rgba(59, 130, 246, 0.7))' 
-            : isHighConversion ? 'drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4))' : 
-              isLowConversion ? 'drop-shadow(0 2px 8px rgba(107, 114, 128, 0.4))' : 
-              'drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4))'
+            : isBypass 
+              ? 'drop-shadow(0 3px 12px rgba(124, 58, 237, 0.6))'
+              : isHighConversion ? 'drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4))' : 
+                isLowConversion ? 'drop-shadow(0 2px 8px rgba(107, 114, 128, 0.4))' : 
+                'drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4))'
         }}
       />
       
@@ -838,6 +1116,31 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [stepHeights, setStepHeights] = useState<Record<string, number>>({});
+
+  // Track node rectangles for alignment diagnostics
+  type NodeLayout = {
+    x: number;
+    yOriginal: number;
+    widthOriginal: number;
+    heightOriginal: number;
+    xLeft: number;
+    xRight: number;
+    yTop: number;
+    yBottom: number;
+    yCenter: number;
+    width: number;
+    height: number;
+  };
+  const nodeLayoutsRef = useRef<Record<string, NodeLayout>>({});
+  const onNodeLayout = React.useCallback((id: string, layout: NodeLayout) => {
+    nodeLayoutsRef.current[id] = layout;
+    // bump layout version so fit-to-view can run when all nodes report
+    setLayoutVersion(v => v + 1);
+  }, []);
+  const getNodeLayout = React.useCallback((id?: string) => {
+    if (!id) return undefined;
+    return nodeLayoutsRef.current[id];
+  }, []);
   
   // Update dimensions when container resizes
   useEffect(() => {
@@ -869,239 +1172,22 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     };
   }, []);
   
-  // Render tooltip outside component lifecycle
-  useEffect(() => {
-    console.log('[DEBUG] Tooltip useEffect triggered:', {
-      showTooltips,
-      tooltipVisible,
-      tooltipContent: tooltipContent ? 'has content' : 'no content',
-      tooltipPosition,
-      timestamp: new Date().toISOString()
-    });
-    
-    if (showTooltips && tooltipVisible && tooltipContent) {
-      console.log('[DEBUG] Creating tooltip element');
-      
-      const tooltipElement = document.createElement('div');
-      tooltipElement.id = 'sankey-tooltip';
-      tooltipElement.style.cssText = `
-        position: fixed;
-        left: ${tooltipPosition.x}px;
-        top: ${tooltipPosition.y}px;
-        transform: translate(-50%, -100%);
-        z-index: 2147483647;
-        pointer-events: none;
-        user-select: none;
-        isolation: isolate;
-        background: white;
-        padding: 16px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        font-size: 14px;
-        line-height: 1.5;
-        color: #1e293b;
-        max-width: 320px;
-        border: 1px solid #e2e8f0;
-      `;
-      
-      // Create a simple text-based tooltip instead of trying to render React elements
-      console.log('[DEBUG] Tooltip content object:', tooltipContent);
-      
-      if (tooltipContent.type === 'link') {
-        // Handle link tooltip
-        const sourceNode = rechartsData.nodes.find(n => n.name === tooltipContent.sourceId);
-        const targetNode = rechartsData.nodes.find(n => n.name === tooltipContent.targetId);
-        
-        console.log('[DEBUG] Found nodes for link tooltip:', { sourceNode, targetNode });
-        
-        if (sourceNode && targetNode) {
-          const linkValue = tooltipContent.value || 0;
-          const sourceValue = tooltipContent.sourceValue || sourceNode.value || 0;
-          const percentage = ((linkValue / sourceValue) * 100).toFixed(1);
-          const conversionRate = tooltipContent.conversionRate || 0;
-          
-          // Get the actual step names from the nodeMap
-          const sourceStepName = nodeMap[sourceNode.name]?.name || sourceNode.name;
-          const targetStepName = nodeMap[targetNode.name]?.name || targetNode.name;
-          
-          console.log('[DEBUG] Link tooltip data:', {
-            linkValue,
-            sourceValue,
-            percentage,
-            conversionRate,
-            sourceNodeName: sourceStepName,
-            targetNodeName: targetStepName
-          });
-          
-          tooltipElement.innerHTML = `
-            <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
-              ${sourceStepName} → ${targetStepName}
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <div style="color: #334155;">
-                <div style="font-size: 12px; color: #64748b;">Users</div>
-                <div style="font-weight: 600; font-size: 18px;">
-                  ${linkValue.toLocaleString()}
-                </div>
-              </div>
-              <div style="color: #334155; text-align: right;">
-                <div style="font-size: 12px; color: #64748b;">Conversion</div>
-                <div style="font-weight: 600; font-size: 18px;">
-                  ${percentage}%
-                </div>
-              </div>
-            </div>
-            
-            <div style="
-              padding: 8px 12px; 
-              background: ${conversionRate >= 75 ? '#f0fdf4' : conversionRate >= 40 ? '#fffbeb' : '#fef2f2'};
-              border-radius: 6px;
-              border: 1px solid ${conversionRate >= 75 ? '#bbf7d0' : conversionRate >= 40 ? '#fed7aa' : '#fecaca'};
-            ">
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">
-                Performance
-              </div>
-              <div style="
-                font-weight: 600;
-                color: ${conversionRate >= 75 ? '#059669' : conversionRate >= 40 ? '#d97706' : '#dc2626'};
-              ">
-                ${conversionRate >= 75 ? 'Excellent' : conversionRate >= 40 ? 'Good' : 'Needs Improvement'}
-              </div>
-            </div>
-          `;
-          
-          console.log('[DEBUG] Link tooltip HTML generated:', tooltipElement.innerHTML);
-        } else {
-          console.log('[DEBUG] Could not find source or target node for link tooltip:', {
-            sourceId: tooltipContent.sourceId,
-            targetId: tooltipContent.targetId,
-            availableNodes: rechartsData.nodes.map(n => ({ name: n.name, id: n.name }))
-          });
-          
-          // Fallback tooltip for link
-          tooltipElement.innerHTML = `
-            <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
-              Flow Information
-            </div>
-            <div style="color: #334155;">
-              <div style="font-size: 12px; color: #64748b;">Users</div>
-              <div style="font-weight: 600; font-size: 18px;">
-                ${(tooltipContent.value || 0).toLocaleString()}
-              </div>
-            </div>
-          `;
-        }
-      } else if (tooltipContent.type === 'node') {
-        // Handle node tooltip
-        const nodeValue = tooltipContent.value || 0;
-        const percentage = tooltipContent.percentage || 0;
-        const conversionRate = tooltipContent.conversionRate || 0;
-        
-        // Get the actual step name from the nodeMap
-        const stepName = nodeMap[tooltipContent.nodeId]?.name || tooltipContent.nodeId;
-        
-        console.log('[DEBUG] Node tooltip data:', {
-          nodeValue,
-          percentage,
-          conversionRate,
-          stepName
-        });
-        
-        tooltipElement.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
-            ${stepName}
-          </div>
-          
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <div style="color: #334155;">
-              <div style="font-size: 12px; color: #64748b;">Users</div>
-              <div style="font-weight: 600; font-size: 18px;">
-                ${nodeValue.toLocaleString()}
-              </div>
-            </div>
-            <div style="color: #334155; text-align: right;">
-              <div style="font-size: 12px; color: #64748b;">% of Total</div>
-              <div style="font-weight: 600; font-size: 18px;">
-                ${percentage.toFixed(1)}%
-              </div>
-            </div>
-          </div>
-          
-          ${conversionRate > 0 ? `
-            <div style="
-              padding: 8px 12px; 
-              background: ${conversionRate >= 75 ? '#f0fdf4' : conversionRate >= 40 ? '#fffbeb' : '#fef2f2'};
-              border-radius: 6px;
-              border: 1px solid ${conversionRate >= 75 ? '#bbf7d0' : conversionRate >= 40 ? '#fed7aa' : '#fecaca'};
-            ">
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">
-                Conversion Rate
-              </div>
-              <div style="
-                font-weight: 600;
-                color: ${conversionRate >= 75 ? '#059669' : conversionRate >= 40 ? '#d97706' : '#dc2626'};
-              ">
-                ${conversionRate.toFixed(1)}%
-              </div>
-            </div>
-          ` : ''}
-        `;
-        
-        console.log('[DEBUG] Node tooltip HTML generated:', tooltipElement.innerHTML);
-      } else {
-        console.log('[DEBUG] Unknown tooltip type:', tooltipContent.type);
-        
-        // Fallback tooltip for unknown type
-        tooltipElement.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 8px; color: #0f172a; font-size: 16px;">
-            Information
-          </div>
-          <div style="color: #334155;">
-            <div style="font-size: 12px; color: #64748b;">Users</div>
-            <div style="font-weight: 600; font-size: 18px;">
-              ${(tooltipContent.value || 0).toLocaleString()}
-            </div>
-          </div>
-        `;
-      }
-      
-      console.log('[DEBUG] Tooltip element created:', {
-        id: tooltipElement.id,
-        style: tooltipElement.style.cssText,
-        content: tooltipElement.innerHTML,
-        position: { x: tooltipPosition.x, y: tooltipPosition.y }
-      });
-      
-      document.body.appendChild(tooltipElement);
-      
-      console.log('[DEBUG] Tooltip added to DOM:', {
-        bodyChildren: document.body.children.length,
-        tooltipInBody: document.body.contains(tooltipElement),
-        tooltipZIndex: tooltipElement.style.zIndex
-      });
-      
-      return () => {
-        console.log('[DEBUG] Cleaning up tooltip element');
-        if (document.body.contains(tooltipElement)) {
-          document.body.removeChild(tooltipElement);
-          console.log('[DEBUG] Tooltip removed from DOM');
-        }
-      };
-    } else {
-      console.log('[DEBUG] Tooltip conditions not met:', {
-        showTooltips,
-        tooltipVisible,
-        hasContent: !!tooltipContent
-      });
-    }
-  }, [showTooltips, tooltipVisible, tooltipContent, tooltipPosition]);
+  // React-rendered tooltip overlay (replaces DOM injection)
+  // Rendering handled below via <CustomTooltip />
   
   // Zoom state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Zoom bounds
+  const MIN_ZOOM = 0.1; // allow zooming out to 50%
+  const MAX_ZOOM = 3;   // keep current max
+
+  // Fit-to-view versioning to re-run when node layouts settle
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const didInitialFitRef = useRef(false);
 
   // Zoom controls
   const handleZoomIn = () => {
@@ -1116,7 +1202,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   const handleZoomOut = () => {
     console.log('[DEBUG] Zoom out clicked, current zoom:', zoom);
     setZoom(prev => {
-      const newZoom = Math.max(prev / 1.2, 0.9);
+      const newZoom = Math.max(prev / 1.2, MIN_ZOOM);
       console.log('[DEBUG] New zoom level:', newZoom);
       return newZoom;
     });
@@ -1158,7 +1244,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     console.log('[DEBUG] Wheel event triggered:', { deltaY: e.deltaY, currentZoom: zoom });
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(prev => {
-      const newZoom = Math.max(0.9, Math.min(3, prev * delta));
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * delta));
       console.log('[DEBUG] Wheel zoom - old:', prev, 'new:', newZoom);
       return newZoom;
     });
@@ -1223,13 +1309,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     enhancedData.nodes.forEach((node, index) => {
       const nodeValue = node.value || 0;
       const maxValue = Math.max(...enhancedData.nodes.map(n => n.value || 0));
-      const minHeight = 30;
-      const maxHeight = 200;
+      const minHeight = 20; // was 30
+      const maxHeight = 170; // was 200
       
       // Calculate height proportionally based on node value
       let calculatedHeight = minHeight;
       if (maxValue > 0) {
-        calculatedHeight = Math.max(minHeight, Math.min(maxHeight, (nodeValue / maxValue) * 150 + 30));
+        calculatedHeight = Math.max(minHeight, Math.min(maxHeight, (nodeValue / maxValue) * 120 + 20));
       }
       
       // Use the node name as the key
@@ -1256,10 +1342,10 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       return 0;
     }));
     
-    // Base height plus extra space for splits
-    const baseHeight = 514;
-    const extraHeightPerSplit = 150; // Increased from 100 to 150 for more space
-    const totalExtraHeight = maxSplits * extraHeightPerSplit;
+    // Base height plus extra space for splits (reduced to tighten vertical spacing)
+    const baseHeight = 440; // tighter
+    const extraHeightPerSplit = 40; // tighter
+    const totalExtraHeight = Math.max(0, maxSplits * extraHeightPerSplit);
     
     console.log('[DEBUG] Dynamic container height calculation:', {
       splitNodes: splitNodes.length,
@@ -1318,7 +1404,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       setZoom(prev => {
-        const newZoom = Math.max(0.9, Math.min(3, prev * delta));
+          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * delta));
         return newZoom;
       });
     };
@@ -1347,8 +1433,62 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
           containerHeight: dynamicContainerHeight,
           responsiveContainerHeight: dynamicContainerHeight
         });
+        // Summarize current node layouts snapshot for diagnostics
+        const snapshot = nodeLayoutsRef.current;
+        console.log('[DEBUG] Node layout snapshot:', Object.keys(snapshot).map(k => ({
+          id: k,
+          xLeft: snapshot[k].xLeft,
+          xRight: snapshot[k].xRight,
+          yTop: snapshot[k].yTop,
+          yBottom: snapshot[k].yBottom,
+          yCenter: snapshot[k].yCenter,
+          width: snapshot[k].width,
+          height: snapshot[k].height,
+        })));
       }
       }, [isValidData, enhancedData.nodes.length, enhancedData.links.length, dynamicContainerHeight]);
+
+  // Perform initial fit-to-view when we have node layouts and container size
+  useEffect(() => {
+    if (!isValidData || didInitialFitRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    if (containerWidth <= 0 || containerHeight <= 0) return;
+
+    const layouts = nodeLayoutsRef.current;
+    const ids = Object.keys(layouts);
+    if (ids.length === 0) return;
+
+    const xs = ids.flatMap(id => [layouts[id].xLeft, layouts[id].xRight]);
+    const ys = ids.flatMap(id => [layouts[id].yTop, layouts[id].yBottom]);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const contentWidth = Math.max(1, maxX - minX);
+    const contentHeight = Math.max(1, maxY - minY);
+
+    const padding = 120; // increased padding to avoid any clipping
+    const fitScaleX = (containerWidth - padding) / contentWidth;
+    const fitScaleY = (containerHeight - padding) / contentHeight;
+    const fitScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(fitScaleX, fitScaleY)));
+
+    const contentCenterX = (minX + maxX) / 2;
+    const contentCenterY = (minY + maxY) / 2;
+    const containerCenterX = containerWidth / 2;
+    const containerCenterY = containerHeight / 2;
+
+    // With transformOrigin set to top-left (0,0), pan is in screen pixels
+    const newPanX = (containerCenterX - contentCenterX * fitScale);
+    const newPanY = (containerCenterY - contentCenterY * fitScale);
+
+    setZoom(fitScale);
+    setPan({ x: newPanX, y: newPanY });
+    didInitialFitRef.current = true;
+    console.log('[DEBUG] Initial fit-to-view applied:', { containerWidth, containerHeight, minX, maxX, minY, maxY, contentWidth, contentHeight, fitScale, newPanX, newPanY });
+  }, [isValidData, layoutVersion, dimensions.width, dimensions.height]);
 
   // Debug zoom and pan changes
   useEffect(() => {
@@ -1381,14 +1521,12 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     
 
     
-    // Pass the node data as an object instead of a React element
+    // Shape payload for SankeyTooltip (node path)
     const tooltipData = {
-      type: 'node',
-      nodeId: nodeId,
+      name: nodeId,
       value: nodeValue,
-      percentage: parseFloat(percentage),
-      conversionRate: conversionRate
-    };
+      // We don't rely on index for display; omit to satisfy types
+    } as any;
     
     console.log('[DEBUG] Setting tooltip state in handleNodeHover:', {
       position: { x: event.clientX, y: event.clientY },
@@ -1397,12 +1535,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       tooltipData
     });
     
-    setTooltipContent(tooltipData);
+    setTooltipContent([{ payload: tooltipData }]);
     
-    setTooltipPosition({
-      x: event.clientX,
-      y: event.clientY
-    });
+    // Position relative to container
+    const rect = containerRef.current?.getBoundingClientRect();
+    const relX = event.clientX - (rect?.left || 0) + 12;
+    const relY = event.clientY - (rect?.top || 0) + 12;
+    setTooltipPosition({ x: relX, y: relY });
     
     setTooltipVisible(true);
     setSelectedNode(node.name || node.id);
@@ -1432,14 +1571,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     const percentage = ((linkValue / sourceValue) * 100).toFixed(1);
     const conversionRate = link.conversionRate || 0;
     
-    // Pass the link data instead of a React element
+    // Shape payload for SankeyTooltip (link path expects source/target indices)
     const tooltipData = {
-      type: 'link',
+      source: typeof link.source === 'number' ? link.source : 0,
+      target: typeof link.target === 'number' ? link.target : 0,
+      value: linkValue,
       sourceId: link.sourceId,
       targetId: link.targetId,
-      value: linkValue,
-      sourceValue: sourceValue,
-      conversionRate: conversionRate
     };
     
     console.log('[DEBUG] Setting tooltip state in handleLinkHover:', {
@@ -1449,12 +1587,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       tooltipData
     });
     
-    setTooltipContent(tooltipData);
+    setTooltipContent([{ payload: tooltipData }]);
     
-    setTooltipPosition({
-      x: event.clientX,
-      y: event.clientY
-    });
+    // Position relative to container
+    const rect = containerRef.current?.getBoundingClientRect();
+    const relX = event.clientX - (rect?.left || 0) + 12;
+    const relY = event.clientY - (rect?.top || 0) + 12;
+    setTooltipPosition({ x: relX, y: relY });
     
     setTooltipVisible(true);
   };
@@ -1465,8 +1604,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       width: '100%',
       height: '100%',
       minHeight: '400px',
-      background: '#f8fafc',
-      borderRadius: '12px',
+      background: 'transparent',
+      borderRadius: 0,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column'
@@ -1564,11 +1703,11 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
               <TooltipTrigger asChild>
                 <button
                   onClick={handleZoomOut}
-                  disabled={zoom <= 0.9}
+                  disabled={zoom <= MIN_ZOOM}
                   style={{
                     width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                    background: zoom <= 0.9 ? '#f1f5f9' : '#ffffff', color: zoom <= 0.9 ? '#94a3b8' : '#64748b',
-                    cursor: zoom <= 0.9 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: zoom <= MIN_ZOOM ? '#f1f5f9' : '#ffffff', color: zoom <= MIN_ZOOM ? '#94a3b8' : '#64748b',
+                    cursor: zoom <= MIN_ZOOM ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                   }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -1603,19 +1742,17 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       </div>
       
       <div 
-                  style={{
+          style={{
             flex: 1,
             width: '100%',
-            minHeight: `${dynamicContainerHeight}px`,
-            height: `${dynamicContainerHeight}px`,
-            maxHeight: `${dynamicContainerHeight}px`,
-            background: dynamicContainerHeight > 514 ? '#e0f2fe' : '#f8fafc', // Blue background when expanded
-            borderRadius: '12px',
+            height: '100%',
+            minHeight: '400px',
+            background: 'transparent',
+            borderRadius: 0,
             padding: '24px',
             cursor: isDragging ? 'grabbing' : 'grab',
             overflow: 'hidden',
             position: 'relative',
-            border: dynamicContainerHeight > 514 ? '2px solid #0284c7' : '1px solid #e2e8f0', // Blue border when expanded
             boxSizing: 'border-box'
           }}  
         ref={containerRef}
@@ -1625,33 +1762,64 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
+        {/* Tooltip overlay inside container for correct positioning */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: 'none',
+            zIndex: 1000
+          }}
+        >
+          <CustomTooltip
+            active={tooltipVisible && Array.isArray(tooltipContent)}
+            payload={Array.isArray(tooltipContent) ? tooltipContent : []}
+            nodeMap={nodeMap}
+            initialValue={initialValue}
+            coordinate={tooltipPosition}
+          />
+        </div>
+
         <div
           style={{
             width: '100%',
             height: '100%',
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            transformOrigin: 'center center',
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: '0 0',
             transition: isDragging ? 'none' : 'transform 0.1s ease-out',
             cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
-                      {isValidData ? (
-              <ResponsiveContainer width="100%" height={dynamicContainerHeight}>
+          {isValidData ? (
+              <ResponsiveContainer width="100%" height="100%">
               <Sankey
                 data={enhancedData}
-                node={(props) => <EnhancedNode {...props} preCalculatedStepHeights={preCalculatedStepHeights} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} />}
+                node={(props) => <EnhancedNode {...props} preCalculatedStepHeights={preCalculatedStepHeights} onStepHeightChange={handleStepHeightChange} totalNodes={enhancedData?.nodes?.length || 0} handleNodeHover={handleNodeHover} setTooltipVisible={setTooltipVisible} setSelectedNode={setSelectedNode} onNodeLayout={onNodeLayout} />}
                 link={(props) => {
-                  // Only render regular (non-optional) links in the main component
-                  const isOptionalLink = props.payload.sourceId?.includes('step-') && 
-                                       props.payload.targetId?.includes('step-') && 
-                                       Math.abs(parseInt(props.payload.sourceId.split('-')[1]) - parseInt(props.payload.targetId.split('-')[1])) > 1;
-                  
-                  if (!isOptionalLink) {
-                    return <EnhancedLink {...props} stepHeights={stepHeights} preCalculatedStepHeights={preCalculatedStepHeights} handleLinkHover={handleLinkHover} setTooltipVisible={setTooltipVisible} nodes={rechartsData.nodes} />;
-                  }
-                  return null;
+                  // Render ALL links, including optional bypass links
+                  try {
+                    console.log('[DEBUG] Rendering link component:', {
+                      sourceId: props?.payload?.sourceId,
+                      targetId: props?.payload?.targetId,
+                      value: props?.payload?.value
+                    });
+                  } catch {}
+                  return (
+                    <EnhancedLink
+                      {...props}
+                      stepHeights={stepHeights}
+                      preCalculatedStepHeights={preCalculatedStepHeights}
+                      handleLinkHover={handleLinkHover}
+                      setTooltipVisible={setTooltipVisible}
+                      nodes={rechartsData.nodes}
+                      getNodeLayout={getNodeLayout}
+                    />
+                  );
                 }}
-                nodePadding={200}
+                nodePadding={80}
                 nodeWidth={20}
                 margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
                 iterations={64}
@@ -1664,7 +1832,68 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
           )}
         </div>
       </div>
-      
+      {/* Overlay to draw optional markers ABOVE everything, using measured node layouts */}
+      {isValidData && (
+        <svg
+          width="100%"
+          height="100%"
+          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        >
+          {rechartsData.nodes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((n: any) => (n as any).isOptional === true)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((n: any, idx: number) => {
+              const layout = nodeLayoutsRef.current[n.name];
+              if (!layout) {
+                try { console.log('[DEBUG] Optional marker overlay: missing layout for node', n.name); } catch {}
+                return null;
+              }
+              const markerRectW = 28;
+              const markerRectH = 16;
+              const markerRectX = layout.xLeft + 8;
+              const markerRectY = layout.yTop + 6;
+              const markerTextX = markerRectX + markerRectW / 2;
+              const markerTextY = markerRectY + markerRectH * 0.68;
+              try {
+                console.log('[DEBUG] Optional marker overlay render:', {
+                  nodeId: n.name,
+                  idx,
+                  rect: { x: markerRectX, y: markerRectY, w: markerRectW, h: markerRectH },
+                  text: { x: markerTextX, y: markerTextY },
+                  nodeBounds: { left: layout.xLeft, right: layout.xRight, top: layout.yTop, bottom: layout.yBottom }
+                });
+              } catch {}
+              return (
+                <g key={`opt-overlay-${n.name}-${idx}`}>
+                  <rect
+                    x={markerRectX}
+                    y={markerRectY}
+                    width={markerRectW}
+                    height={markerRectH}
+                    rx={7}
+                    ry={7}
+                    fill={'rgba(255,255,255,0.95)'}
+                    stroke={'#7c3aed'}
+                    strokeWidth={1.25}
+                    style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}
+                  />
+                  <text
+                    x={markerTextX}
+                    y={markerTextY}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fontWeight={800}
+                    fill={'#4c1d95'}
+                    style={{ letterSpacing: 0.5, paintOrder: 'stroke', stroke: 'white', strokeWidth: 2 }}
+                  >
+                    OPT
+                  </text>
+                </g>
+              );
+            })}
+        </svg>
+      )}
 
     </div>
   );

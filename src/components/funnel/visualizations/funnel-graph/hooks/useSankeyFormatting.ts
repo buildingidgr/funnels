@@ -81,6 +81,7 @@ export default function useSankeyFormatting(steps: FunnelStep[], initialValue: n
         index,
         // Store the actual step name for display purposes
         displayName: node.name,
+        isOptional: (node as any).isOptional === true,
       })),
       links: sankeyData.links.map((link) => {
         // Source could be "initial" which isn't in the nodes array

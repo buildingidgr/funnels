@@ -20,6 +20,27 @@ const formatPercent = (value: number, digits: number = 1) => {
   return value.toFixed(digits) + '%';
 };
 
+// Highlight drop-off severity
+const getDropoffSeverity = (dropOffRate: number) => {
+  if (dropOffRate >= 50) return { label: "Very High Drop-off", className: "text-red-600", badge: "bg-red-50 text-red-700 border-red-200" };
+  if (dropOffRate >= 30) return { label: "High Drop-off", className: "text-orange-600", badge: "bg-orange-50 text-orange-700 border-orange-200" };
+  if (dropOffRate >= 15) return { label: "Moderate Drop-off", className: "text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" };
+  return { label: "Low Drop-off", className: "text-slate-600", badge: "bg-slate-50 text-slate-700 border-slate-200" };
+};
+
+// Color for overall conversion context
+const getOverallConversionColor = (overallPercent: number) => {
+  if (overallPercent >= 70) return "text-green-600";
+  if (overallPercent >= 40) return "text-amber-600";
+  return "text-slate-600";
+};
+
+// Strip any textual optional marker from names
+const stripOptionalTag = (name?: string) => {
+  if (!name) return '';
+  return name.replace(/\s*\(optional\)\s*/i, '').trim();
+};
+
 export const SankeyTooltip: React.FC<NodeTooltipProps> = ({ 
   payload, 
   nodeMap, 
@@ -64,7 +85,8 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
       const conversionCategory = getConversionCategory(conversionRate);
       
       return (
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 text-xs min-w-[220px]">
+        <div className="text-xs min-w-[220px]">
+          <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
           <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
             <span>Connection Details</span>
             <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
@@ -72,24 +94,34 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
             </span>
           </div>
           
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
-            <div className="text-gray-500">From Step:</div>
-            <div className="font-medium">{sourceNodeByIndex?.name || "Unknown"}</div>
-            <div className="text-gray-500">To Step:</div>
-            <div className="font-medium">{targetNodeByIndex?.name || "Unknown"}</div>
-          </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
+              <div className="text-gray-500">From Step:</div>
+              <div className="font-medium">{stripOptionalTag(sourceNodeByIndex?.name) || "Unknown"}</div>
+              <div className="text-gray-500">To Step:</div>
+              <div className="font-medium">{stripOptionalTag(targetNodeByIndex?.name) || "Unknown"}</div>
+            </div>
           
-          {/* Metrics section */}
+            {/* Metrics section */}
           <div className="mt-2 pt-2 border-t border-gray-100">
             <div className="flex justify-between items-center mb-2">
               <div className="text-gray-500">Users:</div>
               <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
             </div>
             
-            <div className="flex justify-between items-center mt-2">
-              <div className="text-gray-500">Drop-off:</div>
-              <div className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</div>
-            </div>
+              {/* Drop-off severity */}
+              {(() => {
+                const sev = getDropoffSeverity(dropOffRate);
+                return (
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="text-gray-500">Drop-off:</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sev.badge}`}>{sev.label}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+          </div>
           </div>
         </div>
       );
@@ -108,7 +140,8 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     const conversionCategory = getConversionCategory(conversionRate);
     
     return (
-      <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 text-xs min-w-[220px]">
+      <div className="text-xs min-w-[220px]">
+        <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
         <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
           <span>Connection Details</span>
           <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
@@ -116,24 +149,33 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
           </span>
         </div>
         
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
-          <div className="text-gray-500">From Step:</div>
-          <div className="font-medium">{sourceNode?.name || "Unknown"}</div>
-          <div className="text-gray-500">To Step:</div>
-          <div className="font-medium">{targetNode?.name || "Unknown"}</div>
-        </div>
+           <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
+             <div className="text-gray-500">From Step:</div>
+             <div className="font-medium">{stripOptionalTag(sourceNode?.name) || "Unknown"}</div>
+             <div className="text-gray-500">To Step:</div>
+             <div className="font-medium">{stripOptionalTag(targetNode?.name) || "Unknown"}</div>
+           </div>
         
-        {/* Metrics section */}
+          {/* Metrics section */}
         <div className="mt-2 pt-2 border-t border-gray-100">
           <div className="flex justify-between items-center mb-2">
             <div className="text-gray-500">Users:</div>
             <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
           </div>
           
-          <div className="flex justify-between items-center mt-2">
-            <div className="text-gray-500">Drop-off:</div>
-            <div className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</div>
-          </div>
+            {(() => {
+              const sev = getDropoffSeverity(dropOffRate);
+              return (
+                <div className="flex items-center justify-between mt-2">
+                  <div className="text-gray-500">Drop-off:</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sev.badge}`}>{sev.label}</span>
+                  </div>
+                </div>
+              );
+            })()}
+        </div>
         </div>
       </div>
     );
@@ -179,9 +221,10 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     const isSplitStep = nodeName.includes('-split-');
     
     return (
-      <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 text-xs min-w-[250px]">
+      <div className="text-xs min-w-[250px]">
+        <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
         <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
-          <span>{node.name} {isSplitStep ? '(Split)' : ''}</span>
+            <span>{stripOptionalTag(node.name)} {isSplitStep ? '(Split)' : ''}</span>
           <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
             {conversionCategory.label}
           </span>
@@ -223,7 +266,7 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
           <div className="text-gray-500 mb-1">Overall Funnel Position:</div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs text-gray-500">From Funnel Start</span>
-            <span className="font-medium">{formatPercent(overallConversion)}</span>
+            <span className={`font-semibold ${getOverallConversionColor(overallConversion)}`}>{formatPercent(overallConversion)}</span>
           </div>
           
           {/* Overall progress bar */}
@@ -233,6 +276,7 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
               style={{ width: `${Math.min(100, Math.max(0, overallConversion))}%` }}
             ></div>
           </div>
+        </div>
         </div>
       </div>
     );

@@ -20,18 +20,57 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
   
   useEffect(() => {
     // Only update position when props change, not on every render
-    if (tooltipRef.current && coordinate) {
-      tooltipRef.current.style.left = `${coordinate.x}px`;
-      tooltipRef.current.style.top = `${coordinate.y}px`;
-      
-      // Control visibility based on active state
-      if (active && payload && payload.length > 0) {
-        tooltipRef.current.style.visibility = 'visible';
-        tooltipRef.current.style.opacity = '1';
-      } else {
-        tooltipRef.current.style.visibility = 'hidden';
-        tooltipRef.current.style.opacity = '0';
+    const el = tooltipRef.current;
+    if (!el || !coordinate) return;
+
+    // Determine container bounds using the overlay (parent) element
+    const parent = el.parentElement as HTMLElement | null;
+    const containerWidth = parent?.clientWidth ?? 0;
+    const containerHeight = parent?.clientHeight ?? 0;
+
+    // Start with requested coordinates
+    let nextX = coordinate.x;
+    let nextY = coordinate.y;
+
+    // If we will show content, make the element measurable first
+    if (active && payload && payload.length > 0) {
+      // Temporarily make visible but transparent to measure size
+      el.style.visibility = 'visible';
+      el.style.opacity = '0';
+    }
+
+    // Measure tooltip size
+    const tooltipWidth = el.offsetWidth;
+    const tooltipHeight = el.offsetHeight;
+    const padding = 8; // minimal inset from edges
+
+    // Clamp within container bounds
+    if (tooltipWidth > 0 && containerWidth > 0) {
+      if (nextX + tooltipWidth + padding > containerWidth) {
+        nextX = Math.max(padding, containerWidth - tooltipWidth - padding);
+      } else if (nextX < padding) {
+        nextX = padding;
       }
+    }
+    if (tooltipHeight > 0 && containerHeight > 0) {
+      if (nextY + tooltipHeight + padding > containerHeight) {
+        nextY = Math.max(padding, containerHeight - tooltipHeight - padding);
+      } else if (nextY < padding) {
+        nextY = padding;
+      }
+    }
+
+    // Apply final position
+    el.style.left = `${nextX}px`;
+    el.style.top = `${nextY}px`;
+
+    // Control visibility based on active state
+    if (active && payload && payload.length > 0) {
+      el.style.visibility = 'visible';
+      el.style.opacity = '1';
+    } else {
+      el.style.visibility = 'hidden';
+      el.style.opacity = '0';
     }
   }, [active, coordinate, payload]);
 
@@ -43,11 +82,11 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
       style={{ 
         zIndex: 1000, 
         position: 'absolute',
-        backgroundColor: 'white',
-        borderRadius: '4px',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-        padding: '8px',
-        minWidth: '200px',
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        boxShadow: 'none',
+        padding: 0,
+        minWidth: 'unset',
         pointerEvents: 'none',
         // Initial visibility
         visibility: (active && payload && payload.length > 0) ? 'visible' : 'hidden',

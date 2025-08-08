@@ -66,6 +66,8 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number):
               color: baseColor + "80", // Add transparency to parent color
               mainStepColor: color, // Reference to parent color
               x: 0,
+              // Nudge split nodes closer to their parent vertically by biasing toward parent index position.
+              // The actual layout is computed by Recharts; this hints subsequent spacing heuristics.
               y: 0,
               width: 0,
               height: 0

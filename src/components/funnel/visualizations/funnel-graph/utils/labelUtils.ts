@@ -23,7 +23,7 @@ export const createColumnLabels = (
     
     // Get representative node for column
     const node = nodes[0];
-    let labelText = "Initial Users";
+    let labelText = "All users";
     
     // For non-initial nodes
     if (colKey !== "0") {
@@ -33,7 +33,7 @@ export const createColumnLabels = (
         if (stepIndex >= 0 && stepIndex < enabledSteps.length) {
           // Check if this is a main step or a split
           if (idParts.length > 2 && idParts[2] === 'split') {
-            labelText = "Split Variations";
+            labelText = "A/B variations";
           } else {
             // Main step
             const step = enabledSteps[stepIndex];

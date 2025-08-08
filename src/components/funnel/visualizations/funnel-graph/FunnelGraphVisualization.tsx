@@ -362,7 +362,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   return (
     <div 
       key={`funnel-graph-${performanceInsights.bestPerformingStep.name}-${performanceInsights.worstPerformingStep.name}`}
-      className={`w-full h-full overflow-hidden p-4 ${getConversionRateClass()} transition-all duration-300`}
+      className="w-full h-full overflow-hidden p-4"
     >
       {/* Header with enhanced controls */}
       <div className="flex justify-between items-center mb-4">
@@ -395,12 +395,16 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       
 
       
-      {/* Render the Sankey visualization with proper containment */}
-      <div className="w-full h-[600px] bg-white rounded-lg p-2 shadow-sm">
+      {/* Render the Sankey visualization without an inner panel to avoid double backgrounds */}
+      <div className="w-full h-[600px]">
         <SankeyVisualization
           rechartsData={transformedData}
           nodeMap={nodeMap}
           initialValue={initialValue}
+          // pass nodes so EnhancedNode can know optional flag
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          rechartsNodes={transformedData.nodes}
           handleNodeMouseEnter={handleNodeMouseEnter}
           handleNodeMouseLeave={handleNodeMouseLeave}
           handleLinkMouseEnter={handleLinkMouseEnter}

@@ -232,20 +232,20 @@ class MockFunnelCalculationService {
    * Calculate realistic step values based on funnel characteristics
    */
   private calculateRealisticStepValue(previousValue: number, step: FunnelStep, stepIndex: number): number {
-    // Base conversion rates by step type
+    // More conservative base conversion rates by step type (relative to previous step)
     const baseRates = {
-      'page_view': 0.95,
-      'product_interaction': 0.20,
-      'add_to_cart': 0.10,
-      'cart_view': 0.80,
-      'checkout_started': 0.60,
-      'payment_info_entered': 0.75,
-      'purchase': 0.70,
-      'signup': 0.15,
-      'login': 0.85,
-      'download': 0.25,
-      'subscribe': 0.08,
-      'contact': 0.05
+      'page_view': 0.90,               // traffic drop from overall audience to first tracked page
+      'product_interaction': 0.35,     // engage with a product from a page view
+      'add_to_cart': 0.08,             // add to cart from interaction
+      'cart_view': 0.70,               // view cart after adding
+      'checkout_started': 0.50,        // start checkout from cart
+      'payment_info_entered': 0.65,    // progress within checkout
+      'purchase': 0.75,                // complete purchase after payment info
+      'signup': 0.10,                  // sign up from visit/landing
+      'login': 0.70,                   // return users proceeding
+      'download': 0.15,                // app/content download
+      'subscribe': 0.05,               // newsletter/paid sub
+      'contact': 0.04                  // contact/lead form
     };
     
     // Determine step type from conditions
@@ -254,23 +254,22 @@ class MockFunnelCalculationService {
     
     // Apply modifiers based on step characteristics
     let finalRate = baseRate;
-    
-    // Optional steps have higher conversion rates
+
+    // Optional steps typically see fewer users engaging with them directly
     if (!step.isRequired) {
-      finalRate *= 1.2;
+      finalRate *= 0.85;
     }
-    
-    // Later steps in funnel have lower conversion rates
-    if (stepIndex > 3) {
-      finalRate *= 0.9;
-    }
-    
-    // Add some randomness (±10%)
-    const randomFactor = 0.9 + (Math.random() * 0.2);
+
+    // Progressive decay for later steps (compounding)
+    const decayPerStep = 0.92; // ~8% tougher each subsequent step on average
+    finalRate *= Math.pow(decayPerStep, Math.max(0, stepIndex));
+
+    // Add conservative randomness [−20%, 0%]
+    const randomFactor = 0.8 + (Math.random() * 0.2); // 0.8 → 1.0
     finalRate *= randomFactor;
-    
-    // Ensure rate is between 0 and 1
-    finalRate = Math.max(0.01, Math.min(0.99, finalRate));
+
+    // Clamp to a realistic range
+    finalRate = Math.max(0.01, Math.min(0.9, finalRate));
     
     return Math.round(previousValue * finalRate);
   }
@@ -366,16 +365,11 @@ class MockFunnelCalculationService {
         isOptional: !step.isRequired
       } as any);
       
-      // Add link from previous step or start
+      // Add link from previous step or start (initially entire stepValue)
       const sourceId = index === 0 ? 'start' : `step-${steps[index - 1].id}`;
-      const linkValue = index === 0 ? stepValue : stepValue;
-      
+      const linkValue = stepValue;
       if (linkValue > 0) {
-        links.push({
-          source: sourceId,
-          target: stepId,
-          value: linkValue
-        });
+        links.push({ source: sourceId, target: stepId, value: linkValue });
       }
       
       // Add split variation nodes and links
@@ -401,6 +395,55 @@ class MockFunnelCalculationService {
           }
         });
       }
+      // If the previous step is optional (not required), create a bypass link from the step before it
+      if (index >= 1) {
+        const prevStep = steps[index - 1];
+        if (!prevStep.isRequired) {
+          const prevPrevSourceId = index === 1 ? 'start' : `step-${steps[index - 2].id}`;
+          const optionalStepValue = calculatedResults[prevStep.id] || 0;
+          const prevPrevValue = index === 1 ? initialValue : (calculatedResults[steps[index - 2].id] || 0);
+          const optionalShare = prevPrevValue > 0 ? optionalStepValue / prevPrevValue : 0;
+
+          const valueFromOptional = Math.round(stepValue * optionalShare);
+          const valueBypass = Math.max(0, stepValue - valueFromOptional);
+
+          // Debug: verify detection and computed split
+          console.log('[DEBUG] [MockService] Optional step detected, computing bypass flow:', {
+            currentStep: step.name,
+            optionalPrevStep: prevStep.name,
+            prevPrevSourceId,
+            prevPrevValue,
+            optionalStepValue,
+            stepValue,
+            optionalShare,
+            valueFromOptional,
+            valueBypass
+          });
+
+          // Adjust the previously added direct link (prev -> current) to only the optional portion
+          const lastLink = links[links.length - 1];
+          if (lastLink && lastLink.source === `step-${prevStep.id}` && lastLink.target === stepId) {
+            const oldValue = lastLink.value;
+            lastLink.value = valueFromOptional;
+            console.log('[DEBUG] [MockService] Adjusted optional link value (prev -> current):', {
+              source: lastLink.source,
+              target: lastLink.target,
+              oldValue,
+              newValue: lastLink.value
+            });
+          }
+
+          // Add bypass link from prevPrev -> current with the remaining value
+          if (valueBypass > 0) {
+            links.push({ source: prevPrevSourceId, target: stepId, value: valueBypass });
+            console.log('[DEBUG] [MockService] Created bypass link (prevPrev -> current):', {
+              source: prevPrevSourceId,
+              target: stepId,
+              value: valueBypass
+            });
+          }
+        }
+      }
     });
     
     // Add end node
@@ -416,6 +459,36 @@ class MockFunnelCalculationService {
       });
     }
     
+    // Debug: sanity check incoming flow sums per step
+    try {
+      steps.forEach((s) => {
+        const sid = `step-${s.id}`;
+        const expected = calculatedResults[s.id] || 0;
+        const incoming = links
+          .filter(l => l.target === sid)
+          .reduce((sum, l) => sum + (l.value || 0), 0);
+        if (!s.isRequired) {
+          console.log('[DEBUG] [MockService] Incoming flow check (optional prev may exist):', {
+            step: s.name,
+            stepId: sid,
+            expected,
+            incoming,
+            delta: incoming - expected
+          });
+        } else {
+          console.log('[DEBUG] [MockService] Incoming flow check:', {
+            step: s.name,
+            stepId: sid,
+            expected,
+            incoming,
+            delta: incoming - expected
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('[DEBUG] [MockService] Incoming flow sanity check failed:', e);
+    }
+
     return { nodes, links };
   }
 

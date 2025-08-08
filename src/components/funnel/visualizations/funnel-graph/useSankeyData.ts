@@ -56,6 +56,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
         name: step.name,
         value: currentValue,
         color,
+        isOptional: !step.isRequired,
         mainStepColor: color, // Store color for reference by split steps
         x: 0, // Will be calculated later
         y: 0, // Will be calculated later
@@ -285,7 +286,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
         const prevValue = prevStep.value || 0;
         
         if (!prevStep.isRequired) {
-          console.log(`[DEBUG] Processing optional step logic for ${prevStep.name} (not required)`);
+          console.log(`[DEBUG] [Graph] Processing optional step logic for ${prevStep.name} (not required)`);
           
           // The previous step is optional – create two links:
           // 1. From the optional step to the current step (scaled value)
@@ -302,7 +303,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
           const valueFromOptional = Math.round(currentValue * optionalShare);
           const valueBypassing   = currentValue - valueFromOptional;
 
-          console.log(`[DEBUG] Optional step calculation:`, {
+          console.log(`[DEBUG] [Graph] Optional step calculation:`, {
             prevStep: prevStep.name,
             currentStep: currentStep.name,
             prevPrevValue,
@@ -313,7 +314,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
             valueBypassing
           });
 
-          console.log(`[DEBUG] Optional step flow values:`, {
+          console.log(`[DEBUG] [Graph] Optional step flow values:`, {
             optionalStepFlow: valueFromOptional,
             bypassFlow: valueBypassing,
             totalFlow: valueFromOptional + valueBypassing,
@@ -323,7 +324,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
           // --- Link from optional step -> current step --- //
           if (valueFromOptional > 0) {
             const formattedPercOpt = optionalStepValue > 0 ? ((valueFromOptional / optionalStepValue) * 100).toFixed(1) : "0.0";
-            console.log(`[DEBUG] Creating optional step link from ${prevStep.name} to ${currentStep.name}:`, {
+            console.log(`[DEBUG] [Graph] Creating optional step link from ${prevStep.name} to ${currentStep.name}:`, {
               value: valueFromOptional,
               percentage: formattedPercOpt
             });
@@ -344,7 +345,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
           // --- Bypass link prevPrev -> current step --- //
           if (valueBypassing > 0) {
             const formattedPercBypass = prevPrevValue > 0 ? ((valueBypassing / prevPrevValue) * 100).toFixed(1) : "0.0";
-            console.log(`[DEBUG] Creating bypass link from ${prevPrevStep.name} to ${currentStep.name}:`, {
+            console.log(`[DEBUG] [Graph] Creating bypass link from ${prevPrevStep.name} to ${currentStep.name}:`, {
               value: valueBypassing,
               percentage: formattedPercBypass
             });

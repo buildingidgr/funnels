@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Settings, Target, Plus, Edit3, CheckCircle, AlertCircle, Trash2, Split } from 'lucide-react';
+import { Settings, Target, Plus, Edit3, CheckCircle, AlertCircle, Trash2, Split, CircleDashed } from 'lucide-react';
 import { StepConditionBuilder } from './step-condition-builder/StepConditionBuilder';
 
 interface FunnelConfigEditorProps {
@@ -290,6 +290,12 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
                           <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
                             <Split className="h-3 w-3 mr-1" />
                             {step.splitVariations?.length || 0} splits
+                          </Badge>
+                        )}
+                        {((step.isOptional ?? false) || (step.isRequired === false)) && (
+                          <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 text-xs">
+                            <CircleDashed className="h-3 w-3 mr-1" />
+                            Optional
                           </Badge>
                         )}
                         <div
