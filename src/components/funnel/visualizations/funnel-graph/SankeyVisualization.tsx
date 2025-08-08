@@ -1240,8 +1240,12 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
 
   // Wheel zoom
   const handleWheel = (e: React.WheelEvent) => {
+    // Only zoom when Ctrl (Windows/Linux) or ⌘/Meta (macOS) is held
+    if (!(e.ctrlKey || e.metaKey)) {
+      return; // allow normal page scroll
+    }
     e.preventDefault();
-    console.log('[DEBUG] Wheel event triggered:', { deltaY: e.deltaY, currentZoom: zoom });
+    console.log('[DEBUG] Wheel event triggered (with modifier):', { deltaY: e.deltaY, currentZoom: zoom });
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(prev => {
       const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * delta));
@@ -1401,10 +1405,14 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     if (!container) return;
 
     const handleWheelEvent = (e: WheelEvent) => {
+      // Only zoom when Ctrl (Windows/Linux) or ⌘/Meta (macOS) is held
+      if (!(e.ctrlKey || e.metaKey)) {
+        return; // allow normal page scroll
+      }
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       setZoom(prev => {
-          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * delta));
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * delta));
         return newZoom;
       });
     };
@@ -1618,7 +1626,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       {/* Zoom Instructions */}
       <div style={{
         position: 'absolute',
-        top: '20px',
+        bottom: '20px',
         left: '20px',
         zIndex: 10,
         background: 'rgba(255,255,255,0.9)',
@@ -1627,13 +1635,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         border: '1px solid #e2e8f0',
         fontSize: '11px',
         color: '#64748b',
-        maxWidth: '200px',
+        maxWidth: '240px',
         opacity: zoom === 1 && pan.x === 0 && pan.y === 0 ? 1 : 0,
         transition: 'opacity 0.3s ease',
         pointerEvents: 'none'
       }}>
         <div style={{fontWeight: '600', marginBottom: '4px'}}>Navigation</div>
-        <div>• Scroll to zoom</div>
+        <div>• Hold Ctrl (or ⌘) + scroll to zoom</div>
         <div>• Drag to pan</div>
         <div>• Use controls to reset</div>
       </div>
