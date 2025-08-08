@@ -1,21 +1,23 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { FunnelApi } from "@/services/api";
 import { EnhancedFunnelApi } from "@/services/enhancedApi";
 import { mockFunnelCalculationService } from "@/services/mockFunnelCalculationService";
-import { Funnel } from "@/types/funnel";
+import { Funnel, FunnelStep } from "@/types/funnel";
 import { toast } from "sonner";
 import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home, Loader2, RefreshCw, Settings, Calculator } from "lucide-react";
 import { SlidingConfigPanel } from '@/components/funnel/SlidingConfigPanel';
+import { AIFunnelGenerator } from '@/components/funnel/AIFunnelGenerator';
 
 // Add some CSS for the funnel visualization
 import "./FunnelAnalysisPage.css";
 
 export default function FunnelAnalysisPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,23 @@ export default function FunnelAnalysisPage() {
 
     loadFunnel();
   }, [id]);
+
+  // Auto-open configuration panel for empty funnels so users can add steps
+  useEffect(() => {
+    if (!funnel) return;
+
+    // Open when explicit query param present
+    const shouldOpenFromQuery = searchParams.get('openConfig');
+    if (shouldOpenFromQuery) {
+      setConfigPanelOpen(true);
+      return;
+    }
+
+    // Fallback: auto-open when no steps
+    if (funnel.steps.length === 0) {
+      setConfigPanelOpen(true);
+    }
+  }, [funnel, searchParams]);
 
   const handleRefresh = async () => {
     if (!id || !funnel) return;
@@ -95,6 +114,68 @@ export default function FunnelAnalysisPage() {
     } catch (err) {
       console.error('Error recalculating funnel:', err);
       toast.error("Failed to recalculate funnel data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAIGeneratedSteps = async (generatedSteps: FunnelStep[]) => {
+    if (!funnel) return;
+
+    try {
+      setLoading(true);
+
+      // Merge steps and renumber
+      const mergedSteps = [...funnel.steps, ...generatedSteps].map((step, index) => ({
+        ...step,
+        order: index + 1,
+      }));
+
+      const updatedFunnel: Funnel = {
+        ...funnel,
+        steps: mergedSteps,
+        lastUpdated: Date.now(),
+      };
+
+      // Recalculate funnel data to reflect new steps
+      const results = await mockFunnelCalculationService.calculateFunnel({
+        funnel: updatedFunnel,
+        initialValue: 10000,
+        options: {
+          includeSplitVariations: true,
+          includeMetrics: true,
+          includeInsights: true,
+        },
+      });
+
+      const recalculatedFunnel: Funnel = {
+        ...updatedFunnel,
+        steps: updatedFunnel.steps.map((step) => {
+          const calculatedValue = results.calculatedResults[step.id];
+          const updatedSplitVariations = step.splitVariations?.map((variation, index) => {
+            const variationId = `${step.id}-variation-${index + 1}`;
+            const calculatedVariationValue = results.calculatedResults[variationId];
+            return {
+              ...variation,
+              visitorCount: calculatedVariationValue || 0,
+            };
+          });
+          return {
+            ...step,
+            visitorCount: calculatedValue || 0,
+            value: calculatedValue || 0,
+            splitVariations: updatedSplitVariations,
+          };
+        }),
+      };
+
+      setFunnel(recalculatedFunnel);
+      setConfigPanelOpen(true);
+      await FunnelApi.updateFunnel(recalculatedFunnel.id!, recalculatedFunnel);
+      toast.success(`Added ${generatedSteps.length} AI-generated steps to your funnel`);
+    } catch (err) {
+      console.error('Error applying AI-generated steps:', err);
+      toast.error('Failed to apply AI-generated steps');
     } finally {
       setLoading(false);
     }
@@ -191,6 +272,8 @@ export default function FunnelAnalysisPage() {
                 <Calculator className="h-4 w-4 mr-2" />
                 Re-Calculate Funnel Data
               </Button>
+
+              <AIFunnelGenerator onGenerate={handleAIGeneratedSteps} existingSteps={funnel.steps} />
 
               <Button 
                 variant="outline" 

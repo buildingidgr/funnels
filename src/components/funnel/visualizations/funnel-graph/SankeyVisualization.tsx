@@ -623,10 +623,6 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   const maxFlowWidth = 30; // Maximum stroke width
   const minFlowWidth = 2;  // Minimum stroke width
   let actualFlowWidth = Math.max(minFlowWidth, Math.min(maxFlowWidth, scaledFlowWidth));
-  // Ensure bypass links are sufficiently thick to be visible over other flows
-  if (isBypass) {
-    actualFlowWidth = Math.max(actualFlowWidth, 6);
-  }
   
   // Enhanced flow width on hover
   const hoverFlowWidth = isHovered ? actualFlowWidth * 1.5 : actualFlowWidth;
@@ -754,7 +750,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         d={path}
         fill="none"
         stroke={isBypass ? linkColor : `url(#gradient-${payload.sourceId}-${payload.targetId})`}
-        strokeWidth={shouldHideMainConnection ? 0 : (isBypass ? hoverFlowWidth + 6 : hoverFlowWidth + 4)}
+        strokeWidth={shouldHideMainConnection ? 0 : (hoverFlowWidth + 4)}
         strokeOpacity={isBypass ? 0.9 : (isHovered ? 0.8 : 0.5)}
         strokeLinecap="round"
         className={`sankey-link-background ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}
@@ -769,7 +765,7 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
         d={path}
         fill="none"
         stroke={isBypass ? linkColor : (isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6')}
-        strokeWidth={shouldHideMainConnection ? 0 : (isBypass ? hoverFlowWidth + 2 : hoverFlowWidth)}
+        strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth}
         strokeOpacity={isBypass ? 1 : (isHovered ? 1 : 0.95)}
         strokeLinecap="round"
         className={`sankey-link-path ${isSplit ? 'sankey-split-link' : ''} ${isBypass ? 'sankey-bypass-link' : ''} ${isOptional ? 'sankey-optional-link' : ''}`}

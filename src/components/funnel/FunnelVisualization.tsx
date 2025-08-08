@@ -18,6 +18,7 @@ interface FunnelVisualizationProps {
 export default function FunnelVisualization({ funnel }: FunnelVisualizationProps) {
   const enabledSteps = funnel.steps.filter(step => step.isEnabled);
   const initialValue = enabledSteps[0]?.visitorCount || 100;
+  const hasNoSteps = funnel.steps.length === 0;
   
   // Helper function to determine funnel type from name
   const getFunnelType = (funnelName: string): 'ecommerce' | 'saas' | 'lead-gen' | 'mobile-app' | 'content' | 'support' => {
@@ -59,6 +60,12 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
   return (
     <TooltipProvider>
       <div className="space-y-8">
+        {hasNoSteps && (
+          <div className="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center">
+            <p className="text-gray-600 mb-2">No steps yet</p>
+            <p className="text-sm text-gray-500">Use "Configure Funnel" to add steps and start visualizing your flow.</p>
+          </div>
+        )}
         {/* Combined Funnel Analysis Panel */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-xl">
           {/* Funnel Branching View */}

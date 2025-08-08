@@ -14,6 +14,7 @@ interface UseFunnelCalculationReturn {
   isLoading: boolean;
   error: string | null;
   calculateFunnel: () => Promise<void>;
+  recalculateFunnel: () => Promise<void>;
 }
 
 /**
@@ -34,12 +35,7 @@ export const useFunnelCalculation = ({
     step.isEnabled && (step.value === undefined || step.value === 0)
   );
 
-  const calculateFunnel = async () => {
-    if (!needsCalculation) {
-      console.log('[DEBUG] No calculation needed - steps already have visitor counts');
-      return;
-    }
-
+  const runCalculation = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -136,6 +132,18 @@ export const useFunnelCalculation = ({
     }
   };
 
+  const calculateFunnel = async () => {
+    if (!needsCalculation) {
+      console.log('[DEBUG] No calculation needed - steps already have visitor counts');
+      return;
+    }
+    await runCalculation();
+  };
+
+  const recalculateFunnel = async () => {
+    await runCalculation();
+  };
+
   // Auto-calculate when needed
   useEffect(() => {
     if (autoCalculate && needsCalculation && steps.length > 0) {
@@ -153,7 +161,8 @@ export const useFunnelCalculation = ({
     calculatedSteps,
     isLoading,
     error,
-    calculateFunnel
+    calculateFunnel,
+    recalculateFunnel
   };
 };
 

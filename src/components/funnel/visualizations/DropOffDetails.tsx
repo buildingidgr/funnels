@@ -25,12 +25,15 @@ interface DropOffDetailsProps {
 }
 
 interface ChartData {
+  id: string;
   name: string;
+  displayName: string;
   value: number;
   dropOff: string;
   dropOffRaw: number;
   dropOffValue: number;
   previousStep: string;
+  previousDisplayName: string;
   previousValue: number;
   fill: string;
   conversionRate: string;
@@ -70,19 +73,26 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
 
   // Prepare chart data - exclude the first step from drop-off analysis since it's the starting point
   const chartData: ChartData[] = enabledSteps.slice(1).map((step, index) => {
-    const previousValue = enabledSteps[index].visitorCount || 1; // Use the previous step's visitor count
+    const previous = enabledSteps[index];
+    const previousValue = previous.visitorCount || 1; // Use the previous step's visitor count
     const currentValue = step.visitorCount || 0;
     const dropOffPercentage = calculateDropOff(currentValue, previousValue);
     const dropOffValue = previousValue - currentValue;
     const conversionRate = calculateConversion(currentValue, previousValue);
+
+    const displayName = (step.name && step.name.trim().length > 0) ? step.name : 'Unnamed Step';
+    const previousDisplayName = (previous.name && previous.name.trim().length > 0) ? previous.name : 'Previous Step';
     
     return {
+      id: step.id,
       name: step.name,
+      displayName,
       value: currentValue,
       dropOff: dropOffPercentage.toFixed(1),
       dropOffRaw: dropOffPercentage,
       dropOffValue,
-      previousStep: enabledSteps[index].name,
+      previousStep: previous.name,
+      previousDisplayName,
       previousValue,
       fill: getStepColor(dropOffPercentage),
       conversionRate: conversionRate.toFixed(1),
@@ -95,7 +105,7 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [threshold, setThreshold] = useState<number>(25);
   const [whatIfPercent, setWhatIfPercent] = useState<number>(20);
-  const [selectedStepName, setSelectedStepName] = useState<string>(chartData[0]?.name || '');
+  const [selectedStepId, setSelectedStepId] = useState<string>(chartData[0]?.id || '');
 
   const sortedData = useMemo(() => {
     const data = [...chartData];
@@ -116,8 +126,8 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
           bv = parseFloat(b.conversionRate);
           break;
         case 'name':
-          av = a.name.toLowerCase();
-          bv = b.name.toLowerCase();
+          av = a.displayName.toLowerCase();
+          bv = b.displayName.toLowerCase();
           break;
       }
       if (typeof av === 'string' && typeof bv === 'string') {
@@ -136,10 +146,17 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
   const highestDropOff = chartData.reduce((highest, current) => {
     return Number(current.dropOff) > Number(highest.dropOff) ? current : highest;
   }, chartData[0] || { 
+    id: 'none',
     dropOff: "0", 
     previousStep: "Initial", 
+    previousDisplayName: "Initial",
     name: "Step", 
+    displayName: "Step",
+    value: 0,
+    dropOffRaw: 0,
     dropOffValue: 0,
+    previousValue: 0,
+    fill: '#ccc',
     conversionRate: "0"
   } as ChartData);
   
@@ -147,10 +164,17 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
   const lowestDropOff = chartData.reduce((lowest, current) => {
     return Number(current.dropOff) < Number(lowest.dropOff) ? current : lowest;
   }, chartData[0] || { 
+    id: 'none',
     dropOff: "100", 
     previousStep: "Initial", 
+    previousDisplayName: "Initial",
     name: "Step", 
+    displayName: "Step",
+    value: 0,
+    dropOffRaw: 100,
     dropOffValue: 0,
+    previousValue: 0,
+    fill: '#ccc',
     conversionRate: "0"
   } as ChartData);
 
@@ -187,7 +211,7 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
   const potentialImprovement = ((highestRevenueImpact.dropOffValue / initialValue) * 100).toFixed(1);
 
   // What-if simulator
-  const selectedStep = chartData.find(s => s.name === selectedStepName) || highestRevenueImpact;
+  const selectedStep = chartData.find(s => s.id === selectedStepId) || highestRevenueImpact;
   const whatIfRegainedUsers = Math.round((selectedStep?.dropOffValue || 0) * (whatIfPercent / 100));
   const whatIfRegainedRevenue = whatIfRegainedUsers * revenuePerConversionValue;
 
@@ -397,13 +421,13 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
             </div>
             <div className="grid grid-cols-1 gap-2">
               <div className="text-xs text-gray-600">Step</div>
-              <Select value={selectedStepName} onValueChange={v => setSelectedStepName(v)}>
+              <Select value={selectedStepId} onValueChange={v => setSelectedStepId(v)}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Select step" />
                 </SelectTrigger>
                 <SelectContent>
                   {chartData.map(s => (
-                    <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.displayName}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -428,7 +452,7 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
             <h4 className="text-sm font-semibold text-blue-800">Action Plan</h4>
           </div>
           <div className="text-xs text-blue-700 space-y-1">
-            <p><strong>1. Immediate Priority:</strong> Focus on {highestRevenueImpact.name} - fixing this step could recover {highestRevenueImpact.dropOffValue.toLocaleString()} users</p>
+            <p><strong>1. Immediate Priority:</strong> Focus on {highestRevenueImpact.displayName} - fixing this step could recover {highestRevenueImpact.dropOffValue.toLocaleString()} users</p>
             <p><strong>2. {funnelInsights.metric}:</strong> You're losing {funnelInsights.unit}{funnelInsights.unit ? potentialRevenue.toLocaleString() : totalDropOff.toLocaleString()} in potential {funnelInsights.metric.toLowerCase()}</p>
             <p><strong>3. Quick Wins:</strong> Improving {lowestDropOff.name} (currently {lowestDropOff.dropOff}% drop-off) could serve as a model for other steps</p>
             <p><strong>4. Action:</strong> {funnelInsights.action}</p>
@@ -446,7 +470,7 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
                 <div key={s.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`px-1.5 py-0.5 rounded ${getSeverityClasses(s.dropOffRaw)} font-medium`}>{getSeverity(s.dropOffRaw)}</span>
-                    <span className="truncate text-gray-800 font-medium">{s.name}</span>
+                    <span className="truncate text-gray-800 font-medium">{(s.displayName || s.name || 'Unnamed Step')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">{s.dropOff}%</span>
@@ -477,9 +501,9 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-500">{index + 1}</span>
                         <span className={`px-1.5 py-0.5 rounded ${getSeverityClasses(step.dropOffRaw)} font-medium`}>{getSeverity(step.dropOffRaw)}</span>
-                        <span className="truncate font-medium text-gray-800">{step.name}</span>
+                        <span className="truncate font-medium text-gray-800">{step.displayName || step.name || 'Unnamed Step'}</span>
                         <span className="text-gray-400">from</span>
-                        <span className="truncate text-gray-500">{step.previousStep}</span>
+                        <span className="truncate text-gray-500">{step.previousDisplayName || step.previousStep || 'Previous Step'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`font-semibold ${Number(step.dropOff) < 20 ? "text-emerald-600" : Number(step.dropOff) < 50 ? "text-amber-600" : "text-red-600"}`}>{step.dropOff}%</span>
@@ -490,8 +514,8 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm">
                     <div className="text-xs">
-                      <p className="font-medium mb-1">{step.name}</p>
-                      <p className="mb-2">From {step.previousStep} ({step.previousValue.toLocaleString()} users)</p>
+                      <p className="font-medium mb-1">{step.displayName || step.name || 'Unnamed Step'}</p>
+                      <p className="mb-2">From {step.previousDisplayName || step.previousStep || 'Previous Step'} ({step.previousValue.toLocaleString()} users)</p>
                       <p className="mb-1"><strong>{step.dropOff}%</strong> dropped off ({step.dropOffValue.toLocaleString()} users)</p>
                       <p><strong>{step.value.toLocaleString()} users</strong> continued to this step</p>
                     </div>
@@ -506,7 +530,7 @@ export const DropOffDetails: React.FC<DropOffDetailsProps> = ({ steps, initialVa
                   <div className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-500">{i + 1}</span>
-                      <span className="truncate font-medium text-gray-800">{s.name}</span>
+                      <span className="truncate font-medium text-gray-800">{s.displayName || s.name || 'Unnamed Step'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-1.5 py-0.5 rounded ${getSeverityClasses(s.dropOffRaw)} font-medium`}>{getSeverity(s.dropOffRaw)}</span>

@@ -227,7 +227,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   // Handle empty data case gracefully
   if (!hasSufficientData) {
     console.log("[DEBUG] No sufficient data, showing empty state");
-    return <EmptyState message="Insufficient data available for visualization" />;
+    return <EmptyState message="Add your first step to see the graph" />;
   }
 
   // Show loading state
@@ -264,7 +264,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
   // If no valid links, show message
   if (!hasValidLinks) {
     console.log("[DEBUG] No valid links, showing empty state");
-    return <EmptyState message="No valid connections between funnel steps" />;
+    return <EmptyState message="Add at least two steps to see connections" />;
   }
 
   console.log("[DEBUG] Rendering funnel graph visualization");

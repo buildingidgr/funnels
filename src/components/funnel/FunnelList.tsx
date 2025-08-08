@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FunnelSummary } from "@/types/funnel";
 import { FunnelApi, formatDate, resetFunnels } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export default function FunnelList() {
   const [funnels, setFunnels] = useState<FunnelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const loadFunnels = async () => {
     try {
@@ -26,6 +27,26 @@ export default function FunnelList() {
       toast.error("Failed to load funnels");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateEmptyFunnel = async () => {
+    try {
+      const newFunnel = await FunnelApi.createFunnel({
+        name: "Untitled Funnel",
+        description: "",
+        timeframe: {
+          from: Date.now() - 30 * 24 * 60 * 60 * 1000,
+          to: Date.now(),
+        },
+        performedBy: "all",
+        steps: [],
+      });
+      toast.success("New funnel created");
+      navigate(`/funnels/${newFunnel.id}/analysis?openConfig=1`);
+    } catch (error) {
+      console.error("Error creating funnel:", error);
+      toast.error("Failed to create funnel");
     }
   };
 
@@ -110,11 +131,9 @@ export default function FunnelList() {
         <BarChart className="h-12 w-12 text-gray-400 mb-4" />
         <h3 className="text-xl font-medium text-gray-900 mb-1">No funnels found</h3>
         <p className="text-gray-500 mb-6">Create your first funnel to start analyzing user conversions</p>
-        <Button asChild>
-          <Link to="/funnels/create" className="flex items-center">
+        <Button onClick={handleCreateEmptyFunnel}>
             <Plus className="mr-2 h-4 w-4" />
             Create Your First Funnel
-          </Link>
         </Button>
       </div>
     );
@@ -129,11 +148,9 @@ export default function FunnelList() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Reset Funnels
           </Button>
-          <Button asChild>
-            <Link to="/funnels/create" className="flex items-center">
+          <Button onClick={handleCreateEmptyFunnel}>
               <Plus className="mr-2 h-4 w-4" />
               Create New Funnel
-            </Link>
           </Button>
         </div>
       </div>

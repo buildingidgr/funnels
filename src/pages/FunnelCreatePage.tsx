@@ -402,7 +402,7 @@ export default function FunnelCreatePage() {
                 <Button variant="outline" onClick={prevStep}>
                   Back
                 </Button>
-                <Button onClick={nextStep} disabled={funnel.steps.length === 0}>
+                <Button onClick={nextStep}>
                   Next: Review
                 </Button>
               </div>
@@ -524,7 +524,7 @@ export default function FunnelCreatePage() {
                   </h3>
                   
                   {funnel.steps.length === 0 ? (
-                    <p className="text-red-600 text-sm">No steps defined. Please add at least one step.</p>
+                    <p className="text-muted-foreground text-sm">No steps defined yet. You can add steps later from the analysis page.</p>
                   ) : (
                     <div className="space-y-3">
                       {funnel.steps.map((step, index) => (
@@ -605,12 +605,14 @@ export default function FunnelCreatePage() {
                       <span>At least one step is {funnel.steps.length > 0 ? "defined" : "required"}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {funnel.steps.every(step => step.name.trim()) ? (
+                    {funnel.steps.length === 0 ? (
+                        <AlertCircle className="h-4 w-4 text-orange-600" />
+                      ) : funnel.steps.every(step => step.name.trim()) ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <AlertCircle className="h-4 w-4 text-red-600" />
                       )}
-                      <span>All steps have names</span>
+                      <span>{funnel.steps.length === 0 ? 'You can add steps after creating the funnel' : 'All steps have names'}</span>
                     </div>
                   </div>
                 </div>
@@ -622,7 +624,7 @@ export default function FunnelCreatePage() {
                 </Button>
                 <Button 
                   onClick={handleCreateFunnel}
-                  disabled={isSubmitting || !funnel.name.trim() || funnel.steps.length === 0}
+                  disabled={isSubmitting || !funnel.name.trim()}
                   className="min-w-[120px]"
                 >
                   {isSubmitting ? "Creating..." : "Create Funnel"}

@@ -306,10 +306,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
       return;
     }
     
-    if (funnel.steps.length === 0) {
-      toast.error("At least one step is required");
-      return;
-    }
+    // Allow creating an empty funnel and add steps later in analysis
     
     // Validate each step has a name
     for (const step of funnel.steps) {

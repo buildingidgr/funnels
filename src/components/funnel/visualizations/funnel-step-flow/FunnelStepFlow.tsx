@@ -7,9 +7,26 @@ import StepConnector from "./StepConnector";
 interface FunnelStepFlowProps {
   steps: FunnelStep[];
   initialValue: number;
+  editable?: boolean;
+  onUpdateStep?: (stepId: string, changes: Partial<FunnelStep>) => void;
+  onRemoveStep?: (stepId: string) => void;
+  onMoveStepUp?: (stepId: string) => void;
+  onMoveStepDown?: (stepId: string) => void;
+  onSelectStep?: (stepId: string) => void;
+  selectedStepId?: string | null;
 }
 
-const FunnelStepFlow: React.FC<FunnelStepFlowProps> = ({ steps, initialValue }) => {
+const FunnelStepFlow: React.FC<FunnelStepFlowProps> = ({ 
+  steps, 
+  initialValue,
+  editable = false,
+  onUpdateStep,
+  onRemoveStep,
+  onMoveStepUp,
+  onMoveStepDown,
+  onSelectStep,
+  selectedStepId
+}) => {
   console.log('[DEBUG] FunnelStepFlow rendered:', {
     stepsCount: steps.length,
     initialValue,
@@ -44,16 +61,20 @@ const FunnelStepFlow: React.FC<FunnelStepFlowProps> = ({ steps, initialValue }) 
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           {enabledSteps.map((step, index) => {
+            const isSelected = selectedStepId === step.id;
             const currentValue = step.value || step.visitorCount || 0;
             const previousValue = index === 0 ? initialValue : (enabledSteps[index - 1].value || enabledSteps[index - 1].visitorCount || 0);
             
             return (
               <motion.div
-                key={`step-${step.number}`}
+                key={`step-${step.id || step.order}`}
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
-                className="w-full"
+                className={`w-full cursor-pointer ${
+                  isSelected ? 'ring-2 ring-blue-400 rounded-2xl' : ''
+                }`}
+                onClick={() => onSelectStep?.(step.id)}
               >
                 {/* Connect steps with a connector */}
                 {index > 0 && (
@@ -68,6 +89,12 @@ const FunnelStepFlow: React.FC<FunnelStepFlowProps> = ({ steps, initialValue }) 
                 <Step 
                   step={step} 
                   previousValue={previousValue}
+                  isFirst={index === 0}
+                  editable={editable}
+                  onUpdateStep={onUpdateStep}
+                  onRemoveStep={onRemoveStep}
+                  onMoveStepUp={onMoveStepUp}
+                  onMoveStepDown={onMoveStepDown}
                 />
               </motion.div>
             );

@@ -152,7 +152,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
   const addStep = () => {
     const newStep: FunnelStep = {
       id: `step-${Date.now()}`,
-      name: '',
+      name: `Step ${editedFunnel.steps.length + 1}`,
       order: editedFunnel.steps.length + 1,
       isEnabled: true,
       isVisible: true,
