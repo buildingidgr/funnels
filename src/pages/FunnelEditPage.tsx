@@ -132,7 +132,6 @@ export default function FunnelEditPage() {
             }
           }}
           isSaving={isSaving}
-          onGenerateAI={(steps) => handleAIGeneratedSteps(steps)}
         />
 
         {/* Main Grid: Left list, Center preview, Right inspector */}
@@ -229,6 +228,18 @@ function MainEditorGrid({
     ? funnel.steps.find((s) => s.id === selectedStepId) || null
     : null;
 
+  const handleGenerateAI = (generatedSteps: FunnelStep[]) => {
+    const updatedSteps = [...funnel.steps, ...generatedSteps];
+    updatedSteps.forEach((step, index) => {
+      step.order = index + 1;
+    });
+    const updatedFunnel = { ...funnel, steps: updatedSteps };
+    onFunnelChange(updatedFunnel);
+    if (!selectedStepId && updatedFunnel.steps.length > 0) {
+      onSelectStep(updatedFunnel.steps[0].id);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr,380px] gap-4 items-start">
       {/* Left: Step List (sticky) */}
@@ -236,9 +247,12 @@ function MainEditorGrid({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm">Steps</CardTitle>
-            <Button size="icon" variant="outline" onClick={addStep} className="h-7 w-7">
-              <Plus className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <AIFunnelGenerator onGenerate={handleGenerateAI} existingSteps={funnel.steps} />
+              <Button size="icon" variant="outline" onClick={addStep} className="h-7 w-7">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-2 max-h-[calc(100vh-160px)] overflow-auto pr-2">
             <ScrollArea className="max-h-[calc(100vh-180px)] pr-2">
@@ -420,13 +434,11 @@ function TopToolbar({
   onChange,
   onSave,
   isSaving,
-  onGenerateAI,
 }: {
   funnel: Funnel;
   onChange: (changes: Partial<Funnel>) => void;
   onSave: () => Promise<void> | void;
   isSaving: boolean;
-  onGenerateAI: (steps: FunnelStep[]) => void;
 }) {
   return (
     <Card>
@@ -448,7 +460,6 @@ function TopToolbar({
             />
           </div>
           <div className="flex items-center gap-2">
-            <AIFunnelGenerator onGenerate={onGenerateAI} existingSteps={funnel.steps} />
             <Button onClick={onSave} disabled={isSaving} className="gap-2">
               <Save className="h-4 w-4" />
               {isSaving ? "Saving…" : "Save"}

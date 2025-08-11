@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AIFunnelGenerator } from './AIFunnelGenerator';
 import { Funnel, FunnelStep, SplitVariation, Conditions } from '@/types/funnel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -241,10 +242,22 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
               <Edit3 className="h-4 w-4" />
               Steps
             </CardTitle>
-            <Button onClick={addStep} size="sm" variant="outline">
-              <Plus className="h-3 w-3 mr-1" />
-              Add Step
-            </Button>
+            <div className="flex items-center gap-2">
+              <AIFunnelGenerator
+                onGenerate={(generatedSteps) => {
+                  const mergedSteps = [...editedFunnel.steps, ...generatedSteps].map((step, index) => ({
+                    ...step,
+                    order: index + 1,
+                  }));
+                  setEditedFunnel((f) => ({ ...f, steps: mergedSteps }));
+                }}
+                existingSteps={editedFunnel.steps}
+              />
+              <Button onClick={addStep} size="sm" variant="outline">
+                <Plus className="h-3 w-3 mr-1" />
+                Add Step
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -252,10 +265,6 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
             <div className="text-center py-6 text-gray-500">
               <Target className="h-8 w-8 mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No steps defined yet</p>
-              <Button onClick={addStep} size="sm" variant="outline" className="mt-2">
-                <Plus className="h-3 w-3 mr-1" />
-                Add First Step
-              </Button>
             </div>
           ) : (
             <Accordion type="single" collapsible className="space-y-2">

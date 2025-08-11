@@ -10,7 +10,6 @@ import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home, Loader2, RefreshCw, Settings, Calculator } from "lucide-react";
 import { SlidingConfigPanel } from '@/components/funnel/SlidingConfigPanel';
-import { AIFunnelGenerator } from '@/components/funnel/AIFunnelGenerator';
 
 // Add some CSS for the funnel visualization
 import "./FunnelAnalysisPage.css";
@@ -272,8 +271,6 @@ export default function FunnelAnalysisPage() {
                 <Calculator className="h-4 w-4 mr-2" />
                 Re-Calculate Funnel Data
               </Button>
-
-              <AIFunnelGenerator onGenerate={handleAIGeneratedSteps} existingSteps={funnel.steps} />
 
               <Button 
                 variant="outline" 
