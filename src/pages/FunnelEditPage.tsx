@@ -347,7 +347,6 @@ function MainEditorGrid({
                 <FunnelGraphVisualization
                   steps={calculatedSteps}
                   initialValue={initialValue}
-                  lastUpdated={funnel.lastUpdated}
                 />
               </div>
             </TabsContent>
