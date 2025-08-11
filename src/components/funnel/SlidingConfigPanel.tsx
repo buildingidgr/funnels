@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FunnelConfigEditor } from './FunnelConfigEditor';
 import { Funnel } from '@/types/funnel';
@@ -12,6 +12,7 @@ interface SlidingConfigPanelProps {
 }
 
 export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingConfigPanelProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Handle escape key to close panel
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -33,9 +34,9 @@ export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingC
 
   return (
     <>
-      {/* Backdrop overlay for mobile */}
-      {isOpen && (
-        <div 
+      {/* Backdrop overlay for mobile when not fullscreen */}
+      {isOpen && !isFullscreen && (
+        <div
           className="fixed inset-0 bg-black/20 z-40 md:hidden"
           onClick={onClose}
         />
@@ -45,9 +46,9 @@ export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingC
         className={`fixed top-0 right-0 h-full bg-white border-l border-gray-200 shadow-xl transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
-        style={{ 
-          width: 'min(600px, 90vw)',
-          '--panel-width': 'min(600px, 90vw)'
+        style={{
+          width: isFullscreen ? '100vw' : 'min(900px, 96vw)',
+          ['--panel-width' as any]: isFullscreen ? '100vw' : 'min(900px, 96vw)'
         } as React.CSSProperties}
       >
       <div className="flex flex-col h-full">
@@ -59,6 +60,14 @@ export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingC
               Configure your funnel steps, conditions, and split variations. Changes are saved automatically.
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsFullscreen(v => !v)}
+            className="h-8 w-8 mr-1"
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
