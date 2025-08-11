@@ -400,26 +400,25 @@ const EnhancedLink = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targ
   
   const isSplit = payload.sourceId?.includes('split') || payload.targetId?.includes('split');
   const isSplitToNext = payload.sourceId?.includes('split') && payload.targetId?.includes('step-') && !payload.targetId?.includes('split');
-  // Hide the main step → next step connection ONLY when there are split steps in between
-  const isMainStepToNextStep = payload.sourceId?.includes('step-') && !payload.sourceId?.includes('-split-') && payload.targetId?.includes('step-') && !payload.targetId?.includes('-split-');
-  // Only hide if this is a direct step-to-step connection AND there are split nodes for this step
-  const shouldHideMainConnection = isMainStepToNextStep && 
-    // Check if the source step has split variations by looking for split nodes with the same step number
-    (() => {
-      const sourceStepNum = payload.sourceId?.match(/step-(\d+)/)?.[1];
-      if (!sourceStepNum) return false;
-      
-      // Check if there are split nodes for this step by looking for nodes with the same step number + "-split-"
-      const hasSplitNodes = nodes?.some(node => 
-        node.name?.includes(`step-${sourceStepNum}-split-`)
-      );
-      
-      return hasSplitNodes;
-    })();
+  // Classify step-to-step links and compute step indices
+  const isStepToStep = payload.sourceId?.includes('step-') && !payload.sourceId?.includes('-split-') && payload.targetId?.includes('step-') && !payload.targetId?.includes('-split-');
+  const sourceStepNumStr = payload.sourceId?.match(/step-(\d+)/)?.[1] || '';
+  const targetStepNumStr = payload.targetId?.match(/step-(\d+)/)?.[1] || '';
+  const sourceStepNum = parseInt(sourceStepNumStr, 10);
+  const targetStepNum = parseInt(targetStepNumStr, 10);
+  const areValidStepNums = !Number.isNaN(sourceStepNum) && !Number.isNaN(targetStepNum);
+  const isImmediateNext = isStepToStep && areValidStepNums && (targetStepNum - sourceStepNum === 1);
+  // Back-compat alias for existing debug logs
+  const isMainStepToNextStep = isImmediateNext;
+  // Hide ONLY the direct main connection to the immediate next step when the source has split nodes
+  const shouldHideMainConnection = isImmediateNext && (() => {
+    if (!areValidStepNums) return false;
+    const hasSplitNodes = nodes?.some(node => node.name?.includes(`step-${sourceStepNum}-split-`));
+    return !!hasSplitNodes;
+  })();
   const isDomestic = payload.sourceId?.includes('domestic') || payload.targetId?.includes('international');
   const isInitialBypass = payload.sourceId === 'initial' && !payload.targetId?.includes('step-1');
-  const isOptional = payload.sourceId?.includes('step-') && payload.targetId?.includes('step-') && 
-                     Math.abs(parseInt(payload.sourceId.split('-')[1]) - parseInt(payload.targetId.split('-')[1])) > 1;
+  const isOptional = isStepToStep && areValidStepNums && Math.abs(targetStepNum - sourceStepNum) > 1;
   const isBypass = isInitialBypass || isOptional;
 
   // Classification log for link types
