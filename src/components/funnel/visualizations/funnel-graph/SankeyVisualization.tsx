@@ -1,5 +1,4 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { Sankey, ResponsiveContainer } from 'recharts';
 import { SankeyNode, SankeyLink } from './types';
 import { SankeyLegend } from './components/SankeyLegend';
 import CustomTooltip from './components/CustomTooltip';

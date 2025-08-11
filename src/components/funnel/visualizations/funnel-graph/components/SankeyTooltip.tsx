@@ -96,45 +96,45 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
       };
       
       return (
-        <div className="text-xs min-w-[220px]">
-          <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
-          <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
-            <span>Connection Details</span>
-            <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
-              {conversionCategory.label}
-            </span>
-          </div>
-          
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
-              <div className="text-gray-500">From Step:</div>
-              <div className="font-medium">{stripOptionalTag(sourceNodeByIndex?.name) || "Unknown"}</div>
-              <div className="text-gray-500">To Step:</div>
-              <div className="font-medium">{stripOptionalTag(targetNodeByIndex?.name) || "Unknown"}</div>
+        <div className="text-sm min-w-[320px]">
+          <div className="rounded-xl border border-gray-200 shadow-lg bg-white/95 backdrop-blur p-6">
+            <div className="font-semibold mb-3 pb-2 border-b border-gray-100 text-base flex items-center justify-between">
+              <span>Connection Details</span>
+              <span className={`text-sm px-2.5 py-1 rounded-md ${conversionCategory.color} bg-opacity-20 bg-current`}>
+                {conversionCategory.label}
+              </span>
             </div>
-          
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-1 text-[15px]">
+              <div className="text-gray-600">From Step:</div>
+              <div className="font-medium text-slate-800">{stripOptionalTag(sourceNodeByIndex?.name) || "Unknown"}</div>
+              <div className="text-gray-600">To Step:</div>
+              <div className="font-medium text-slate-800">{stripOptionalTag(targetNodeByIndex?.name) || "Unknown"}</div>
+            </div>
+
             {/* Metrics section */}
-          <div className="mt-2 pt-2 border-t border-gray-100">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-gray-500">Users:</div>
-              <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
-                {data.value?.toLocaleString() || "0"}
-              </button>
-            </div>
-            
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-gray-600">Users:</div>
+                <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
+                  {data.value?.toLocaleString() || "0"}
+                </button>
+              </div>
+
               {/* Drop-off severity */}
               {(() => {
                 const sev = getDropoffSeverity(dropOffRate);
                 return (
                   <div className="flex items-center justify-between mt-2">
-                    <div className="text-gray-500">Drop-off:</div>
+                    <div className="text-gray-600">Drop-off:</div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sev.badge}`}>{sev.label}</span>
+                      <span className="font-medium text-gray-700 text-[15px]">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${sev.badge}`}>{sev.label}</span>
                     </div>
                   </div>
                 );
               })()}
-          </div>
+            </div>
           </div>
         </div>
       );
@@ -158,44 +158,44 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     };
     
     return (
-      <div className="text-xs min-w-[220px]">
-        <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
-        <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
-          <span>Connection Details</span>
-          <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
-            {conversionCategory.label}
-          </span>
-        </div>
-        
-           <div className="grid grid-cols-2 gap-x-3 gap-y-2 py-1">
-             <div className="text-gray-500">From Step:</div>
-             <div className="font-medium">{stripOptionalTag(sourceNode?.name) || "Unknown"}</div>
-             <div className="text-gray-500">To Step:</div>
-             <div className="font-medium">{stripOptionalTag(targetNode?.name) || "Unknown"}</div>
-           </div>
-        
-          {/* Metrics section */}
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-gray-500">Users:</div>
-            <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
-              {data.value?.toLocaleString() || "0"}
-            </button>
+      <div className="text-sm min-w-[320px]">
+        <div className="rounded-xl border border-gray-200 shadow-lg bg-white/95 backdrop-blur p-6">
+          <div className="font-semibold mb-3 pb-2 border-b border-gray-100 text-base flex items-center justify-between">
+            <span>Connection Details</span>
+            <span className={`text-sm px-2.5 py-1 rounded-md ${conversionCategory.color} bg-opacity-20 bg-current`}>
+              {conversionCategory.label}
+            </span>
           </div>
-          
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-1 text-[15px]">
+            <div className="text-gray-600">From Step:</div>
+            <div className="font-medium text-slate-800">{stripOptionalTag(sourceNode?.name) || "Unknown"}</div>
+            <div className="text-gray-600">To Step:</div>
+            <div className="font-medium text-slate-800">{stripOptionalTag(targetNode?.name) || "Unknown"}</div>
+          </div>
+
+          {/* Metrics section */}
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-gray-600">Users:</div>
+              <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
+                {data.value?.toLocaleString() || "0"}
+              </button>
+            </div>
+
             {(() => {
               const sev = getDropoffSeverity(dropOffRate);
               return (
                 <div className="flex items-center justify-between mt-2">
-                  <div className="text-gray-500">Drop-off:</div>
+                  <div className="text-gray-600">Drop-off:</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-700">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${sev.badge}`}>{sev.label}</span>
+                    <span className="font-medium text-gray-700 text-[15px]">{dropOffValue.toLocaleString()} users ({formatPercent(dropOffRate)})</span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${sev.badge}`}>{sev.label}</span>
                   </div>
                 </div>
               );
             })()}
-        </div>
+          </div>
         </div>
       </div>
     );
@@ -247,64 +247,64 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     };
     
     return (
-      <div className="text-xs min-w-[250px]">
-        <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
-        <div className="font-semibold mb-2 pb-1 border-b border-gray-100 text-sm flex items-center justify-between">
+      <div className="text-sm min-w-[340px]">
+        <div className="rounded-xl border border-gray-200 shadow-lg bg-white/95 backdrop-blur p-6">
+          <div className="font-semibold mb-3 pb-2 border-b border-gray-100 text-base flex items-center justify-between">
             <span>{stripOptionalTag(node.name)} {isSplitStep ? '(Split)' : ''}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-sm ${conversionCategory.color} bg-opacity-20 bg-current`}>
-            {conversionCategory.label}
-          </span>
-        </div>
-        
-        {/* Basic Info */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="text-gray-500">Step Users:</div>
-          <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
-            {node.value.toLocaleString()}
-          </button>
-        </div>
-        
-        {/* Conversion from previous step */}
-        <div className="mb-3">
-          <div className="text-gray-500 mb-1">From Previous Step:</div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-500">{previousNode.name}</span>
-            <span className={`font-medium ${conversionCategory.color}`}>{formatPercent(conversionRate)}</span>
+            <span className={`text-sm px-2.5 py-1 rounded-md ${conversionCategory.color} bg-opacity-20 bg-current`}>
+              {conversionCategory.label}
+            </span>
           </div>
-          
-          {/* Progress bar visualization */}
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div 
-              className={`h-full ${conversionCategory.color} bg-current`}
-              style={{ width: `${Math.min(100, Math.max(0, conversionRate))}%` }}
-            ></div>
+
+          {/* Basic Info */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-gray-600">Step Users:</div>
+            <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
+              {node.value.toLocaleString()}
+            </button>
           </div>
-          
-          {/* Drop-off details */}
-          {dropOffValue > 0 && (
-            <div className="flex justify-between items-center mt-1 text-gray-500 text-xs">
-              <span>Drop-off: {dropOffValue.toLocaleString()} users</span>
-              <span>({formatPercent(dropOffRate)})</span>
+
+          {/* Conversion from previous step */}
+          <div className="mb-4">
+            <div className="text-gray-600 mb-1">From Previous Step:</div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-500">{previousNode.name}</span>
+              <span className={`font-medium ${conversionCategory.color}`}>{formatPercent(conversionRate)}</span>
             </div>
-          )}
-        </div>
-        
-        {/* Overall funnel position */}
-        <div className="pt-2 mt-1 border-t border-gray-100">
-          <div className="text-gray-500 mb-1">Overall Funnel Position:</div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-500">From Funnel Start</span>
-            <span className={`font-semibold ${getOverallConversionColor(overallConversion)}`}>{formatPercent(overallConversion)}</span>
+
+            {/* Progress bar visualization */}
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${conversionCategory.color} bg-current`}
+                style={{ width: `${Math.min(100, Math.max(0, conversionRate))}%` }}
+              ></div>
+            </div>
+
+            {/* Drop-off details */}
+            {dropOffValue > 0 && (
+              <div className="flex justify-between items-center mt-2 text-gray-600 text-sm">
+                <span>Drop-off: {dropOffValue.toLocaleString()} users</span>
+                <span>({formatPercent(dropOffRate)})</span>
+              </div>
+            )}
           </div>
-          
-          {/* Overall progress bar */}
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-500"
-              style={{ width: `${Math.min(100, Math.max(0, overallConversion))}%` }}
-            ></div>
+
+          {/* Overall funnel position */}
+          <div className="pt-3 mt-2 border-t border-gray-100">
+            <div className="text-gray-600 mb-1">Overall Funnel Position:</div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-500">From Funnel Start</span>
+              <span className={`font-semibold ${getOverallConversionColor(overallConversion)}`}>{formatPercent(overallConversion)}</span>
+            </div>
+
+            {/* Overall progress bar */}
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500"
+                style={{ width: `${Math.min(100, Math.max(0, overallConversion))}%` }}
+              ></div>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     );
