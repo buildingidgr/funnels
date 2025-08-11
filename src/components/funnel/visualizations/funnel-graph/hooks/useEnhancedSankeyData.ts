@@ -17,27 +17,48 @@ type LinkInput = {
   sourceValue?: number;
 };
 
-export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links: LinkInput[] }) {
+export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links: LinkInput[] }, options?: { layerOrder?: 'optional-bottom' | 'optional-top' }) {
   const enhancedData = React.useMemo(() => {
-    return {
-      nodes: rechartsData.nodes.map((node, index) => ({
-        name: node.name,
-        value: node.value || 0,
-        color: node.color,
-        index,
-        conversionRate: 0,
-      })),
-      links: rechartsData.links.map(link => ({
-        source: link.source,
-        target: link.target,
-        value: link.value || 0,
-        sourceId: link.sourceId || '',
-        targetId: link.targetId || '',
-        conversionRate: link.conversionRate || 0,
-        sourceValue: link.sourceValue || 0,
-      })),
+    const nodes = rechartsData.nodes.map((node, index) => ({
+      name: node.name,
+      value: node.value || 0,
+      color: node.color,
+      index,
+      conversionRate: 0,
+    }));
+
+    // Prepare links and sort for layering (optional behind, split middle, main on top)
+    const rawLinks = rechartsData.links.map(link => ({
+      source: link.source,
+      target: link.target,
+      value: link.value || 0,
+      sourceId: link.sourceId || '',
+      targetId: link.targetId || '',
+      conversionRate: link.conversionRate || 0,
+      sourceValue: link.sourceValue || 0,
+    }));
+
+    const linkPriority = (l: { sourceId?: string; targetId?: string }) => {
+      const s = l.sourceId || '';
+      const t = l.targetId || '';
+      const isSplit = s.includes('-split-') || t.includes('-split-');
+      // Determine optional by step number gap
+      const sNum = parseInt((s.match(/step-(\d+)/)?.[1] || ''), 10);
+      const tNum = parseInt((t.match(/step-(\d+)/)?.[1] || ''), 10);
+      const isOptional = Number.isFinite(sNum) && Number.isFinite(tNum) && Math.abs(tNum - sNum) > 1;
+      // Lower number renders first (behind)
+      return isOptional ? 0 : isSplit ? 1 : 2;
     };
-  }, [rechartsData]);
+
+    let links = rawLinks.sort((a, b) => linkPriority(a) - linkPriority(b));
+    if (options?.layerOrder === 'optional-top') {
+      // invert priority so optional draw last (on top)
+      const invPriority = (l: { sourceId?: string; targetId?: string }) => 2 - linkPriority(l);
+      links = rawLinks.sort((a, b) => invPriority(a) - invPriority(b));
+    }
+
+    return { nodes, links };
+  }, [rechartsData, options?.layerOrder]);
 
   const isValidData = React.useMemo(() => {
     return (

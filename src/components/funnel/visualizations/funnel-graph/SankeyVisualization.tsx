@@ -5,6 +5,8 @@ import CustomTooltip from './components/CustomTooltip';
 import EnhancedNode from './components/EnhancedNode';
 import EnhancedLink from './components/EnhancedLink';
 import TagsToolbar from './components/TagsToolbar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import OptionalMarkersOverlay from './components/OptionalMarkersOverlay';
 import { useZoomPan } from './hooks/useZoomPan';
 import { useEnhancedSankeyData } from './hooks/useEnhancedSankeyData';
@@ -133,7 +135,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     handleWheel,
   } = useZoomPan(containerRef, { min: 0.1, max: 3 });
 
-  const { enhancedData, isValidData, preCalculatedStepHeights, dynamicContainerHeight } = useEnhancedSankeyData(rechartsData as any);
+  const [layerOrder, setLayerOrder] = useState<'optional-bottom' | 'optional-top'>('optional-bottom');
+  const { enhancedData, isValidData, preCalculatedStepHeights, dynamicContainerHeight } = useEnhancedSankeyData(rechartsData as any, { layerOrder });
 
   // Node layout tracking and fit-to-view logic (depends on isValidData and zoom setters)
   const { onNodeLayout, getNodeLayout } = useNodeLayouts({
@@ -145,6 +148,10 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     setPan,
     dimensions,
   });
+
+  // Link render mode and animation speed
+  const [linkRenderMode, setLinkRenderMode] = useState<'classic' | 'semantic' | 'monochrome'>('semantic');
+  const [animationSpeed, setAnimationSpeed] = useState<number>(1);
 
   // Handle step height changes
   const handleStepHeightChange = React.useCallback((stepName: string, height: number) => {
@@ -220,9 +227,53 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     }}>
       
       <TagsToolbar />
+      <div className="px-4 py-2 border-b border-slate-200 bg-white/80 backdrop-blur-sm flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-slate-600 font-semibold">Render mode</div>
+          <div style={{ minWidth: 200 }}>
+            <Select value={linkRenderMode} onValueChange={(v) => setLinkRenderMode(v as 'classic' | 'semantic' | 'monochrome')}>
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="classic">Classic</SelectItem>
+                <SelectItem value="semantic">Semantic (type-aware)</SelectItem>
+                <SelectItem value="monochrome">Monochrome (print-safe)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-slate-600 font-semibold">Animation speed</div>
+          <div style={{ width: 160 }}>
+            <Slider
+              value={[animationSpeed]}
+              onValueChange={(v) => setAnimationSpeed(v[0])}
+              max={2}
+              min={0.5}
+              step={0.1}
+            />
+            <div className="text-[10px] text-slate-500 mt-1">{animationSpeed === 1 ? 'Normal' : animationSpeed < 1 ? 'Slow' : 'Fast'}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-slate-600 font-semibold">Layer order</div>
+          <div style={{ minWidth: 180 }}>
+            <Select value={layerOrder} onValueChange={(v) => setLayerOrder(v as 'optional-bottom' | 'optional-top')}>
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="optional-bottom">Main on top</SelectItem>
+                <SelectItem value="optional-top">Optional on top</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
       
       
-      <SankeyLegend />
+      <SankeyLegend linkRenderMode={linkRenderMode} />
       
       <NavigationHint visible={zoom === 1 && pan.x === 0 && pan.y === 0} />
       
@@ -322,9 +373,11 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                   setTooltipVisible={setTooltipVisible}
                   nodes={rechartsData.nodes}
                   getNodeLayout={getNodeLayout}
+                  linkRenderMode={linkRenderMode}
+                  animationSpeed={animationSpeed}
                   debug={enableDebug}
                 />
-              ), [stepHeights, preCalculatedStepHeights, handleLinkHover, getNodeLayout, rechartsData.nodes, setTooltipVisible])}
+              ), [stepHeights, preCalculatedStepHeights, handleLinkHover, getNodeLayout, rechartsData.nodes, setTooltipVisible, linkRenderMode, animationSpeed])}
               nodePadding={80}
               nodeWidth={20}
               margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
