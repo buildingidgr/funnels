@@ -250,7 +250,9 @@ export default function FunnelAnalysisPage() {
           } ${configPanelOpen ? 'border-r border-gray-200' : ''}`}
           style={configPanelOpen ? { '--panel-width': 'min(600px, 90vw)' } as React.CSSProperties : undefined}
         >
-          <div className="flex items-center justify-between">
+          <div
+            className="sticky top-0 z-40 pl-4 pr-4 flex items-center justify-between bg-gray-50/90 backdrop-blur supports-[backdrop-filter]:bg-gray-50/70 py-3 border-b"
+          >
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {funnel.name}
@@ -260,7 +262,7 @@ export default function FunnelAnalysisPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Link to="/dashboard">
+              <Link to="/funnels">
                 <Button variant="default" size="sm">
                   <Home className="h-4 w-4 mr-2" />
                   Go to Dashboard
