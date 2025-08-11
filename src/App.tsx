@@ -8,6 +8,7 @@ import FunnelsListPage from "./pages/FunnelsListPage";
 import FunnelCreatePage from "./pages/FunnelCreatePage";
 import FunnelEditPage from "./pages/FunnelEditPage";
 import FunnelAnalysisPage from "./pages/FunnelAnalysisPage";
+import FunnelUsersPage from "./pages/FunnelUsersPage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/funnels/create" element={<FunnelCreatePage />} />
           <Route path="/funnels/:id/edit" element={<FunnelEditPage />} />
           <Route path="/funnels/:id/analysis" element={<FunnelAnalysisPage />} />
+          <Route path="/funnels/:id/users" element={<FunnelUsersPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -112,6 +112,14 @@ class MockFunnelCalculationService {
    */
   public async calculateFunnel(request: FunnelCalculationRequest): Promise<FunnelCalculationResponse> {
     const { funnel, timeframe, initialValue = 10000, options = {} } = request;
+    // Simulate remote API latency for recalculation
+    const calcMin = Number((import.meta as any).env?.VITE_API_DELAY_CALC_MIN_MS) || 1200;
+    const calcMax = Number((import.meta as any).env?.VITE_API_DELAY_CALC_MAX_MS) || 2500;
+    const delayMs = Math.max(
+      0,
+      calcMin >= calcMax ? calcMin : Math.floor(calcMin + Math.random() * (calcMax - calcMin))
+    );
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
     
     console.log('Starting funnel calculation for:', funnel.name);
     console.log('Initial value:', initialValue);

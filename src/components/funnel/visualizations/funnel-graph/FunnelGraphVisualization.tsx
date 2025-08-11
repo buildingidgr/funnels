@@ -411,6 +411,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
           handleLinkMouseLeave={handleLinkMouseLeave}
           showTooltips={showTooltips}
           interactiveTooltips={interactiveTooltips}
+          funnelId={enabledSteps?.[0]?.funnelId || (steps as any)?.[0]?.funnelId}
         />
       </div>
       

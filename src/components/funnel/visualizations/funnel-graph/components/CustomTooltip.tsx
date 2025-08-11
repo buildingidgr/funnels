@@ -8,6 +8,9 @@ interface CustomTooltipProps {
   active?: boolean;
   label?: string;
   coordinate?: { x: number, y: number };
+  funnelId?: string;
+  onTooltipMouseEnter?: () => void;
+  onTooltipMouseLeave?: () => void;
 }
 
 /**
@@ -15,7 +18,7 @@ interface CustomTooltipProps {
  * Simplified implementation that doesn't update position during hover to avoid loops
  */
 const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
-  const { active, payload, nodeMap, initialValue, coordinate } = props;
+  const { active, payload, nodeMap, initialValue, coordinate, funnelId, onTooltipMouseEnter, onTooltipMouseLeave } = props;
   const tooltipRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -79,6 +82,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
     <div 
       ref={tooltipRef}
       className="recharts-custom-tooltip"
+      onMouseEnter={onTooltipMouseEnter}
+      onMouseLeave={onTooltipMouseLeave}
       style={{ 
         zIndex: 1000, 
         position: 'absolute',
@@ -87,7 +92,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
         boxShadow: 'none',
         padding: 0,
         minWidth: 'unset',
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         // Initial visibility
         visibility: (active && payload && payload.length > 0) ? 'visible' : 'hidden',
         opacity: (active && payload && payload.length > 0) ? 1 : 0,
@@ -104,6 +109,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
           payload={payload} 
           nodeMap={nodeMap} 
           initialValue={initialValue} 
+          funnelId={funnelId}
         />
       )}
     </div>

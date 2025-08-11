@@ -1,9 +1,11 @@
 import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface NodeTooltipProps {
   payload: any;
   nodeMap: Record<string, any>;
   initialValue: number;
+  funnelId?: string;
 }
 
 // Helper function to determine conversion category
@@ -44,9 +46,13 @@ const stripOptionalTag = (name?: string) => {
 export const SankeyTooltip: React.FC<NodeTooltipProps> = ({ 
   payload, 
   nodeMap, 
-  initialValue 
+  initialValue,
+  funnelId
 }) => {
   if (!payload || !payload.length) return null;
+  const navigate = useNavigate();
+  const params = useParams();
+  const resolvedFunnelId = funnelId || params.id || "";
   
   const data = payload[0].payload;
   if (!data) return null;
@@ -63,15 +69,15 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     if (!sourceNode || !targetNode) {
       // Try to find node IDs from the nodeMap by looking at each entry
       const sourceNodeEntry = Object.entries(nodeMap).find(
-        ([_, node]: [string, any]) => node.step === data.source
+        ([_, node]: [string, any]) => (node as any).step === data.source
       );
       const targetNodeEntry = Object.entries(nodeMap).find(
-        ([_, node]: [string, any]) => node.step === data.target
+        ([_, node]: [string, any]) => (node as any).step === data.target
       );
       
       // Extract the actual node objects
-      const sourceNodeByIndex = sourceNodeEntry ? sourceNodeEntry[1] : null;
-      const targetNodeByIndex = targetNodeEntry ? targetNodeEntry[1] : null;
+      const sourceNodeByIndex = sourceNodeEntry ? (sourceNodeEntry[1] as any) : null;
+      const targetNodeByIndex = targetNodeEntry ? (targetNodeEntry[1] as any) : null;
       
       const conversionRate = sourceNodeByIndex && targetNodeByIndex && sourceNodeByIndex.value > 0
         ? (targetNodeByIndex.value / sourceNodeByIndex.value) * 100
@@ -83,6 +89,11 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
         : 0;
         
       const conversionCategory = getConversionCategory(conversionRate);
+      
+      const handleClickUsers = () => {
+        if (!resolvedFunnelId) return;
+        navigate(`/funnels/${resolvedFunnelId}/users?type=link&sourceId=${encodeURIComponent(sourceId)}&targetId=${encodeURIComponent(targetId)}&value=${encodeURIComponent(data.value || 0)}`);
+      };
       
       return (
         <div className="text-xs min-w-[220px]">
@@ -105,7 +116,9 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
           <div className="mt-2 pt-2 border-t border-gray-100">
             <div className="flex justify-between items-center mb-2">
               <div className="text-gray-500">Users:</div>
-              <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
+              <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
+                {data.value?.toLocaleString() || "0"}
+              </button>
             </div>
             
               {/* Drop-off severity */}
@@ -139,6 +152,11 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
       
     const conversionCategory = getConversionCategory(conversionRate);
     
+    const handleClickUsers = () => {
+      if (!resolvedFunnelId) return;
+      navigate(`/funnels/${resolvedFunnelId}/users?type=link&sourceId=${encodeURIComponent(sourceId)}&targetId=${encodeURIComponent(targetId)}&value=${encodeURIComponent(data.value || 0)}`);
+    };
+    
     return (
       <div className="text-xs min-w-[220px]">
         <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
@@ -160,7 +178,9 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
         <div className="mt-2 pt-2 border-t border-gray-100">
           <div className="flex justify-between items-center mb-2">
             <div className="text-gray-500">Users:</div>
-            <div className="font-medium">{data.value?.toLocaleString() || "0"}</div>
+            <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
+              {data.value?.toLocaleString() || "0"}
+            </button>
           </div>
           
             {(() => {
@@ -189,7 +209,7 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     if (!node && typeof data.index === 'number') {
       // Try to find node by index if we can't find by name
       const nodeEntry = Object.entries(nodeMap).find(
-        ([_, n]: [string, any]) => n.step === data.index
+        ([_, n]: [string, any]) => (n as any).step === data.index
       );
       if (nodeEntry) {
         node = nodeEntry[1];
@@ -220,6 +240,12 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
     const conversionCategory = getConversionCategory(conversionRate);
     const isSplitStep = nodeName.includes('-split-');
     
+    const handleClickUsers = () => {
+      if (!resolvedFunnelId) return;
+      const nodeId = node.id || nodeName;
+      navigate(`/funnels/${resolvedFunnelId}/users?type=node&nodeId=${encodeURIComponent(nodeId)}&value=${encodeURIComponent(node.value || 0)}`);
+    };
+    
     return (
       <div className="text-xs min-w-[250px]">
         <div className="rounded-lg border border-gray-200 shadow-md bg-white/95 backdrop-blur p-4">
@@ -233,7 +259,9 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
         {/* Basic Info */}
         <div className="flex justify-between items-center mb-3">
           <div className="text-gray-500">Step Users:</div>
-          <div className="font-medium">{node.value.toLocaleString()}</div>
+          <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer">
+            {node.value.toLocaleString()}
+          </button>
         </div>
         
         {/* Conversion from previous step */}

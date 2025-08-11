@@ -8,8 +8,9 @@ import { Funnel, FunnelStep } from "@/types/funnel";
 import { toast } from "sonner";
 import FunnelVisualization from "@/components/funnel/FunnelVisualization";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Home, Loader2, RefreshCw, Settings, Calculator } from "lucide-react";
+import { AlertCircle, Home, Settings, Calculator } from "lucide-react";
 import { SlidingConfigPanel } from '@/components/funnel/SlidingConfigPanel';
+import FunnelAnalysisLoading from "@/components/loading/FunnelAnalysisLoading";
 
 // Add some CSS for the funnel visualization
 import "./FunnelAnalysisPage.css";
@@ -104,6 +105,12 @@ export default function FunnelAnalysisPage() {
       };
       
       setFunnel(recalculatedFunnel);
+
+      // Persist recalculated values and timestamp so list view reflects latest calculation
+      await FunnelApi.updateFunnel(recalculatedFunnel.id!, {
+        ...recalculatedFunnel,
+        lastCalculatedAt: new Date().toISOString(),
+      });
       
       // Show success message with calculation details
       const overallConversion = results.insights.overallConversionRate.toFixed(1);
@@ -170,7 +177,10 @@ export default function FunnelAnalysisPage() {
 
       setFunnel(recalculatedFunnel);
       setConfigPanelOpen(true);
-      await FunnelApi.updateFunnel(recalculatedFunnel.id!, recalculatedFunnel);
+      await FunnelApi.updateFunnel(recalculatedFunnel.id!, {
+        ...recalculatedFunnel,
+        lastCalculatedAt: new Date().toISOString(),
+      });
       toast.success(`Added ${generatedSteps.length} AI-generated steps to your funnel`);
     } catch (err) {
       console.error('Error applying AI-generated steps:', err);
@@ -185,12 +195,11 @@ export default function FunnelAnalysisPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span>Loading funnel data...</span>
-          </div>
-        </div>
+        <FunnelAnalysisLoading
+          showIllustration={true}
+          title="Preparing your funnel analysis"
+          description="We’re fetching the latest configuration, recalculating metrics, and rendering the visualization. API latency is simulated to mirror a real backend."
+        />
       </DashboardLayout>
     );
   }
@@ -338,6 +347,12 @@ export default function FunnelAnalysisPage() {
             
             setFunnel(recalculatedFunnel);
             
+            // Persist recalculated values and timestamp
+            await FunnelApi.updateFunnel(recalculatedFunnel.id!, {
+              ...recalculatedFunnel,
+              lastCalculatedAt: new Date().toISOString(),
+            });
+
             // Show success message with calculation details
             const overallConversion = results.insights.overallConversionRate.toFixed(1);
             const totalVisitors = results.metadata.initialValue.toLocaleString();

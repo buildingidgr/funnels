@@ -3,13 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { FunnelSummary } from "@/types/funnel";
 import { FunnelApi, formatDate, resetFunnels } from "@/services/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { BarChart, Plus, RefreshCw, Download, Users, TrendingUp, Calendar, Clock, Pencil, Trash } from "lucide-react";
+import { BarChart, Plus, RefreshCw, Users, TrendingUp, Trash } from "lucide-react";
 
 export default function FunnelList() {
   const [funnels, setFunnels] = useState<FunnelSummary[]>([]);
@@ -65,36 +63,7 @@ export default function FunnelList() {
     }
   };
 
-  const handleExportJson = async (funnelId: string, funnelName: string) => {
-    try {
-      const funnel = await FunnelApi.getFunnel(funnelId);
-      
-      // Create a clean export object with all funnel details
-      const exportData = {
-        ...funnel,
-        exportedAt: new Date().toISOString(),
-        exportVersion: "1.0"
-      };
-      
-      // Create and download the JSON file
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${funnelName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_funnel_export.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success(`Exported ${funnelName} configuration`);
-    } catch (error) {
-      console.error("Error exporting funnel:", error);
-      toast.error("Failed to export funnel");
-    }
-  };
+  
 
   const handleDeleteFunnel = async (funnelId: string, funnelName: string) => {
     const confirmed = window.confirm(`Delete funnel "${funnelName}"? This action cannot be undone.`);
@@ -210,9 +179,6 @@ export default function FunnelList() {
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/funnels/${funnel.id}/analysis`} className="flex items-center"><BarChart className="mr-1 h-4 w-4" />View</Link>
                       </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/funnels/${funnel.id}/edit`} className="flex items-center"><Pencil className="mr-1 h-4 w-4" />Edit</Link>
-                      </Button>
                       <Button 
                         variant="destructive" 
                         size="sm"
@@ -223,15 +189,7 @@ export default function FunnelList() {
                         <Trash className="mr-1 h-4 w-4" />
                         {isDeletingId === funnel.id ? 'Deleting...' : 'Delete'}
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleExportJson(funnel.id, funnel.name)}
-                        className="flex items-center"
-                      >
-                        <Download className="mr-1 h-4 w-4" />
-                        Export
-                      </Button>
+                      
                     </div>
                   </td>
                 </tr>

@@ -145,6 +145,9 @@ const initializeDefaultFunnels = async () => {
           })
         };
 
+        // Mark as calculated now so list view has a timestamp
+        calculatedFunnel.lastCalculatedAt = new Date().toISOString();
+
         console.log(`[DEBUG] Calculated funnel ${index + 1}: ${calculatedFunnel.name}`);
         return calculatedFunnel;
       })
@@ -343,6 +346,11 @@ export const FunnelApi = {
   // Create funnel
   createFunnel: async (funnel: Omit<Funnel, 'id' | 'createdAt' | 'updatedAt' | 'lastCalculatedAt'>): Promise<Funnel> => {
     try {
+      // Simulate remote API latency for create
+      const min = Number((import.meta as any).env?.VITE_API_DELAY_SAVE_MIN_MS) || 600;
+      const max = Number((import.meta as any).env?.VITE_API_DELAY_SAVE_MAX_MS) || 1500;
+      const delayMs = Math.max(0, min >= max ? min : Math.floor(min + Math.random() * (max - min)));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
       // Create mock funnel
       const newFunnel: Funnel = {
         ...funnel,
@@ -364,6 +372,11 @@ export const FunnelApi = {
   // Update funnel
   updateFunnel: async (id: string, funnel: Partial<Funnel>): Promise<Funnel> => {
     try {
+      // Simulate remote API latency for update
+      const min = Number((import.meta as any).env?.VITE_API_DELAY_SAVE_MIN_MS) || 600;
+      const max = Number((import.meta as any).env?.VITE_API_DELAY_SAVE_MAX_MS) || 1500;
+      const delayMs = Math.max(0, min >= max ? min : Math.floor(min + Math.random() * (max - min)));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
       // Update mock funnel
       const index = mockFunnels.findIndex(f => f.id === id);
       if (index === -1) {

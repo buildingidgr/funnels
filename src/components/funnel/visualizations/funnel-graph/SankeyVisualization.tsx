@@ -38,6 +38,7 @@ interface SankeyVisualizationProps {
   handleLinkMouseLeave?: () => void;
   showTooltips?: boolean;
   interactiveTooltips?: boolean;
+  funnelId?: string;
 }
 
 // Define distinct colors for steps with better contrast
@@ -1106,7 +1107,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   handleLinkMouseEnter,
   handleLinkMouseLeave,
   showTooltips = true,
-  interactiveTooltips = true
+  interactiveTooltips = true,
+  funnelId
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1912,6 +1914,15 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
             nodeMap={nodeMap}
             initialValue={initialValue}
             coordinate={tooltipPosition}
+            funnelId={funnelId}
+            onTooltipMouseEnter={() => {
+              // Keep tooltip visible when mouse enters tooltip content
+              setTooltipVisible(true);
+            }}
+            onTooltipMouseLeave={() => {
+              // Hide tooltip when leaving the tooltip content area
+              setTooltipVisible(false);
+            }}
           />
         </div>
 
