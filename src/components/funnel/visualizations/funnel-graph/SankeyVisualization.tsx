@@ -150,7 +150,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   });
 
   // Link render mode and animation speed
-  const [linkRenderMode, setLinkRenderMode] = useState<'classic' | 'semantic' | 'monochrome'>('semantic');
+  const [linkRenderMode, setLinkRenderMode] = useState<'classic' | 'semantic'>('semantic');
   const [animationSpeed, setAnimationSpeed] = useState<number>(1);
 
   // Handle step height changes
@@ -231,14 +231,13 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         <div className="flex items-center gap-2">
           <div className="text-xs text-slate-600 font-semibold">Render mode</div>
           <div style={{ minWidth: 200 }}>
-            <Select value={linkRenderMode} onValueChange={(v) => setLinkRenderMode(v as 'classic' | 'semantic' | 'monochrome')}>
+            <Select value={linkRenderMode} onValueChange={(v) => setLinkRenderMode(v as 'classic' | 'semantic')}>
               <SelectTrigger className="h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="classic">Classic</SelectItem>
                 <SelectItem value="semantic">Semantic (type-aware)</SelectItem>
-                <SelectItem value="monochrome">Monochrome (print-safe)</SelectItem>
               </SelectContent>
             </Select>
           </div>

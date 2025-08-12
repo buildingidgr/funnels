@@ -1,11 +1,10 @@
 import { Card } from '@/components/ui/card';
 import React from 'react';
 
-type Mode = 'classic' | 'semantic' | 'monochrome';
+type Mode = 'classic' | 'semantic';
 
 export const SankeyLegend: React.FC<{ linkRenderMode?: Mode }> = ({ linkRenderMode = 'classic' }) => {
   const isSemantic = linkRenderMode === 'semantic';
-  const isMonochrome = linkRenderMode === 'monochrome';
 
   return (
     <div className="mb-4">
@@ -32,11 +31,7 @@ export const SankeyLegend: React.FC<{ linkRenderMode?: Mode }> = ({ linkRenderMo
             {/* Main path */}
             <div className="flex items-center gap-2">
               <svg width="64" height="14" viewBox="0 0 64 14">
-                {isMonochrome ? (
-                  <>
-                    <path d="M2 7 L62 7" stroke="#111827" strokeWidth="6" strokeLinecap="round" />
-                  </>
-                ) : isSemantic ? (
+                {isSemantic ? (
                   <>
                     {/* halo */}
                     <path d="M2 7 L62 7" stroke="#60a5fa" strokeWidth="12" strokeOpacity="0.12" strokeLinecap="round" />
@@ -55,11 +50,7 @@ export const SankeyLegend: React.FC<{ linkRenderMode?: Mode }> = ({ linkRenderMo
             {/* Split path */}
             <div className="flex items-center gap-2">
               <svg width="64" height="18" viewBox="0 0 64 18">
-                {isMonochrome ? (
-                  <>
-                    <path d="M2 9 L62 9" stroke="#111827" strokeWidth="5" strokeLinecap="round" strokeDasharray="4 3" />
-                  </>
-                ) : isSemantic ? (
+                {isSemantic ? (
                   <>
                     {/* dotted outline */}
                     <path d="M2 9 L62 9" stroke="#60a5fa" strokeWidth="9" strokeLinecap="round" strokeOpacity="0.5" strokeDasharray="4 3" />
@@ -78,11 +69,7 @@ export const SankeyLegend: React.FC<{ linkRenderMode?: Mode }> = ({ linkRenderMo
             {/* Optional path */}
             <div className="flex items-center gap-2">
               <svg width="64" height="14" viewBox="0 0 64 14">
-                {isMonochrome ? (
-                  <path d="M2 7 L62 7" stroke="#111827" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 6" />
-                ) : (
-                  <path d="M2 7 L62 7" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.45" strokeDasharray="10 6" />
-                )}
+                <path d="M2 7 L62 7" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.45" strokeDasharray="10 6" />
               </svg>
               <span className="text-sm text-gray-700">Optional path</span>
             </div>

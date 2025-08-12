@@ -17,12 +17,14 @@ import "./FunnelAnalysisPage.css";
 
 export default function FunnelAnalysisPage() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
+  // Controls whether the panel should auto-open due to empty funnels or query params
+  const [autoOpenEnabled, setAutoOpenEnabled] = useState(true);
 
   useEffect(() => {
     const loadFunnel = async () => {
@@ -48,24 +50,35 @@ export default function FunnelAnalysisPage() {
   useEffect(() => {
     if (!funnel) return;
 
-    // Open when explicit query param present
-    const shouldOpenFromQuery = searchParams.get('openConfig');
-    if (shouldOpenFromQuery) {
-      setConfigPanelOpen(true);
-      return;
-    }
+    // Respect suppression of auto-open after explicit actions like recalc/save
+    if (autoOpenEnabled) {
+      // Open when explicit query param present
+      const shouldOpenFromQuery = searchParams.get('openConfig');
+      if (shouldOpenFromQuery) {
+        setConfigPanelOpen(true);
+        return;
+      }
 
-    // Fallback: auto-open when no steps
-    if (funnel.steps.length === 0) {
-      setConfigPanelOpen(true);
+      // Fallback: auto-open when no steps
+      if (funnel.steps.length === 0) {
+        setConfigPanelOpen(true);
+      }
     }
-  }, [funnel, searchParams]);
+  }, [funnel, searchParams, autoOpenEnabled]);
 
   const handleRefresh = async () => {
     if (!id || !funnel) return;
     
     try {
       setLoading(true);
+      // Disable auto-open behavior for the next load cycle
+      setAutoOpenEnabled(false);
+      // Ensure any query flag that forces the config panel open is cleared
+      const nextParams = new URLSearchParams(searchParams);
+      if (nextParams.has('openConfig')) {
+        nextParams.delete('openConfig');
+        setSearchParams(nextParams, { replace: true });
+      }
       
       // Recalculate funnel data using the mock calculation service directly
       const results = await mockFunnelCalculationService.calculateFunnel({
@@ -105,6 +118,8 @@ export default function FunnelAnalysisPage() {
       };
       
       setFunnel(recalculatedFunnel);
+      // Ensure the configuration panel is closed after recalculation
+      setConfigPanelOpen(false);
 
       // Persist recalculated values and timestamp so list view reflects latest calculation
       await FunnelApi.updateFunnel(recalculatedFunnel.id!, {
@@ -307,6 +322,14 @@ export default function FunnelAnalysisPage() {
         onSave={async (updatedFunnel) => {
           try {
             setLoading(true);
+            // Disable auto-open behavior for the next load cycle
+            setAutoOpenEnabled(false);
+            // Ensure any query flag that forces the config panel open is cleared
+            const nextParams = new URLSearchParams(searchParams);
+            if (nextParams.has('openConfig')) {
+              nextParams.delete('openConfig');
+              setSearchParams(nextParams, { replace: true });
+            }
             
             // Recalculate funnel data using the mock calculation service
             const results = await mockFunnelCalculationService.calculateFunnel({
@@ -346,6 +369,8 @@ export default function FunnelAnalysisPage() {
             };
             
             setFunnel(recalculatedFunnel);
+            // Close the configuration panel after a successful save
+            setConfigPanelOpen(false);
             
             // Persist recalculated values and timestamp
             await FunnelApi.updateFunnel(recalculatedFunnel.id!, {
@@ -363,6 +388,8 @@ export default function FunnelAnalysisPage() {
             // Fallback to just updating the funnel without recalculation
             setFunnel(updatedFunnel);
             toast.success("Funnel configuration updated!");
+            // Close the configuration panel even if recalculation failed
+            setConfigPanelOpen(false);
           } finally {
             setLoading(false);
           }

@@ -6,7 +6,7 @@ type EnhancedLinkProps = any; // Keep flexible to align with current Recharts ty
 const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, nodes, preCalculatedStepHeights, ...props }: any) => {
   const [isHovered, setIsHovered] = useState(false);
   const debug: boolean = props.debug === true;
-  const renderMode: 'classic' | 'semantic' | 'monochrome' = props.linkRenderMode || 'classic';
+  const renderMode: 'classic' | 'semantic' = props.linkRenderMode || 'classic';
   const animationSpeed: number = props.animationSpeed || 1;
 
   const handleLinkHover = props.handleLinkHover;
@@ -316,34 +316,6 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
 
       {renderMode === 'semantic' ? (
         linkType === 'main' ? renderRibbonMain() : linkType === 'split' ? renderForkedSplit() : renderGhostOptional()
-      ) : renderMode === 'monochrome' ? (
-        <>
-          {/* Arrow marker for monochrome */}
-          <defs>
-            <marker id={arrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#111827" />
-            </marker>
-            <path id={labelPathId} d={path} />
-          </defs>
-          <path
-            d={path}
-            fill="none"
-            stroke="#111827"
-            strokeWidth={hoverFlowWidth}
-            strokeOpacity={0.6}
-            strokeLinecap="round"
-            style={{ strokeDasharray: isSplit ? '4 3' : isBypass ? '8 6' : 'none' }}
-            markerEnd={!isBypass ? `url(#${arrowId})` : undefined}
-          />
-          {/* Curved label in monochrome */}
-          {payload?.value && !isHovered && (
-            <text fontSize={10} fill="#374151">
-              <textPath href={`#${labelPathId}`} startOffset="50%" textAnchor="middle">
-                {`${payload.value.toLocaleString()} users`}
-              </textPath>
-            </text>
-          )}
-        </>
       ) : (
         <>
           <defs>

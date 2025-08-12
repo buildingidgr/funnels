@@ -135,7 +135,6 @@ export const InteractiveControls: React.FC<InteractiveControlsProps> = ({
                   <SelectItem value="default">Default</SelectItem>
                   <SelectItem value="accessible">High Contrast</SelectItem>
                   <SelectItem value="colorblind">Colorblind Friendly</SelectItem>
-                  <SelectItem value="monochrome">Monochrome</SelectItem>
                 </SelectContent>
               </Select>
             </div>
