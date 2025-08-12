@@ -21,8 +21,8 @@ export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links:
   const enhancedData = React.useMemo(() => {
     const nodes = rechartsData.nodes.map((node, index) => {
       const rawValue = typeof node.value === 'number' ? node.value : 0;
-      // Use a small epsilon for zero values to avoid NaN layout in d3-sankey divisions
-      const safeValue = rawValue > 0 ? rawValue : 0.1;
+      // Use a small epsilon only for internal layout math; keep integer for display elsewhere
+      const safeValue = rawValue > 0 ? rawValue : (rawValue === 0 ? 0.0001 : 0);
       return {
       name: node.name,
       value: safeValue,
@@ -56,7 +56,7 @@ export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links:
 
     // Ensure link values have a minimum epsilon to avoid zero-width paths causing NaN in some renderers
     const links = rawLinks
-      .map(l => ({ ...l, value: l.value > 0 ? l.value : 0.1 }))
+      .map(l => ({ ...l, value: l.value > 0 ? l.value : 0.0001 }))
       .sort((a, b) => linkPriority(a) - linkPriority(b));
 
     return { nodes, links };

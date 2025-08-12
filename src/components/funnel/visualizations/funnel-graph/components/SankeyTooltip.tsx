@@ -117,7 +117,7 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <div className="text-gray-600">Users:</div>
                 <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
-                  {data.value?.toLocaleString() || "0"}
+                  {Math.round(Number(data.value || 0)).toLocaleString()}
                 </button>
               </div>
 
@@ -176,12 +176,12 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
 
           {/* Metrics section */}
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-gray-600">Users:</div>
-              <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
-                {data.value?.toLocaleString() || "0"}
-              </button>
-            </div>
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-gray-600">Users:</div>
+                <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
+                  {Math.round(Number(data.value || 0)).toLocaleString()}
+                </button>
+              </div>
 
             {(() => {
               const sev = getDropoffSeverity(dropOffRate);
@@ -260,7 +260,7 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
           <div className="flex justify-between items-center mb-4">
             <div className="text-gray-600">Step Users:</div>
             <button onClick={handleClickUsers} className="font-semibold text-blue-600 hover:underline cursor-pointer text-[15px]">
-              {node.value.toLocaleString()}
+              {Math.round(Number(node.value || 0)).toLocaleString()}
             </button>
           </div>
 
