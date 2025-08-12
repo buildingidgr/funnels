@@ -17,21 +17,25 @@ type LinkInput = {
   sourceValue?: number;
 };
 
-export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links: LinkInput[] }, options?: { layerOrder?: 'optional-bottom' | 'optional-top' }) {
+export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links: LinkInput[] }) {
   const enhancedData = React.useMemo(() => {
-    const nodes = rechartsData.nodes.map((node, index) => ({
+    const nodes = rechartsData.nodes.map((node, index) => {
+      const rawValue = typeof node.value === 'number' ? node.value : 0;
+      // Use a small epsilon for zero values to avoid NaN layout in d3-sankey divisions
+      const safeValue = rawValue > 0 ? rawValue : 0.1;
+      return {
       name: node.name,
-      value: node.value || 0,
+      value: safeValue,
       color: node.color,
       index,
       conversionRate: 0,
-    }));
+    }});
 
     // Prepare links and sort for layering (optional behind, split middle, main on top)
     const rawLinks = rechartsData.links.map(link => ({
       source: link.source,
       target: link.target,
-      value: link.value || 0,
+      value: typeof link.value === 'number' ? link.value : 0,
       sourceId: link.sourceId || '',
       targetId: link.targetId || '',
       conversionRate: link.conversionRate || 0,
@@ -50,23 +54,25 @@ export function useEnhancedSankeyData(rechartsData: { nodes: NodeInput[]; links:
       return isOptional ? 0 : isSplit ? 1 : 2;
     };
 
-    let links = rawLinks.sort((a, b) => linkPriority(a) - linkPriority(b));
-    if (options?.layerOrder === 'optional-top') {
-      // invert priority so optional draw last (on top)
-      const invPriority = (l: { sourceId?: string; targetId?: string }) => 2 - linkPriority(l);
-      links = rawLinks.sort((a, b) => invPriority(a) - invPriority(b));
-    }
+    // Ensure link values have a minimum epsilon to avoid zero-width paths causing NaN in some renderers
+    const links = rawLinks
+      .map(l => ({ ...l, value: l.value > 0 ? l.value : 0.1 }))
+      .sort((a, b) => linkPriority(a) - linkPriority(b));
 
     return { nodes, links };
-  }, [rechartsData, options?.layerOrder]);
+  }, [rechartsData]);
 
   const isValidData = React.useMemo(() => {
+    // Allow zero-value nodes/links; just require valid indices
+    const nodesNonNegative = enhancedData.nodes.every(n => typeof n.value === 'number' && n.value >= 0);
+    const linksNonNegative = enhancedData.links.every(l => typeof l.value === 'number' && l.value >= 0);
+    const linksIndicesValid = enhancedData.links.every(l => l.source >= 0 && l.target >= 0 && l.source < enhancedData.nodes.length && l.target < enhancedData.nodes.length);
     return (
       enhancedData.nodes.length > 0 &&
       enhancedData.links.length > 0 &&
-      enhancedData.nodes.every(n => typeof n.value === 'number' && n.value > 0) &&
-      enhancedData.links.every(l => typeof l.value === 'number' && l.value > 0) &&
-      enhancedData.links.every(l => l.source >= 0 && l.target >= 0 && l.source < enhancedData.nodes.length && l.target < enhancedData.nodes.length)
+      nodesNonNegative &&
+      linksNonNegative &&
+      linksIndicesValid
     );
   }, [enhancedData]);
 

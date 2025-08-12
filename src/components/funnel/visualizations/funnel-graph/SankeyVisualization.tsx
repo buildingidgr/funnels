@@ -6,7 +6,6 @@ import EnhancedNode from './components/EnhancedNode';
 import EnhancedLink from './components/EnhancedLink';
 import TagsToolbar from './components/TagsToolbar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import OptionalMarkersOverlay from './components/OptionalMarkersOverlay';
 import { useZoomPan } from './hooks/useZoomPan';
 import { useEnhancedSankeyData } from './hooks/useEnhancedSankeyData';
@@ -135,8 +134,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     handleWheel,
   } = useZoomPan(containerRef, { min: 0.1, max: 3 });
 
-  const [layerOrder, setLayerOrder] = useState<'optional-bottom' | 'optional-top'>('optional-bottom');
-  const { enhancedData, isValidData, preCalculatedStepHeights, dynamicContainerHeight } = useEnhancedSankeyData(rechartsData as any, { layerOrder });
+  const { enhancedData, isValidData, preCalculatedStepHeights, dynamicContainerHeight } = useEnhancedSankeyData(rechartsData as any);
 
   // Node layout tracking and fit-to-view logic (depends on isValidData and zoom setters)
   const { onNodeLayout, getNodeLayout } = useNodeLayouts({
@@ -147,11 +145,17 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     setZoom,
     setPan,
     dimensions,
+    expectedNodes: (rechartsData?.nodes?.length || 0),
   });
+
+  // Trigger refit when data changes (e.g., recalculation, new config, page load)
+  useEffect(() => {
+    // Bump layout version indirectly by toggling zoom (no-op clamp) to trigger effect in useNodeLayouts
+    setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z)));
+  }, [rechartsData.nodes.length, rechartsData.links.length, initialValue, setZoom, MIN_ZOOM, MAX_ZOOM]);
 
   // Link render mode and animation speed
   const [linkRenderMode, setLinkRenderMode] = useState<'classic' | 'semantic'>('semantic');
-  const [animationSpeed, setAnimationSpeed] = useState<number>(1);
 
   // Handle step height changes
   const handleStepHeightChange = React.useCallback((stepName: string, height: number) => {
@@ -242,33 +246,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
             </Select>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-xs text-slate-600 font-semibold">Animation speed</div>
-          <div style={{ width: 160 }}>
-            <Slider
-              value={[animationSpeed]}
-              onValueChange={(v) => setAnimationSpeed(v[0])}
-              max={2}
-              min={0.5}
-              step={0.1}
-            />
-            <div className="text-[10px] text-slate-500 mt-1">{animationSpeed === 1 ? 'Normal' : animationSpeed < 1 ? 'Slow' : 'Fast'}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-slate-600 font-semibold">Layer order</div>
-          <div style={{ minWidth: 180 }}>
-            <Select value={layerOrder} onValueChange={(v) => setLayerOrder(v as 'optional-bottom' | 'optional-top')}>
-              <SelectTrigger className="h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="optional-bottom">Main on top</SelectItem>
-                <SelectItem value="optional-top">Optional on top</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        
       </div>
       
       
@@ -291,10 +269,10 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
             flex: 1,
             width: '100%',
             height: '100%',
-            minHeight: '400px',
+            minHeight: '500px',
             background: 'transparent',
             borderRadius: 0,
-            padding: '24px',
+            padding: '32px 24px 24px 24px',
             cursor: isDragging ? 'grabbing' : 'grab',
             overflow: 'hidden',
             position: 'relative',
@@ -306,8 +284,9 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        data-tooltip-container="true"
       >
-        {/* Tooltip overlay inside container for correct positioning */}
+        {/* Tooltip layer: use display: contents to avoid blocking pointer events except on tooltip itself */}
         <div
           style={{
             position: 'absolute',
@@ -315,8 +294,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            pointerEvents: 'none',
-            zIndex: 1000
+            zIndex: 1000,
+            display: 'contents'
           }}
         >
           <CustomTooltip
@@ -360,6 +339,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                   setTooltipVisible={setTooltipVisible}
                   setSelectedNode={setSelectedNode}
                   onNodeLayout={onNodeLayout}
+                  getNodeLayout={getNodeLayout}
+                  rechartsNodes={rechartsData.nodes}
                   debug={enableDebug}
                 />
               ), [preCalculatedStepHeights, handleStepHeightChange, enhancedData?.nodes?.length, handleNodeHover, onNodeLayout, setTooltipVisible])}
@@ -373,13 +354,12 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
                   nodes={rechartsData.nodes}
                   getNodeLayout={getNodeLayout}
                   linkRenderMode={linkRenderMode}
-                  animationSpeed={animationSpeed}
                   debug={enableDebug}
                 />
-              ), [stepHeights, preCalculatedStepHeights, handleLinkHover, getNodeLayout, rechartsData.nodes, setTooltipVisible, linkRenderMode, animationSpeed])}
+              ), [stepHeights, preCalculatedStepHeights, handleLinkHover, getNodeLayout, rechartsData.nodes, setTooltipVisible, linkRenderMode])}
               nodePadding={80}
               nodeWidth={20}
-              margin={{ top: 80, right: 200, bottom: 80, left: 200 }}
+              margin={{ top: 80, right: 220, bottom: 120, left: 220 }}
               iterations={64}
             />
           ) : (

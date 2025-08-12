@@ -5,6 +5,7 @@ import { exampleFunnel5 } from "@/types/funnelExample5";
 import { exampleFunnel6 } from "@/types/funnelExample6";
 import { exampleFunnel7 } from "@/types/funnelExample7";
 import { exampleFunnel8 } from "@/types/funnelExample8";
+import { exampleFunnel9 } from "@/types/funnelExample9";
 import { mockFunnelCalculationService } from "./mockFunnelCalculationService";
 import { toast } from "sonner";
 
@@ -102,13 +103,20 @@ const initializeDefaultFunnels = async () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel9,
+        id: 'b2b-lead-qualification-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
       }
     ];
 
     // Calculate visitor counts for each funnel
     const calculatedFunnels = await Promise.all(
       baseFunnels.map(async (funnel, index) => {
-        const initialValues = [25000, 15000, 12000, 5000, 20000, 8000]; // Different initial values for variety
+        const initialValues = [25000, 15000, 12000, 5000, 20000, 8000, 9000]; // Different initial values for variety
         const results = await mockFunnelCalculationService.calculateFunnel({
           funnel,
           initialValue: initialValues[index],
@@ -198,6 +206,13 @@ const initializeDefaultFunnels = async () => {
       {
         ...exampleFunnel8,
         id: 'product-purchase-dropoff-funnel-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastCalculatedAt: null
+      },
+      {
+        ...exampleFunnel9,
+        id: 'b2b-lead-qualification-funnel-001',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastCalculatedAt: null

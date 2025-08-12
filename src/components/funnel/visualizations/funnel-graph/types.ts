@@ -4,6 +4,7 @@ export interface SankeyNode {
   value: number;
   color?: string;
   mainStepColor?: string; // Color reference to parent step for split steps
+  isOptional?: boolean;
   step?: number;
   previousStep?: string;
   x?: number;

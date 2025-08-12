@@ -47,9 +47,34 @@ export function useSankeyTooltip(params: {
     setTooltipContent([{ payload: tooltipData }]);
 
     const rect = containerRef.current?.getBoundingClientRect();
-    const relX = event.clientX - (rect?.left || 0) + 12;
-    const relY = event.clientY - (rect?.top || 0) + 12;
+    const clientX = event.clientX;
+    const clientY = event.clientY;
+    // Position near cursor, but don't apply anchor offset here; leave to clamping layer
+    let relX = clientX - (rect?.left || 0);
+    let relY = clientY - (rect?.top || 0);
+    const preClamp = { x: relX, y: relY };
+    // Clamp tooltip within container with margins
+    const margin = 12;
+    const containerW = rect?.width || 0;
+    const containerH = rect?.height || 0;
+    const tooltipW = 260; // approximate tooltip width
+    const tooltipH = 120; // approximate tooltip height
+    // Light clamp margins to keep within view but let CustomTooltip finalize
+    relX = Math.max(margin, Math.min(relX, containerW - margin));
+    relY = Math.max(margin, Math.min(relY, containerH - margin));
     setTooltipPosition({ x: relX, y: relY });
+    try {
+      // Strategic debug logging for tooltip placement
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG][Tooltip][Node] placement', {
+        nodeId,
+        client: { x: clientX, y: clientY },
+        container: { width: containerW, height: containerH },
+        preClamp,
+        postClamp: { x: relX, y: relY },
+        clamped: preClamp.x !== relX || preClamp.y !== relY
+      });
+    } catch {}
     setTooltipVisible(true);
     setSelectedNode(node.name || node.id);
   }, [containerRef, interactiveTooltips, nodeMap, rechartsData.nodes, showTooltips]);
@@ -73,9 +98,31 @@ export function useSankeyTooltip(params: {
 
     setTooltipContent([{ payload: tooltipData }]);
     const rect = containerRef.current?.getBoundingClientRect();
-    const relX = event.clientX - (rect?.left || 0) + 12;
-    const relY = event.clientY - (rect?.top || 0) + 12;
+    const clientX = event.clientX;
+    const clientY = event.clientY;
+    let relX = clientX - (rect?.left || 0);
+    let relY = clientY - (rect?.top || 0);
+    const preClamp = { x: relX, y: relY };
+    // Clamp tooltip within container with margins
+    const margin = 12;
+    const containerW = rect?.width || 0;
+    const containerH = rect?.height || 0;
+    const tooltipW = 260; // approximate tooltip width
+    const tooltipH = 120; // approximate tooltip height
+    relX = Math.max(margin, Math.min(relX, containerW - margin));
+    relY = Math.max(margin, Math.min(relY, containerH - margin));
     setTooltipPosition({ x: relX, y: relY });
+    try {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG][Tooltip][Link] placement', {
+        link: { sourceId: link.sourceId, targetId: link.targetId, value: linkValue },
+        client: { x: clientX, y: clientY },
+        container: { width: containerW, height: containerH },
+        preClamp,
+        postClamp: { x: relX, y: relY },
+        clamped: preClamp.x !== relX || preClamp.y !== relY
+      });
+    } catch {}
     setTooltipVisible(true);
   }, [containerRef, interactiveTooltips, rechartsData.nodes, showTooltips]);
 

@@ -26,10 +26,16 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
     const el = tooltipRef.current;
     if (!el || !coordinate) return;
 
-    // Determine container bounds using the overlay (parent) element
-    const parent = el.parentElement as HTMLElement | null;
-    const containerWidth = parent?.clientWidth ?? 0;
-    const containerHeight = parent?.clientHeight ?? 0;
+    // Determine container bounds by finding the nearest marked container ancestor
+    const containerEl = (el.closest('[data-tooltip-container="true"]') as HTMLElement | null) || el.parentElement;
+    const containerRect = containerEl?.getBoundingClientRect();
+    const containerWidth = containerRect?.width ?? containerEl?.clientWidth ?? 0;
+    const containerHeight = containerRect?.height ?? containerEl?.clientHeight ?? 0;
+    const cs = containerEl ? window.getComputedStyle(containerEl) : null;
+    const padTop = cs ? parseFloat(cs.paddingTop || '0') : 0;
+    const padRight = cs ? parseFloat(cs.paddingRight || '0') : 0;
+    const padBottom = cs ? parseFloat(cs.paddingBottom || '0') : 0;
+    const padLeft = cs ? parseFloat(cs.paddingLeft || '0') : 0;
 
     // Start with requested coordinates
     let nextX = coordinate.x;
@@ -42,30 +48,82 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
       el.style.opacity = '0';
     }
 
-    // Measure tooltip size
-    const tooltipWidth = el.offsetWidth;
-    const tooltipHeight = el.offsetHeight;
+    // Measure tooltip size (fallbacks if not yet measurable)
+    const tooltipWidth = el.offsetWidth || 260;
+    const tooltipHeight = el.offsetHeight || 120;
     const padding = 8; // minimal inset from edges
 
-    // Clamp within container bounds
-    if (tooltipWidth > 0 && containerWidth > 0) {
-      if (nextX + tooltipWidth + padding > containerWidth) {
-        nextX = Math.max(padding, containerWidth - tooltipWidth - padding);
-      } else if (nextX < padding) {
-        nextX = padding;
-      }
+    // Place relative to cursor with small anchor, then clamp inside container padding box
+    const anchor = 12;
+    let flippedX = false;
+    let flippedY = false;
+
+    // Horizontal placement: prefer right of cursor, else left
+    const minX = padLeft + padding;
+    const maxX = Math.max(minX, containerWidth - padRight - tooltipWidth - padding);
+    if (nextX + anchor + tooltipWidth + padRight + padding <= containerWidth) {
+      nextX = nextX + anchor;
+    } else {
+      nextX = nextX - anchor - tooltipWidth;
+      flippedX = true;
     }
-    if (tooltipHeight > 0 && containerHeight > 0) {
-      if (nextY + tooltipHeight + padding > containerHeight) {
-        nextY = Math.max(padding, containerHeight - tooltipHeight - padding);
-      } else if (nextY < padding) {
-        nextY = padding;
-      }
+    nextX = Math.max(minX, Math.min(nextX, maxX));
+
+    // Vertical placement: prefer below cursor, else above
+    const minY = padTop + padding;
+    const maxY = Math.max(minY, containerHeight - padBottom - tooltipHeight - padding);
+    if (nextY + anchor + tooltipHeight + padBottom + padding <= containerHeight) {
+      nextY = nextY + anchor;
+    } else {
+      nextY = nextY - anchor - tooltipHeight;
+      flippedY = true;
     }
+    nextY = Math.max(minY, Math.min(nextY, maxY));
 
     // Apply final position
     el.style.left = `${nextX}px`;
     el.style.top = `${nextY}px`;
+
+    // Second pass after paint to catch late content reflow (two-step re-clamp)
+    const rafId = requestAnimationFrame(() => {
+      const tW = el.offsetWidth || tooltipWidth;
+      const tH = el.offsetHeight || tooltipHeight;
+      let adjX = nextX;
+      let adjY = nextY;
+      const minXRaf = padLeft + padding;
+      const maxXRaf = Math.max(minXRaf, containerWidth - padRight - tW - padding);
+      const minYRaf = padTop + padding;
+      const maxYRaf = Math.max(minYRaf, containerHeight - padBottom - tH - padding);
+      const overflowRight = adjX + tW + padRight + padding > containerWidth;
+      const overflowBottom = adjY + tH + padBottom + padding > containerHeight;
+      const overflowLeft = adjX < minXRaf;
+      const overflowTop = adjY < minYRaf;
+      if (overflowRight) adjX = maxXRaf;
+      if (overflowLeft) adjX = minXRaf;
+      if (overflowBottom) adjY = maxYRaf;
+      if (overflowTop) adjY = minYRaf;
+      el.style.left = `${adjX}px`;
+      el.style.top = `${adjY}px`;
+      try {
+        // eslint-disable-next-line no-console
+      console.log('[DEBUG][Tooltip] raf reclamp', { tW, tH, adjX, adjY, overflowRight, overflowBottom, overflowLeft, overflowTop, padTop, padRight, padBottom, padLeft });
+      } catch {}
+    });
+
+    try {
+      // Strategic logs for diagnosing cut-offs
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG][Tooltip] measured & clamped', {
+        container: { width: containerWidth, height: containerHeight },
+        tooltip: { width: tooltipWidth, height: tooltipHeight },
+        requested: coordinate,
+        applied: { x: nextX, y: nextY },
+        flipped: { x: flippedX, y: flippedY },
+        clippedRight: nextX + tooltipWidth + padRight + padding > containerWidth,
+        clippedBottom: nextY + tooltipHeight + padBottom + padding > containerHeight,
+        padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft }
+      });
+    } catch {}
 
     // Control visibility based on active state
     if (active && payload && payload.length > 0) {
@@ -75,6 +133,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
       el.style.visibility = 'hidden';
       el.style.opacity = '0';
     }
+
+    return () => cancelAnimationFrame(rafId);
   }, [active, coordinate, payload]);
 
   // Always render the container, but control visibility with CSS
@@ -92,7 +152,11 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
         boxShadow: 'none',
         padding: 0,
         minWidth: 'unset',
+        // Allow pointer interactions within tooltip
         pointerEvents: 'auto',
+        maxWidth: 'calc(100% - 16px)',
+        maxHeight: 'calc(100% - 16px)',
+        overflow: 'auto',
         // Initial visibility
         visibility: (active && payload && payload.length > 0) ? 'visible' : 'hidden',
         opacity: (active && payload && payload.length > 0) ? 1 : 0,
@@ -100,7 +164,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
         left: coordinate?.x || 0,
         top: coordinate?.y || 0,
         // Don't use any transitions or animations
-        transition: 'none'
+        transition: 'none',
+        // Prevent clipping by parent overflow hidden
+        willChange: 'transform'
       }}
     >
       {/* Always render the content, let CSS control visibility */}

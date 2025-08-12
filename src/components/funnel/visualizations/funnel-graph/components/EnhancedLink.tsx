@@ -6,8 +6,18 @@ type EnhancedLinkProps = any; // Keep flexible to align with current Recharts ty
 const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, payload, stepHeights, nodes, preCalculatedStepHeights, ...props }: any) => {
   const [isHovered, setIsHovered] = useState(false);
   const debug: boolean = props.debug === true;
-  const renderMode: 'classic' | 'semantic' = props.linkRenderMode || 'classic';
-  const animationSpeed: number = props.animationSpeed || 1;
+  const shouldDebug = (() => {
+    try {
+      // Enable via prop, window flag, or localStorage key
+      if (debug) return true;
+      // @ts-ignore
+      if (typeof window !== 'undefined' && (window as any).SankeyDebug === true) return true;
+      if (typeof window !== 'undefined' && localStorage.getItem('sankeyDebug') === '1') return true;
+    } catch {}
+    return false;
+  })();
+  const renderMode: 'classic' | 'semantic' = props.linkRenderMode || 'semantic';
+  const animationSpeed: number = 1;
 
   const handleLinkHover = props.handleLinkHover;
 
@@ -47,22 +57,31 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
     linkColor = '#7c3aed';
   }
 
-  let adjustedSourceX = sourceX;
-  let adjustedSourceY = sourceY;
-  let adjustedTargetX = targetX;
-  let adjustedTargetY = targetY;
+  // Category palette for semantic mode (consistent hues by type)
+  const categoryColor = React.useMemo(() => {
+    if (linkType === 'main') return '#3b82f6'; // blue
+    if (linkType === 'split') return '#8b5cf6'; // purple
+    return '#64748b'; // slate/gray for optional
+  }, [linkType]);
+
+  const isFiniteNumber = (v: any) => typeof v === 'number' && Number.isFinite(v) && !Number.isNaN(v);
+  const sanitize = (v: any, fallback = 0) => (isFiniteNumber(v) ? v : fallback);
+
+  let adjustedSourceX = sanitize(sourceX, 0);
+  let adjustedSourceY = sanitize(sourceY, 0);
+  let adjustedTargetX = sanitize(targetX, adjustedSourceX + 1);
+  let adjustedTargetY = sanitize(targetY, adjustedSourceY);
 
   try {
     if (props.getNodeLayout && typeof props.getNodeLayout === 'function') {
       const sourceLayout = props.getNodeLayout(payload.sourceId);
       const targetLayout = props.getNodeLayout(payload.targetId);
       if (sourceLayout) {
-        adjustedSourceX = sourceLayout.xRight;
-        adjustedSourceY = sourceLayout.yCenter;
+        // Keep Recharts-provided X for perfect column snapping; only align Y to our computed center
+        adjustedSourceY = sanitize(sourceLayout.yCenter, adjustedSourceY);
       }
       if (targetLayout) {
-        adjustedTargetX = targetLayout.xLeft;
-        adjustedTargetY = targetLayout.yCenter;
+        adjustedTargetY = sanitize(targetLayout.yCenter, adjustedTargetY);
       }
       if (isBypass && (sourceLayout || targetLayout)) {
         const sourceStepNum = parseInt((payload.sourceId || '').split('-')[1] || '0', 10);
@@ -70,14 +89,30 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
         const sourceEdgeOffset = sourceLayout ? Math.min(12, Math.max(8, sourceLayout.height * 0.2)) : 10;
         const targetEdgeOffset = targetLayout ? Math.min(12, Math.max(8, targetLayout.height * 0.2)) : 10;
         if (sourceLayout) {
-          adjustedSourceY = routeAbove ? (sourceLayout.yTop + sourceEdgeOffset) : (sourceLayout.yBottom - sourceEdgeOffset);
+          adjustedSourceY = sanitize(routeAbove ? (sourceLayout.yTop + sourceEdgeOffset) : (sourceLayout.yBottom - sourceEdgeOffset), adjustedSourceY);
         }
         if (targetLayout) {
-          adjustedTargetY = routeAbove ? (targetLayout.yTop + targetEdgeOffset) : (targetLayout.yBottom - targetEdgeOffset);
+          adjustedTargetY = sanitize(routeAbove ? (targetLayout.yTop + targetEdgeOffset) : (targetLayout.yBottom - targetEdgeOffset), adjustedTargetY);
         }
+      }
+      if (shouldDebug) {
+        try { console.log('[DEBUG][LinkAnchors]', {
+          ids: { sourceId: payload.sourceId, targetId: payload.targetId },
+          provided: { sourceX, sourceY, targetX, targetY },
+          adjusted: { adjustedSourceX, adjustedSourceY, adjustedTargetX, adjustedTargetY },
+          fromLayouts: {
+            source: sourceLayout ? { xLeft: sourceLayout.xLeft, xRight: sourceLayout.xRight, yTop: sourceLayout.yTop, yCenter: sourceLayout.yCenter, yBottom: sourceLayout.yBottom } : null,
+            target: targetLayout ? { xLeft: targetLayout.xLeft, xRight: targetLayout.xRight, yTop: targetLayout.yTop, yCenter: targetLayout.yCenter, yBottom: targetLayout.yBottom } : null,
+          }
+        }); } catch {}
       }
     }
   } catch {}
+
+  // Final safety: if any coordinate is invalid after adjustments, skip rendering this link altogether
+  if (!isFiniteNumber(adjustedSourceX) || !isFiniteNumber(adjustedSourceY) || !isFiniteNumber(adjustedTargetX) || !isFiniteNumber(adjustedTargetY)) {
+    return null;
+  }
 
   // Compute sibling offsets for split branches to reduce overlap
   let siblingIndex = 0;
@@ -107,7 +142,7 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
 
   let path: string;
   const distance = Math.abs(adjustedTargetX - adjustedSourceX);
-  const curveOffset = Math.min(distance * 0.15, 30);
+  const curveOffset = Math.min(distance * 0.18, 40);
 
   // Track actual y used for rendering (used by glyphs)
   let renderSourceYUsed = adjustedSourceY;
@@ -129,7 +164,7 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
     path = `M${adjustedSourceX},${adjustedSourceY} C${midX - curveOffset},${adjustedSourceY} ${midX + curveOffset},${adjustedTargetY} ${adjustedTargetX},${adjustedTargetY}`;
   } else if (isSplit) {
     const midX = (adjustedSourceX + adjustedTargetX) / 2;
-    const splitOffset = Math.min(distance * 0.1, 20);
+    const splitOffset = Math.min(distance * 0.12, 26);
     const fromMainToSplit = (payload.targetId || '').includes('-split-');
     const fromSplitToMain = (payload.sourceId || '').includes('-split-');
     const sourceY = fromMainToSplit ? adjustedSourceY : adjustedSourceY + siblingOffsetPx;
@@ -143,6 +178,9 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
     renderSourceYUsed = adjustedSourceY;
     renderTargetYUsed = adjustedTargetY;
     path = `M${adjustedSourceX},${adjustedSourceY} C${midX - regularOffset},${adjustedSourceY} ${midX + regularOffset},${adjustedTargetY} ${adjustedTargetX},${adjustedTargetY}`;
+  }
+  if (shouldDebug) {
+    try { console.log('[DEBUG][LinkPath]', { ids: { sourceId: payload.sourceId, targetId: payload.targetId }, path }); } catch {}
   }
 
   const sourceValue = payload.sourceValue || payload.value;
@@ -164,19 +202,21 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
   const hoverFlowWidth = isHovered ? actualFlowWidth * 1.5 : actualFlowWidth;
 
   // IDs for defs that need to be unique per link
-  const gradientId = `gradient-${payload.sourceId}-${payload.targetId}`;
-  const flowGradientId = `flow-gradient-${payload.sourceId}-${payload.targetId}`;
-  const arrowId = `arrow-${payload.sourceId}-${payload.targetId}`;
-  const labelPathId = `lp-${payload.sourceId}-${payload.targetId}`;
+  const safeSourceId = (payload?.sourceId || 'unknown').toString();
+  const safeTargetId = (payload?.targetId || 'unknown').toString();
+  const gradientId = `gradient-${safeSourceId}-${safeTargetId}`;
+  const flowGradientId = `flow-gradient-${safeSourceId}-${safeTargetId}`;
+  const arrowId = `arrow-${safeSourceId}-${safeTargetId}`;
+  const labelPathId = `lp-${safeSourceId}-${safeTargetId}`;
 
   // Renderers for semantic mode
   const renderRibbonMain = () => (
     <>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'} stopOpacity="0.5" />
-          <stop offset="50%" stopColor={isHighConversion ? '#34d399' : isLowConversion ? '#9ca3af' : '#60a5fa'} stopOpacity="0.9" />
-          <stop offset="100%" stopColor={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'} stopOpacity="0.5" />
+          <stop offset="0%" stopColor={categoryColor} stopOpacity="0.5" />
+          <stop offset="50%" stopColor={categoryColor} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={categoryColor} stopOpacity="0.5" />
         </linearGradient>
         <marker id={arrowId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto" markerUnits="userSpaceOnUse">
           <path d="M0,0 L10,5 L0,10 z" fill={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'} />
@@ -187,7 +227,7 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
       <path
         d={path}
         fill="none"
-        stroke={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'}
+        stroke={categoryColor}
         strokeWidth={shouldHideMainConnection ? 0 : (hoverFlowWidth + 12)}
         strokeOpacity={0.12}
         strokeLinecap="round"
@@ -213,6 +253,30 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
         strokeLinecap="round"
         style={{ transition: 'stroke-width 0.3s ease', mixBlendMode: 'overlay' }}
       />
+      {/* Subtle moving flow overlay */}
+      <path
+        d={path}
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth={shouldHideMainConnection ? 0 : Math.max(1.5, hoverFlowWidth * 0.2)}
+        strokeOpacity={0.5}
+        strokeLinecap="round"
+        style={{ filter: isHovered ? 'drop-shadow(0 2px 6px rgba(255,255,255,0.5))' : 'none' }}
+        strokeDasharray="6 6"
+      >
+        <animate attributeName="stroke-dashoffset" from="0" to="12" dur="3s" repeatCount="indefinite" />
+      </path>
+      {/* Bead motion along main path (subtle) */}
+      <circle r={Math.max(1.4, hoverFlowWidth * 0.16)} fill="#ffffff" opacity={0.85}>
+        <animateMotion dur={`1.8s`} repeatCount="indefinite">
+          <mpath href={`#${labelPathId}`} />
+        </animateMotion>
+      </circle>
+      <circle r={Math.max(1.2, hoverFlowWidth * 0.14)} fill="#ffffff" opacity={0.65}>
+        <animateMotion dur={`1.8s`} begin="0.9s" repeatCount="indefinite">
+          <mpath href={`#${labelPathId}`} />
+        </animateMotion>
+      </circle>
       {/* Curved value label */}
       {payload?.value && !isHovered && !shouldHideMainConnection && (
         <text fontSize={10} fill="#475569">
@@ -228,8 +292,8 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
     <>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={linkColor === 'transparent' ? '#8b5cf6' : linkColor} stopOpacity="0.7" />
-          <stop offset="100%" stopColor={linkColor === 'transparent' ? '#60a5fa' : linkColor} stopOpacity="0.7" />
+          <stop offset="0%" stopColor={categoryColor} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={categoryColor} stopOpacity="0.7" />
         </linearGradient>
       </defs>
       {/* Solid inner line */}
@@ -258,7 +322,7 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
         <path id={labelPathId} d={path} />
       </defs>
       <circle r={Math.max(1.5, hoverFlowWidth * 0.18)} fill="#ffffff">
-        <animateMotion dur={`${(1.6 / animationSpeed).toFixed(2)}s`} repeatCount="indefinite">
+        <animateMotion dur={`1.6s`} repeatCount="indefinite">
           <mpath href={`#${labelPathId}`} />
         </animateMotion>
       </circle>
@@ -276,14 +340,23 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
       <path
         d={path}
         fill="none"
-        stroke={linkColor}
+        stroke={categoryColor}
         strokeWidth={Math.max(1, hoverFlowWidth * 0.6)}
         strokeDasharray="10 6"
         strokeLinecap="round"
         style={{ opacity: 0.35, filter: 'blur(0.4px)' }}
       >
-        <animate attributeName="stroke-dashoffset" from="0" to="16" dur={`${(2.5 / animationSpeed).toFixed(2)}s`} repeatCount="indefinite" />
+        <animate attributeName="stroke-dashoffset" from="0" to="16" dur={`2.5s`} repeatCount="indefinite" />
       </path>
+      {/* Bead motion along optional path (very subtle) */}
+      <defs>
+        <path id={labelPathId} d={path} />
+      </defs>
+      <circle r={Math.max(1.0, hoverFlowWidth * 0.12)} fill="#ffffff" opacity={0.6}>
+        <animateMotion dur={`2.2s`} repeatCount="indefinite">
+          <mpath href={`#${labelPathId}`} />
+        </animateMotion>
+      </circle>
     </>
   );
 
@@ -320,9 +393,9 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
         <>
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'} stopOpacity="0.3" />
-              <stop offset="50%" stopColor={isHighConversion ? '#34d399' : isLowConversion ? '#9ca3af' : '#60a5fa'} stopOpacity="0.6" />
-              <stop offset="100%" stopColor={isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6'} stopOpacity="0.3" />
+              <stop offset="0%" stopColor={categoryColor} stopOpacity="0.3" />
+              <stop offset="50%" stopColor={categoryColor} stopOpacity="0.6" />
+              <stop offset="100%" stopColor={categoryColor} stopOpacity="0.3" />
             </linearGradient>
           </defs>
 
@@ -343,7 +416,7 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
           <path
             d={path}
             fill="none"
-            stroke={isBypass ? linkColor : (isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6')}
+            stroke={isBypass ? categoryColor : categoryColor}
             strokeWidth={shouldHideMainConnection ? 0 : hoverFlowWidth}
             strokeOpacity={isBypass ? 1 : (isHovered ? 1 : 0.95)}
             strokeLinecap="round"
@@ -378,48 +451,54 @@ const EnhancedLink: React.FC<EnhancedLinkProps> = ({ sourceX, sourceY, targetX, 
             strokeLinecap="round"
             className="sankey-link-flow"
             style={{
-              animation: `flowAnimation ${(3 / animationSpeed).toFixed(2)}s linear infinite`,
+              animation: 'flowAnimation 3s linear infinite',
               strokeDasharray: '6,6',
               transition: 'all 0.4s ease',
               filter: isHovered ? 'drop-shadow(0 2px 8px rgba(255, 255, 255, 0.6))' : 'none',
             }}
           />
 
-          {conversionRate > 0 && payload.value > 20 && !isHovered && !shouldHideMainConnection && (
-            <>
-              <rect
-                x={(sourceX + targetX) / 2 - 35}
-                y={(sourceY + targetY) / 2 - 25}
-                width={70}
-                height={20}
-                fill={isHighConversion ? 'rgba(16, 185, 129, 0.95)' : isLowConversion ? 'rgba(107, 114, 128, 0.95)' : 'rgba(59, 130, 246, 0.95)'}
-                rx={10}
-                ry={10}
-                style={{
-                  filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
-                  stroke: isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6',
-                  strokeWidth: 1.5,
-                }}
-              />
-              <text
-                x={(sourceX + targetX) / 2}
-                y={(sourceY + targetY) / 2 - 12}
-                textAnchor="middle"
-                fill="white"
-                fontSize={11}
-                fontWeight="800"
-                className="sankey-link-label"
-                style={{
-                  textShadow: '0 2px 4px rgba(0,0,0,0.6)',
-                  paintOrder: 'stroke fill',
-                  stroke: 'rgba(0, 0, 0, 0.4)',
-                  strokeWidth: '1px',
-                }}
-              >
-                {conversionRate.toFixed(1)}%
-              </text>
-            </>
-          )}
+          {(() => {
+            if (!(conversionRate > 0 && payload.value > 20 && !isHovered && !shouldHideMainConnection)) return null;
+            const labelX = (adjustedSourceX + adjustedTargetX) / 2;
+            const labelY = (renderSourceYUsed + renderTargetYUsed) / 2;
+            if (!isFiniteNumber(labelX) || !isFiniteNumber(labelY)) return null;
+            return (
+              <>
+                <rect
+                  x={labelX - 35}
+                  y={labelY - 25}
+                  width={70}
+                  height={20}
+                  fill={isHighConversion ? 'rgba(16, 185, 129, 0.95)' : isLowConversion ? 'rgba(107, 114, 128, 0.95)' : 'rgba(59, 130, 246, 0.95)'}
+                  rx={10}
+                  ry={10}
+                  style={{
+                    filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
+                    stroke: isHighConversion ? '#10b981' : isLowConversion ? '#6b7280' : '#3b82f6',
+                    strokeWidth: 1.5,
+                  }}
+                />
+                <text
+                  x={labelX}
+                  y={labelY - 12}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize={11}
+                  fontWeight="800"
+                  className="sankey-link-label"
+                  style={{
+                    textShadow: '0 2px 4px rgba(0,0,0,0.6)',
+                    paintOrder: 'stroke fill',
+                    stroke: 'rgba(0, 0, 0, 0.4)',
+                    strokeWidth: '1px',
+                  }}
+                >
+                  {conversionRate.toFixed(1)}%
+                </text>
+              </>
+            );
+          })()}
         </>
       )}
     </g>

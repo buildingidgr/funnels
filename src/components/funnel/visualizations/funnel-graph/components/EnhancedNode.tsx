@@ -13,22 +13,51 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
     fromPayload: !!payload?.isOptional
   };
 
-  const finalHeight = preCalculatedStepHeights[payload.name] || (height > 0 ? height : 30);
-  const yOffset = (finalHeight - height) / 2;
-  const finalY = y - yOffset;
+  // Sanitize numeric inputs to prevent NaN geometry
+  const isFiniteNumber = (v: any) => typeof v === 'number' && Number.isFinite(v) && !Number.isNaN(v);
+  const sanitize = (v: any, fallback = 0) => (isFiniteNumber(v) ? v : fallback);
+
+  const sx = sanitize(x, 0);
+  const sy = sanitize(y, 0);
+  const sw = sanitize(width, 0);
+  const sh = sanitize(height, 0);
+
+  const preHeight = preCalculatedStepHeights[payload.name];
+  const finalHeight = isFiniteNumber(preHeight) && preHeight! > 0 ? preHeight : (sh > 0 ? sh : 30);
+  const yOffset = (finalHeight - sh) / 2;
+  const unclampedFinalY = sy - yOffset;
+  const finalY = Math.max(20, unclampedFinalY);
+
+  // Apply minimum vertical spacing between sibling split nodes of the same parent
+  let adjustedY = isFiniteNumber(finalY) ? finalY : sy;
+  try {
+    const isSplit = (payload.name || '').includes('split');
+    if (isSplit && props.rechartsNodes) {
+      const match = (payload.name || '').match(/step-(\d+)-split-(\d+)/);
+      const parentIdx = match ? parseInt(match[1], 10) : null;
+      const mySplitIdx = match ? parseInt(match[2], 10) : 0;
+      if (parentIdx !== null && Array.isArray(props.rechartsNodes)) {
+        const siblingCount = props.rechartsNodes.filter((n: any) => typeof n.name === 'string' && n.name.startsWith(`step-${parentIdx}-split-`)).length;
+        const minGap = 24; // minimum pixels between split nodes
+        const offsetFromCenter = (mySplitIdx - (siblingCount - 1) / 2) * minGap;
+        adjustedY = adjustedY + offsetFromCenter;
+      }
+    }
+  } catch {}
 
   React.useEffect(() => {
-    const computedWidth = width * 1.5;
+    // Keep computed width aligned with Recharts' link anchors
+    const computedWidth = sw;
     const layoutMetrics = {
-      x,
-      yOriginal: y,
-      widthOriginal: width,
-      heightOriginal: height,
-      xLeft: x,
-      xRight: x + computedWidth,
-      yTop: finalY,
-      yBottom: finalY + finalHeight,
-      yCenter: finalY + finalHeight / 2,
+      x: sx,
+      yOriginal: sy,
+      widthOriginal: sw,
+      heightOriginal: sh,
+      xLeft: sx,
+      xRight: sx + computedWidth,
+      yTop: adjustedY,
+      yBottom: adjustedY + finalHeight,
+      yCenter: adjustedY + finalHeight / 2,
       width: computedWidth,
       height: finalHeight,
     };
@@ -39,7 +68,7 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
       try { console.log('[DEBUG] Node layout computed:', { id: payload.name, ...layoutMetrics }); } catch {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [x, y, width, height, finalY, finalHeight, payload?.name]);
+  }, [sx, sy, sw, sh, adjustedY, finalHeight, payload?.name]);
 
   const isSplit = payload.name.includes('split');
   const isDomestic = payload.name.toLowerCase().includes('domestic');
@@ -121,6 +150,8 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
     }
   }, [height, payload.name, payload.value, props.onStepHeightChange, preCalculatedStepHeights]);
 
+  // adjustedY has already been computed above
+
   return (
     <g
       className={`sankey-node-group ${isSplit ? 'sankey-split-node' : ''}`}
@@ -140,9 +171,9 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
       }}
     >
       <rect
-        x={x}
-        y={finalY}
-        width={width * 1.5}
+        x={sx}
+        y={adjustedY}
+        width={sw}
         height={finalHeight}
         fill={nodeColor}
         rx={8}
@@ -160,7 +191,7 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
         const markerRectW = 28;
         const markerRectH = 16;
         const markerRectX = x + 8;
-        const markerRectY = finalY + 6;
+        const markerRectY = adjustedY + 6;
         const markerTextX = markerRectX + markerRectW / 2;
         const markerTextY = markerRectY + markerRectH * 0.68;
         return (
@@ -192,11 +223,11 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
         );
       })()}
 
-      {conversionRate > 0 && (
+      {conversionRate > 0 && isFiniteNumber(finalY) && (
         <>
           <rect
-            x={x + (width * 1.5) / 2 - 40}
-            y={finalY + finalHeight + 10}
+            x={sx + (sw) / 2 - 40}
+            y={adjustedY + finalHeight + 10}
             width={80}
             height={25}
             fill={isHighConversion ? 'rgba(16, 185, 129, 0.9)' : isLowConversion ? 'rgba(107, 114, 128, 0.9)' : 'rgba(251, 191, 36, 0.9)'}
@@ -209,8 +240,8 @@ const EnhancedNode: React.FC<EnhancedNodeProps> = ({ x, y, width, height, index,
             }}
           />
           <text
-            x={x + (width * 1.5) / 2}
-            y={finalY + finalHeight + 25}
+            x={sx + (sw) / 2}
+            y={adjustedY + finalHeight + 25}
             textAnchor="middle"
             fill="white"
             fontSize={12}

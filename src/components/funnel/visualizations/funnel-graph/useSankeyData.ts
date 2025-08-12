@@ -69,14 +69,14 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
         console.log(`[DEBUG] Processing splits for step ${step.name}:`, step.split);
         step.split.forEach((splitStep, splitIndex) => {
           const splitValue = splitStep.value || 0;
-          // Only add split steps with values
-          if (splitValue > 0) {
+          // Always add split nodes even if zero
+          {
             // Create a lighter version of the parent color for the split
             const baseColor = color;
             // Add the split step with transparent styling
             nodes.push({
               id: `step-${index}-split-${splitIndex}`,
-              name: splitStep.name,
+              name: splitStep.name && splitStep.name.trim().length > 0 ? splitStep.name : `Variation ${splitIndex + 1}`,
               value: splitValue,
               // Make split step transparent to avoid visual clutter
               color: "transparent", // Make the node transparent
@@ -136,13 +136,6 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
       } else {
         const prevStep = enabledSteps[i - 1];
         const prevValue = prevStep.value || 0;
-        
-        // Skip links from zero value nodes
-        if (prevValue === 0) {
-          console.log(`[DEBUG] Skipping link from step ${prevStep.name} (zero value)`);
-          // Use continue to skip to the next iteration
-          continue;
-        }
         
         // Check for zero or undefined values to avoid NaN
         const percentage = prevValue > 0 ? ((currentValue / prevValue) * 100) : 0;
@@ -242,10 +235,7 @@ export const useSankeyData = (enabledSteps: FunnelStep[], initialValue: number, 
         currentStep.splitVariations.forEach((splitVariation, splitIndex) => {
           const splitValue = splitVariation.visitorCount || 0;
           
-          // Skip links to zero value nodes - fixed to properly scope the continue
-          if (currentValue === 0) {
-            return; // Use return in forEach instead of continue
-          }
+          // Always render split links even if zero
           
           // Check for zero or undefined values to avoid NaN
           const splitPercentage = currentValue > 0 ? ((splitValue / currentValue) * 100) : 0;
