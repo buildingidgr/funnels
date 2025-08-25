@@ -79,7 +79,19 @@ const useDiagramLayout = (nodeCount: number, width: number) => {
 };
 
 // Simplified Custom Node component
-const CustomNode = (props: any) => {
+const CustomNode = (props: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  index: number;
+  payload: { 
+    name: string; 
+    displayName?: string; 
+    originalName?: string;
+  };
+  isActive: boolean;
+}) => {
   const { x, y, width, height, index, payload, isActive } = props;
   
   // Debug logging to see what's being passed to the node
@@ -213,7 +225,18 @@ const CustomNode = (props: any) => {
 };
 
 // Simplified Custom Link component
-const CustomLink = (props: any) => {
+const CustomLink = (props: {
+  sourceX: number;
+  targetX: number;
+  sourceY: number;
+  targetY: number;
+  sourceControlX: number;
+  targetControlX: number;
+  linkWidth: number;
+  index: number;
+  payload: { targetId?: string; sourceId?: string; conversionRate?: number; value?: number };
+  isActive: boolean;
+}) => {
   const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, 
     index, payload, isActive } = props;
   
@@ -312,7 +335,7 @@ const CustomLink = (props: any) => {
 };
 
 // Validate Sankey data to prevent errors
-const validateSankeyData = (data: any) => {
+const validateSankeyData = (data: { nodes: Array<{ name: string; displayName?: string }>; links: Array<{ source: number | string; target: number | string; value: number }> } | null) => {
   if (!data) return null;
   
   // Create a deep copy to avoid modifying the original
@@ -378,6 +401,49 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
   
   // Flag to prevent hover loop
   const isProcessingHoverEvent = useRef(false);
+
+  // Validate the data early
+  const validatedData = validateSankeyData(rechartsData);
+
+  // Calculate layout dimensions
+  const { diagramWidth, nodePadding, nodeWidth, margins } = useDiagramLayout(
+    validatedData?.nodes?.length || 0,
+    dimensions.width
+  );
+
+  // Prepare data with original names
+  const enhancedData = React.useMemo(() => {
+    if (!validatedData) return null;
+    
+    // Add original names to nodes
+    const nodesWithNames = validatedData.nodes.map(node => {
+      // The node.name contains the node ID (like "step-0"), and node.displayName contains the actual step name
+      // We don't need to look up in nodeMap since the displayName is already set correctly
+      const enhancedNode = {
+        ...node,
+        originalName: node.displayName || node.name || '',
+        displayName: node.displayName || node.name || ''
+      };
+      
+      // Debug logging for each node
+      console.log(`[DEBUG] Enhanced node mapping:`, {
+        nodeName: node.name,
+        nodeDisplayName: node.displayName,
+        enhancedNode: {
+          name: enhancedNode.name,
+          displayName: enhancedNode.displayName,
+          originalName: enhancedNode.originalName
+        }
+      });
+      
+      return enhancedNode;
+    });
+    
+    return {
+      ...validatedData,
+      nodes: nodesWithNames
+    };
+  }, [validatedData, nodeMap]);
   
   // Update dimensions when the container resizes
   useEffect(() => {
@@ -427,128 +493,85 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       const svg = svgRef.current?.querySelector('.recharts-surface');
       if (!svg) return;
       
-      // Remove any existing highlighted elements
-      svg.querySelectorAll('.highlighted-link').forEach(el => {
-        el.classList.remove('highlighted-link');
-      });
-      
-      // Get link information
-      const target = e.currentTarget;
-      const pathElement = target.querySelector('path') || target;
-      
-      const sourceId = pathElement.getAttribute('data-source');
-      const targetId = pathElement.getAttribute('data-target');
+      // Get the link element that was hovered
+      const linkElement = e.currentTarget as SVGElement;
+      const sourceId = linkElement.getAttribute('data-source-id');
+      const targetId = linkElement.getAttribute('data-target-id');
       
       if (!sourceId || !targetId) return;
       
-      // Update the active element reference
-      activeElementRef.current = { type: 'link', id: `${sourceId}-${targetId}` };
+      // Find the corresponding link in the data
+      const link = enhancedData?.links.find(l => 
+        enhancedData.nodes[l.source]?.name === sourceId && 
+        enhancedData.nodes[l.target]?.name === targetId
+      );
       
-      // Add highlight class to current element
-      pathElement.classList.add('highlighted-link');
+      if (!link) return;
       
-      // Store the original width if not already stored
-      if (!pathElement.hasAttribute('data-hover-original-width')) {
-        const originalWidth = pathElement.getAttribute('data-original-width') || 
-                             pathElement.getAttribute('stroke-width') || '1';
-        pathElement.setAttribute('data-hover-original-width', originalWidth);
-      }
+      // Highlight the link and connected nodes
+      const sourceNode = enhancedData.nodes[link.source];
+      const targetNode = enhancedData.nodes[link.target];
       
-      // Get the original width
-      const originalWidth = parseFloat(pathElement.getAttribute('data-hover-original-width') || '1');
+      // Remove previous highlights
+      svg.querySelectorAll('.highlighted-node, .highlighted-link').forEach(el => {
+        el.classList.remove('highlighted-node', 'highlighted-link');
+      });
       
-      // Apply direct style changes - always calculate from the original width
-      pathElement.setAttribute('stroke-opacity', '0.85');
-      pathElement.setAttribute('stroke-width', (originalWidth * 1.5).toString());
+      // Add highlights
+      const sourceElements = svg.querySelectorAll(`[data-node-id="${sourceNode.name}"]`);
+      const targetElements = svg.querySelectorAll(`[data-node-id="${targetNode.name}"]`);
+      const linkElements = svg.querySelectorAll(`[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
       
-      // Create tooltip content - ensure this has required data
-      const sourceNode = nodeMap[sourceId];
-      const targetNode = nodeMap[targetId];
+      sourceElements.forEach(el => el.classList.add('highlighted-node'));
+      targetElements.forEach(el => el.classList.add('highlighted-node'));
+      linkElements.forEach(el => el.classList.add('highlighted-link'));
       
-      // Use comprehensive tooltip data
-      const tooltipData = {
-        source: nodeMap[sourceId]?.step || 0,
-        target: nodeMap[targetId]?.step || 0,
-        value: targetNode?.value || 0,
-        sourceValue: sourceNode?.value || 0,
-        sourceId,
-        targetId,
-        sourceName: sourceNode?.name || sourceId,
-        targetName: targetNode?.name || targetId
-      };
-      
-      console.log("Setting tooltip content:", tooltipData);
-      
-      // Update tooltip settings with a small delay to ensure DOM updates first
-      setTimeout(() => {
-        // Update tooltip position
-        setTooltipPosition({ 
-          x: e.clientX + 30,
-          y: Math.max(50, e.clientY - 40)
-        });
-        
-        // Set tooltip content
-        setTooltipContent([{ payload: tooltipData }]);
-        
-        // Make tooltip visible
-        setTooltipVisible(true);
-      }, 0);
-      
-      // Call the original handler if provided
-      if (handleLinkMouseEnter && pathElement instanceof SVGPathElement) {
+      // Call original handler
+      if (handleLinkMouseEnter) {
         handleLinkMouseEnter(e as React.MouseEvent<SVGPathElement>);
       }
+      
+    } catch (error) {
+      console.error('Error in handleLinkHover:', error);
     } finally {
-      // Reset the processing flag after a short delay
-      setTimeout(() => {
-        isProcessingHoverEvent.current = false;
-      }, 100);
+      isProcessingHoverEvent.current = false;
     }
-  }, [handleLinkMouseEnter, nodeMap, showTooltips, interactiveTooltips]);
+  }, [handleLinkMouseEnter, showTooltips, interactiveTooltips, enhancedData]);
   
-  // Direct DOM manipulation for link leave (no state updates)
   const handleLinkLeave = useCallback((e: React.MouseEvent<Element>) => {
     // Prevent event bubbling
     e.preventDefault();
     e.stopPropagation();
     
-    // Exit if not using interactive tooltips
+    // Exit early if tooltips are disabled
     if (!showTooltips || !interactiveTooltips) return;
     
-    const target = e.currentTarget;
-    const pathElement = target.querySelector('path') || target;
+    // Prevent re-entry if already processing an event
+    if (isProcessingHoverEvent.current) return;
+    isProcessingHoverEvent.current = true;
     
-    // Reset the visual styling
-    pathElement.classList.remove('highlighted-link');
-    pathElement.setAttribute('stroke-opacity', '0.4');
-    
-    // Restore the original width from data attribute instead of calculating
-    const originalWidth = pathElement.getAttribute('data-hover-original-width') || 
-                         pathElement.getAttribute('data-original-width') || 
-                         '1';
-    pathElement.setAttribute('stroke-width', originalWidth);
-    
-    // Clean up the temporary attribute 
-    pathElement.removeAttribute('data-hover-original-width');
-    
-    // Clear active element reference
-    activeElementRef.current = { type: 'node', id: null };
-    
-    // Use a timeout to hide the tooltip to avoid flash when moving between elements
-    setTimeout(() => {
-      // Only hide if we're not currently over another link or node
-      if (!activeElementRef.current.id) {
-        setTooltipVisible(false);
+    try {
+      // Get all elements that might be involved
+      const svg = svgRef.current?.querySelector('.recharts-surface');
+      if (!svg) return;
+      
+      // Remove all highlights
+      svg.querySelectorAll('.highlighted-node, .highlighted-link').forEach(el => {
+        el.classList.remove('highlighted-node', 'highlighted-link');
+      });
+      
+      // Call original handler
+      if (handleLinkMouseLeave) {
+        handleLinkMouseLeave(e as React.MouseEvent<SVGPathElement>);
       }
-    }, 200);
-    
-    // Call the original handler
-    if (handleLinkMouseLeave && pathElement instanceof SVGPathElement) {
-      handleLinkMouseLeave(e as React.MouseEvent<SVGPathElement>);
+      
+    } catch (error) {
+      console.error('Error in handleLinkLeave:', error);
+    } finally {
+      isProcessingHoverEvent.current = false;
     }
   }, [handleLinkMouseLeave, showTooltips, interactiveTooltips]);
   
-  // Similar improvements for node hover
   const handleNodeHover = useCallback((e: React.MouseEvent<Element>) => {
     // Prevent event bubbling
     e.preventDefault();
@@ -566,106 +589,98 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       const svg = svgRef.current?.querySelector('.recharts-surface');
       if (!svg) return;
       
-      // Remove any existing highlighted elements
-      svg.querySelectorAll('.highlighted-node').forEach(el => {
-        el.classList.remove('highlighted-node');
-      });
-      
-      // Find the node information
-      const target = e.currentTarget;
-      const nodeElement = target.querySelector('rect') || target;
+      // Get the node element that was hovered
+      const nodeElement = e.currentTarget as SVGElement;
       const nodeId = nodeElement.getAttribute('data-node-id');
       
       if (!nodeId) return;
       
-      // Update the active element reference
-      activeElementRef.current = { type: 'node', id: nodeId };
+      // Find the corresponding node in the data
+      const node = enhancedData?.nodes.find(n => n.name === nodeId);
       
-      // Add highlight class
-      nodeElement.classList.add('highlighted-node');
+      if (!node) return;
       
-      // Apply direct style changes
-      nodeElement.setAttribute('stroke', '#ffffff');
-      nodeElement.setAttribute('stroke-width', '2');
+      // Highlight the node and connected links
+      const connectedLinks = enhancedData?.links.filter(l => 
+        enhancedData.nodes[l.source]?.name === nodeId || 
+        enhancedData.nodes[l.target]?.name === nodeId
+      ) || [];
       
-      // Create tooltip content - ensure this has required data
-      const node = nodeMap[nodeId];
-      if (node) {
-        // Use comprehensive tooltip data
-        const tooltipData = {
-          name: nodeId,
-          value: node.value || 0,
-          originalName: node.name || nodeId,
-          step: node.step,
-          color: node.color
-        };
-        
-        console.log("Setting node tooltip content:", tooltipData);
-        
-        // Update tooltip settings with a small delay to ensure DOM updates first
-        setTimeout(() => {
-          // Update tooltip position
-          setTooltipPosition({ 
-            x: e.clientX + 30,
-            y: Math.max(50, e.clientY - 40)
-          });
-          
-          // Set tooltip content
-          setTooltipContent([{ payload: tooltipData }]);
-          
-          // Make tooltip visible
-          setTooltipVisible(true);
-        }, 0);
-      }
+      // Remove previous highlights
+      svg.querySelectorAll('.highlighted-node, .highlighted-link').forEach(el => {
+        el.classList.remove('highlighted-node', 'highlighted-link');
+      });
+      
+      // Add highlights
+      const nodeElements = svg.querySelectorAll(`[data-node-id="${nodeId}"]`);
+      nodeElements.forEach(el => el.classList.add('highlighted-node'));
+      
+      connectedLinks.forEach(link => {
+        const sourceId = enhancedData.nodes[link.source]?.name;
+        const targetId = enhancedData.nodes[link.target]?.name;
+        const linkElements = svg.querySelectorAll(`[data-source-id="${sourceId}"][data-target-id="${targetId}"]`);
+        linkElements.forEach(el => el.classList.add('highlighted-link'));
+      });
       
       // Call original handler
-      if (handleNodeMouseEnter && nodeElement instanceof SVGRectElement) {
+      if (handleNodeMouseEnter) {
         handleNodeMouseEnter(e as React.MouseEvent<SVGRectElement>);
       }
+      
+    } catch (error) {
+      console.error('Error in handleNodeHover:', error);
     } finally {
-      // Reset the processing flag after a delay
-      setTimeout(() => {
-        isProcessingHoverEvent.current = false;
-      }, 100);
+      isProcessingHoverEvent.current = false;
     }
-  }, [handleNodeMouseEnter, nodeMap, showTooltips, interactiveTooltips]);
+  }, [handleNodeMouseEnter, showTooltips, interactiveTooltips, enhancedData]);
   
-  // Direct DOM manipulation for node leave
   const handleNodeLeave = useCallback((e: React.MouseEvent<Element>) => {
     // Prevent event bubbling
     e.preventDefault();
     e.stopPropagation();
     
-    // Exit if tooltips not enabled
+    // Exit early if tooltips are disabled
     if (!showTooltips || !interactiveTooltips) return;
     
-    const target = e.currentTarget;
-    const nodeElement = target.querySelector('rect') || target;
+    // Prevent re-entry if already processing an event
+    if (isProcessingHoverEvent.current) return;
+    isProcessingHoverEvent.current = true;
     
-    // Reset visual styling
-    nodeElement.classList.remove('highlighted-node');
-    nodeElement.setAttribute('stroke', 'none');
-    nodeElement.setAttribute('stroke-width', '0');
-    
-    // Clear active element reference
-    activeElementRef.current = { type: 'node', id: null };
-    
-    // Hide tooltip with delay
-    setTimeout(() => {
-      // Only hide if we're not currently over another element
-      if (!activeElementRef.current.id) {
-        setTooltipVisible(false);
+    try {
+      // Get all elements that might be involved
+      const svg = svgRef.current?.querySelector('.recharts-surface');
+      if (!svg) return;
+      
+      // Remove all highlights
+      svg.querySelectorAll('.highlighted-node, .highlighted-link').forEach(el => {
+        el.classList.remove('highlighted-node', 'highlighted-link');
+      });
+      
+      // Call original handler
+      if (handleNodeMouseLeave) {
+        handleNodeMouseLeave();
       }
-    }, 200);
-    
-    // Call original handler
-    if (handleNodeMouseLeave) {
-      handleNodeMouseLeave();
+    } catch (error) {
+      console.error('Error in handleNodeLeave:', error);
+    } finally {
+      isProcessingHoverEvent.current = false;
     }
   }, [handleNodeMouseLeave, showTooltips, interactiveTooltips]);
   
   // Create enhanced components with non-state hover handling
-  const EnhancedNode = useCallback((props: any) => {
+  const EnhancedNode = useCallback((props: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    index: number;
+    payload: { 
+      name: string; 
+      displayName?: string; 
+      originalName?: string;
+    };
+    isActive: boolean;
+  }) => {
     // Debug logging for EnhancedNode
     console.log('[DEBUG] EnhancedNode called with props:', {
       index: props.index,
@@ -686,7 +701,23 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
     );
   }, [handleNodeHover, handleNodeLeave]);
   
-  const EnhancedLink = useCallback((props: any) => {
+  const EnhancedLink = useCallback((props: {
+    sourceX: number;
+    targetX: number;
+    sourceY: number;
+    targetY: number;
+    sourceControlX: number;
+    targetControlX: number;
+    linkWidth: number;
+    index: number;
+    payload: { 
+      targetId?: string; 
+      sourceId?: string; 
+      conversionRate?: number; 
+      value?: number;
+    };
+    isActive: boolean;
+  }) => {
     return (
       <g 
         onMouseEnter={handleLinkHover}
@@ -700,10 +731,7 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       </g>
     );
   }, [handleLinkHover, handleLinkLeave]);
-  
-  // Validate the data
-  const validatedData = validateSankeyData(rechartsData);
-  
+
   // Debug logging for validatedData
   console.log('[DEBUG] validatedData:', {
     hasData: !!validatedData,
@@ -714,48 +742,8 @@ export const SankeyVisualization: React.FC<SankeyVisualizationProps> = ({
       displayName: node.displayName
     }))
   });
-  
-  // Calculate layout dimensions
-  const { diagramWidth, nodePadding, nodeWidth, margins } = useDiagramLayout(
-    validatedData?.nodes?.length || 0,
-    dimensions.width
-  );
-  
-  // Prepare data with original names
-  const enhancedData = React.useMemo(() => {
-    if (!validatedData) return null;
-    
-    // Add original names to nodes
-    const nodesWithNames = validatedData.nodes.map(node => {
-      // The node.name contains the node ID (like "step-0"), and node.displayName contains the actual step name
-      // We don't need to look up in nodeMap since the displayName is already set correctly
-      const enhancedNode = {
-        ...node,
-        originalName: node.displayName || node.name || '',
-        displayName: node.displayName || node.name || ''
-      };
-      
-      // Debug logging for each node
-      console.log(`[DEBUG] Enhanced node mapping:`, {
-        nodeName: node.name,
-        nodeDisplayName: node.displayName,
-        enhancedNode: {
-          name: enhancedNode.name,
-          displayName: enhancedNode.displayName,
-          originalName: enhancedNode.originalName
-        }
-      });
-      
-      return enhancedNode;
-    });
-    
-    return {
-      ...validatedData,
-      nodes: nodesWithNames
-    };
-  }, [validatedData, nodeMap]);
-  
-  // Nothing to render if we don't have valid data
+
+  // Early return after all hooks
   if (!enhancedData || !enhancedData.nodes.length || !enhancedData.links.length) {
     return (
       <div className="text-center p-4">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Funnel, FunnelStep} from "@/types/funnel";
+import { Funnel, FunnelStep, Conditions} from "@/types/funnel";
 import { toast } from "sonner";
 import { FunnelApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     }
   };
 
-  const updateStep = (index: number, field: string, value: any) => {
+  const updateStep = (index: number, field: string, value: string | number | boolean) => {
     const updatedSteps = [...funnel.steps];
     updatedSteps[index] = { ...updatedSteps[index], [field]: value };
 
@@ -105,7 +105,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     }
   };
 
-  const updateStepCondition = (stepIndex: number, conditions: any) => {
+  const updateStepCondition = (stepIndex: number, conditions: Conditions) => {
     const updatedSteps = [...funnel.steps];
     updatedSteps[stepIndex].conditions = conditions;
     const updatedFunnel = {
@@ -208,7 +208,7 @@ export default function FunnelForm({ existingFunnel, isEditing = false, onFunnel
     }
   };
 
-  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: any) => {
+  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: string | number) => {
     const updatedSteps = [...funnel.steps];
     const step = updatedSteps[stepIndex];
     

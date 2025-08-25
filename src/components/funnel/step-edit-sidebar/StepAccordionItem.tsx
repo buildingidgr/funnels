@@ -10,13 +10,13 @@ import { SplitListSection } from "./SplitListSection";
 interface StepAccordionItemProps {
   step: FunnelStep;
   stepIndex: number;
-  onUpdateStep: (field: string, value: any) => void;
+  onUpdateStep: (field: string, value: string | number | boolean) => void;
   onUpdateConditions: (conditions: Conditions) => void;
   onAddSplit: () => void;
-  onUpdateSplit: (splitIndex: number, field: string, value: any) => void;
+  onUpdateSplit: (splitIndex: number, field: string, value: string | number) => void;
   onUpdateSplitConditions: (splitIndex: number, conditions: Conditions) => void;
   onRemoveSplit: (splitIndex: number) => void;
-  }
+}
 
 export function StepAccordionItem({
   step,

@@ -194,7 +194,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
   console.log('About to render ResponsiveFunnel with data:', data);
 
   // Custom color scheme for main steps and splits
-  const getColor = (part: any) => {
+  const getColor = (part: { data?: { color?: string; index?: number }; index?: number }) => {
     console.log('getColor called with part:', part);
     
     if (!part || !part.data) {
@@ -216,7 +216,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
   };
 
   // Custom tooltip component
-  const CustomTooltip = ({ part }: { part: any }) => {
+  const CustomTooltip = ({ part }: { part: { data?: { isSplit?: boolean; parentStep?: string; actualValue?: number; value?: number; label?: string; conversionRate?: number; dropoff?: number } } }) => {
     if (!part || !part.data) return null;
 
     const isSplit = part.data.isSplit;
@@ -327,7 +327,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({ ste
   };
 
   // Custom label component
-  const CustomLabel = ({ part }: { part: any }) => {
+  const CustomLabel = ({ part }: { part: { data?: { isSplit?: boolean; label?: string }; x?: number; width?: number; y?: number; height?: number } }) => {
     if (!part || !part.data) return null;
     
     const isSplit = part.data.isSplit;

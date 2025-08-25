@@ -10,7 +10,7 @@ interface StepAccordionListProps {
 }
 
 export function StepAccordionList({ steps, onChange }: StepAccordionListProps) {
-  const updateStep = (index: number, field: string, value: any) => {
+  const updateStep = (index: number, field: string, value: string | number | boolean) => {
     const updatedSteps = [...steps];
     updatedSteps[index] = { ...updatedSteps[index], [field]: value };
     onChange(updatedSteps);
@@ -41,7 +41,7 @@ export function StepAccordionList({ steps, onChange }: StepAccordionListProps) {
     onChange(updatedSteps);
   };
 
-  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: any) => {
+  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: string | number) => {
     const updatedSteps = [...steps];
     const step = updatedSteps[stepIndex];
     

@@ -11,7 +11,20 @@ interface FunnelSankeyVisualizationProps {
 }
 
 interface CustomLinkProps {
-  link: any;
+  link: {
+    sourceX: number;
+    sourceY: number;
+    sourceWidth: number;
+    sourceHeight: number;
+    targetX: number;
+    targetY: number;
+    targetWidth: number;
+    targetHeight: number;
+    value: number;
+    source: { id: string };
+    target: { id: string };
+    color: string;
+  };
   sankeyData: {
     nodes: Array<{
       id: string;
@@ -526,7 +539,7 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
     percentage: '100%'
   });
 
-  const getNodeColor = (node: any) => {
+  const getNodeColor = (node: { id: string }) => {
     const originalId = getOriginalId(node.id);
     
     // Handle special cases first

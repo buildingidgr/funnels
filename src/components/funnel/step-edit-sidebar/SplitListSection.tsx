@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 interface SplitListSectionProps {
   splits: SplitVariation[];
   onAddSplit: () => void;
-  onUpdateSplit: (splitIndex: number, field: string, value: any) => void;
+  onUpdateSplit: (splitIndex: number, field: string, value: string | number) => void;
   onUpdateSplitConditions: (splitIndex: number, conditions: Conditions) => void;
   onRemoveSplit: (splitIndex: number) => void;
 }
@@ -74,7 +74,7 @@ export function SplitListSection({
 interface SplitItemProps {
   split: SplitVariation;
   splitIndex: number;
-  onUpdateSplit: (field: string, value: any) => void;
+  onUpdateSplit: (field: string, value: string | number) => void;
   onUpdateConditions: (conditions: Conditions) => void;
   onRemove: () => void;
 }

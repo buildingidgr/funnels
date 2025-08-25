@@ -48,7 +48,7 @@ export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingC
         }`}
         style={{
           width: isFullscreen ? '100vw' : 'min(900px, 96vw)',
-          ['--panel-width' as any]: isFullscreen ? '100vw' : 'min(900px, 96vw)'
+          ['--panel-width' as string]: isFullscreen ? '100vw' : 'min(900px, 96vw)'
         } as React.CSSProperties}
       >
       <div className="flex flex-col h-full">
@@ -60,22 +60,24 @@ export function SlidingConfigPanel({ isOpen, onClose, funnel, onSave }: SlidingC
               Configure your funnel steps, conditions, and split variations. Changes are saved automatically.
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsFullscreen(v => !v)}
-            className="h-8 w-8 mr-1"
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsFullscreen(v => !v)}
+              className="h-8 w-8"
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}

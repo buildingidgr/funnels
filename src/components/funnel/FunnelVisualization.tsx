@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Funnel } from "@/types/funnel";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
 // Import our visualization components
@@ -102,7 +102,19 @@ export default function FunnelVisualization({ funnel }: FunnelVisualizationProps
               className="w-full justify-between p-0 h-auto font-semibold text-lg text-gray-800 dark:text-gray-200 hover:bg-transparent"
               onClick={() => toggleSection('dropoff')}
             >
-              <span>Drop-off Analysis</span>
+              <div className="flex items-center gap-2">
+                <span>Drop-off Analysis</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-gray-400" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs mb-2">This analysis shows how many users leave at each step of your funnel.</p>
+                    <p className="text-xs">• <strong>Drop-off %</strong>: Percentage of users who left between steps</p>
+                    <p className="text-xs">• <strong>Users</strong>: Actual number of users who reached each step</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               {expandedSections.dropoff ? (
                 <ChevronDown className="h-5 w-5" />
               ) : (

@@ -35,7 +35,7 @@ export interface FilterClause {
   sourceType: 'userAttribute' | 'eventProperty' | 'utmParameter';
   propertyName: string;
   operator: string;
-  value: any;
+  value: string | number | boolean | readonly string[];
 }
 
 export interface EventConditionDefinition {

@@ -32,7 +32,7 @@ const FunnelStepListEditor: React.FC<FunnelStepListEditorProps> = ({ steps, onSt
     onStepsChange(newSteps);
   };
 
-  const updateStep = (index: number, field: keyof FunnelStep, value: any) => {
+  const updateStep = (index: number, field: keyof FunnelStep, value: string | number | boolean) => {
     const updatedSteps = [...steps];
     updatedSteps[index] = { ...updatedSteps[index], [field]: value };
     onStepsChange(updatedSteps);

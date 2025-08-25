@@ -38,7 +38,7 @@ export function StepConditionBuilder({ conditions, onChange, stepName }: StepCon
     });
   };
 
-  const updateCondition = (index: number, field: keyof ConditionItem, value: any) => {
+  const updateCondition = (index: number, field: keyof ConditionItem, value: string | number) => {
     const newOrEvents = [...conditions.orEventGroups];
     newOrEvents[index] = { ...newOrEvents[index], [field]: value };
     onChange({
@@ -82,7 +82,7 @@ export function StepConditionBuilder({ conditions, onChange, stepName }: StepCon
     });
   };
 
-  const updateProperty = (conditionIndex: number, propertyIndex: number, field: keyof EventProperty, value: any) => {
+  const updateProperty = (conditionIndex: number, propertyIndex: number, field: keyof EventProperty, value: string | number | boolean | readonly string[]) => {
     const newOrEvents = [...conditions.orEventGroups];
     const properties = [...(newOrEvents[conditionIndex].properties || [])];
     properties[propertyIndex] = { ...properties[propertyIndex], [field]: value };

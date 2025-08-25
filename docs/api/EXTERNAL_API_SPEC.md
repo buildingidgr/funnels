@@ -6,16 +6,192 @@ Authentication is handled by a separate internal service and is out of scope for
 
 ## Overview
 
-The frontend needs two capabilities:
+The frontend needs the following capabilities:
 
-1. Calculate funnel results based on a funnel definition and timeframe
-2. Fetch the catalog of available events used to configure funnel steps (including their properties and types)
+1. **Funnel Management**: CRUD operations for funnel definitions
+2. **Funnel Calculation**: Calculate funnel results based on a funnel definition and timeframe
+3. **Events Catalog**: Fetch the catalog of available events used to configure funnel steps
+4. **Enhanced Analytics**: Access to step metrics, insights, and visualization data
 
 All timestamps are epoch milliseconds unless stated otherwise.
 
+## API Base URL
+
+```
+Production: https://connect.waymore.io/api/v1
+Staging: https://staging-api.waymore.io/api/v1
+```
+
+## Authentication
+
+All API requests require authentication using an API key:
+
+```
+Authorization: Bearer <your-api-key>
+Content-Type: application/json
+```
+
 ---
 
-## 1) Calculate Funnel Results
+## 1) Funnel Management
+
+### List Funnels
+- Method: `GET`
+- Path: `/funnels`
+- Description: Returns a list of all funnels with summary information
+
+**Query Parameters**:
+- `limit` (optional): Number of funnels to return (default: 50, max: 100)
+- `offset` (optional): Number of funnels to skip (default: 0)
+- `sortBy` (optional): Field to sort by (`name`, `createdAt`, `updatedAt`, `lastCalculatedAt`)
+- `sortOrder` (optional): Sort order (`asc` or `desc`, default: `desc`)
+
+**Response 200**:
+```json
+{
+  "funnels": [
+    {
+      "id": "ecommerce-funnel-001",
+      "name": "E-commerce Conversion Funnel",
+      "description": "Tracks users from discovery to purchase",
+      "createdAt": "2024-07-01T00:00:00.000Z",
+      "updatedAt": "2024-08-01T00:00:00.000Z",
+      "lastCalculatedAt": "2024-08-01T12:34:56.000Z",
+      "performance": {
+        "totalVisitors": 25000,
+        "conversionRate": 7.56,
+        "steps": [
+          {
+            "id": "step-1-product-visit",
+            "name": "Product Page Visit",
+            "visitorCount": 25000,
+            "conversionRate": 100.0
+          }
+        ]
+      }
+    }
+  ],
+  "pagination": {
+    "total": 7,
+    "limit": 50,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
+### Get Funnel by ID
+- Method: `GET`
+- Path: `/funnels/{funnelId}`
+- Description: Returns the complete funnel definition
+
+**Response 200**:
+```json
+{
+  "id": "ecommerce-funnel-001",
+  "name": "E-commerce Conversion Funnel",
+  "description": "Tracks users from discovery to purchase",
+  "createdAt": "2024-07-01T00:00:00.000Z",
+  "updatedAt": "2024-08-01T00:00:00.000Z",
+  "lastCalculatedAt": "2024-08-01T12:34:56.000Z",
+  "timeframe": { "from": 1719878400000, "to": 1722470400000 },
+  "performedBy": "all_contacts",
+  "steps": [
+    {
+      "id": "step-1-product-visit",
+      "name": "Product Page Visit",
+      "description": "Users who visit product pages",
+      "displayColor": "#4A90E2",
+      "order": 1,
+      "isEnabled": true,
+      "isRequired": true,
+      "conditions": {
+        "orEventGroups": [
+          {
+            "eventName": "page_view",
+            "operator": "equals",
+            "count": 1,
+            "properties": [
+              { "name": "page_type", "operator": "equals", "value": "product", "type": "string" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Create Funnel
+- Method: `POST`
+- Path: `/funnels`
+- Description: Creates a new funnel
+
+**Request Body**:
+```json
+{
+  "name": "New E-commerce Funnel",
+  "description": "Tracks users from discovery to purchase",
+  "timeframe": { "from": 1719878400000, "to": 1722470400000 },
+  "performedBy": "all_contacts",
+  "steps": [
+    {
+      "id": "step-1-product-visit",
+      "name": "Product Page Visit",
+      "order": 1,
+      "isEnabled": true,
+      "isRequired": true,
+      "conditions": {
+        "orEventGroups": [
+          {
+            "eventName": "page_view",
+            "operator": "equals",
+            "count": 1,
+            "properties": [
+              { "name": "page_type", "operator": "equals", "value": "product", "type": "string" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+**Response 201**:
+```json
+{
+  "id": "new-funnel-123",
+  "name": "New E-commerce Funnel",
+  "description": "Tracks users from discovery to purchase",
+  "createdAt": "2024-08-01T12:34:56.000Z",
+  "updatedAt": "2024-08-01T12:34:56.000Z",
+  "lastCalculatedAt": null,
+  "timeframe": { "from": 1719878400000, "to": 1722470400000 },
+  "performedBy": "all_contacts",
+  "steps": [...]
+}
+```
+
+### Update Funnel
+- Method: `PUT`
+- Path: `/funnels/{funnelId}`
+- Description: Updates an existing funnel
+
+**Request Body**: Same as Create Funnel (all fields required)
+
+**Response 200**: Same as Get Funnel by ID
+
+### Delete Funnel
+- Method: `DELETE`
+- Path: `/funnels/{funnelId}`
+- Description: Deletes a funnel
+
+**Response 204**: No content
+
+---
+
+## 2) Calculate Funnel Results
 
 ### Endpoints
 
@@ -182,6 +358,66 @@ Both variants accept the same calculation options and return the same response s
 }
 ```
 
+### Common Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `UNAUTHORIZED` | 401 | Invalid or missing API key |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `NOT_FOUND` | 404 | Funnel not found |
+| `INVALID_FUNNEL_DATA` | 400 | Invalid funnel configuration |
+| `CALCULATION_FAILED` | 500 | Funnel calculation failed |
+| `RATE_LIMITED` | 429 | Rate limit exceeded |
+| `VALIDATION_ERROR` | 400 | Request validation failed |
+| `INTERNAL_ERROR` | 500 | Internal server error |
+
+### Rate Limiting
+
+- **Standard Plan**: 100 requests per minute
+- **Professional Plan**: 1000 requests per minute
+- **Enterprise Plan**: 10000 requests per minute
+
+Rate limit headers are included in responses:
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
+### Pagination and Filtering
+
+All list endpoints support pagination and filtering:
+
+**Pagination Parameters**:
+- `limit`: Number of items per page (default: 50, max: 100)
+- `offset`: Number of items to skip (default: 0)
+
+**Sorting Parameters**:
+- `sortBy`: Field to sort by
+- `sortOrder`: Sort direction (`asc` or `desc`)
+
+**Filtering Parameters**:
+- `search`: Search in name and description
+- `createdAfter`: Filter by creation date
+- `createdBefore`: Filter by creation date
+- `lastCalculatedAfter`: Filter by last calculation date
+- `lastCalculatedBefore`: Filter by last calculation date
+
+**Response Format**:
+```json
+{
+  "data": [...],
+  "pagination": {
+    "total": 150,
+    "limit": 50,
+    "offset": 0,
+    "hasMore": true,
+    "totalPages": 3,
+    "currentPage": 1
+  }
+}
+```
+
 ### Field Definitions
 
 - FunnelCalculationRequest
@@ -208,7 +444,160 @@ Both variants accept the same calculation options and return the same response s
 
 ---
 
-## 2) Fetch Events Catalog (for Step Configuration)
+## 3) Enhanced Analytics
+
+### Get Step Metrics
+- Method: `GET`
+- Path: `/funnels/{funnelId}/metrics`
+- Description: Returns step-by-step metrics for a funnel
+
+**Query Parameters**:
+- `timeframe` (optional): Override funnel timeframe
+- `includeSplitVariations` (optional): Include split variation metrics (default: true)
+
+**Response 200**:
+```json
+{
+  "stepMetrics": [
+    {
+      "id": "step-1-product-visit",
+      "name": "Product Page Visit",
+      "visitorCount": 25000,
+      "conversionRate": 100.0,
+      "dropOffRate": 0.0,
+      "dropOffCount": 0,
+      "previousStepValue": 25000,
+      "isOptional": false,
+      "isSplit": false
+    },
+    {
+      "id": "step-2-product-interaction",
+      "name": "Product Interaction",
+      "visitorCount": 18750,
+      "conversionRate": 75.0,
+      "dropOffRate": 25.0,
+      "dropOffCount": 6250,
+      "previousStepValue": 25000,
+      "isOptional": false,
+      "isSplit": false
+    }
+  ]
+}
+```
+
+### Get Funnel Insights
+- Method: `GET`
+- Path: `/funnels/{funnelId}/insights`
+- Description: Returns business insights and recommendations
+
+**Query Parameters**:
+- `timeframe` (optional): Override funnel timeframe
+
+**Response 200**:
+```json
+{
+  "insights": {
+    "overallConversionRate": 7.56,
+    "totalDropOff": 23110,
+    "highestDropOffStep": {
+      "id": "step-3-add-to-cart",
+      "name": "Add to Cart",
+      "visitorCount": 5625,
+      "conversionRate": 30.0,
+      "dropOffRate": 70.0,
+      "dropOffCount": 13125,
+      "previousStepValue": 18750,
+      "isOptional": false
+    },
+    "bestConvertingStep": {
+      "id": "step-1-product-visit",
+      "name": "Product Page Visit",
+      "visitorCount": 25000,
+      "conversionRate": 100.0,
+      "dropOffRate": 0.0,
+      "dropOffCount": 0,
+      "previousStepValue": 25000,
+      "isOptional": false
+    },
+    "potentialRevenueLost": 82500,
+    "improvementOpportunity": 70.0,
+    "funnelType": "ecommerce",
+    "recommendations": [
+      "Focus on improving Add to Cart - currently has 70.0% drop-off",
+      "Optimize product interaction to increase engagement",
+      "Consider A/B testing different add-to-cart button placements"
+    ]
+  }
+}
+```
+
+### Get Sankey Data
+- Method: `GET`
+- Path: `/funnels/{funnelId}/sankey`
+- Description: Returns Sankey diagram data for visualization
+
+**Query Parameters**:
+- `timeframe` (optional): Override funnel timeframe
+- `includeSplitVariations` (optional): Include split variations (default: true)
+
+**Response 200**:
+```json
+{
+  "sankeyData": {
+    "nodes": [
+      { "id": "start", "name": "Start", "value": 25000 },
+      { "id": "step-step-1-product-visit", "name": "Product Page Visit", "value": 25000, "isOptional": false },
+      { "id": "step-step-2-product-interaction", "name": "Product Interaction", "value": 18750, "isOptional": false },
+      { "id": "step-step-3-add-to-cart", "name": "Add to Cart", "value": 5625, "isOptional": false }
+    ],
+    "links": [
+      { "source": "start", "target": "step-step-1-product-visit", "value": 25000 },
+      { "source": "step-step-1-product-visit", "target": "step-step-2-product-interaction", "value": 18750 },
+      { "source": "step-step-2-product-interaction", "target": "step-step-3-add-to-cart", "value": 5625 }
+    ]
+  }
+}
+```
+
+### Get Split Variation Metrics
+- Method: `GET`
+- Path: `/funnels/{funnelId}/variations`
+- Description: Returns split variation metrics for A/B testing
+
+**Query Parameters**:
+- `timeframe` (optional): Override funnel timeframe
+
+**Response 200**:
+```json
+{
+  "splitVariationMetrics": [
+    {
+      "id": "step-3-variation-1",
+      "name": "Quick Add (Mobile)",
+      "visitorCount": 3375,
+      "conversionRate": 30.0,
+      "dropOffRate": 70.0,
+      "dropOffCount": 7875,
+      "parentStepId": "step-3-add-to-cart",
+      "proportionOfParent": 60.0
+    },
+    {
+      "id": "step-3-variation-2",
+      "name": "Standard Add (Desktop)",
+      "visitorCount": 2250,
+      "conversionRate": 30.0,
+      "dropOffRate": 70.0,
+      "dropOffCount": 5250,
+      "parentStepId": "step-3-add-to-cart",
+      "proportionOfParent": 40.0
+    }
+  ]
+}
+```
+
+---
+
+## 4) Fetch Events Catalog (for Step Configuration)
 
 ### Endpoint
 
@@ -397,14 +786,45 @@ interface FunnelCalculationResponse {
 
 ---
 
-## Versioning
+## API Versioning
 
-- Initial version: 1.0.0
-- Breaking changes will increment the major version and be documented here.
+### Version Header
+All API requests should include the API version header:
+```
+Accept: application/vnd.waymore.v1+json
+```
+
+### Versioning Strategy
+- **Major Version**: Breaking changes (e.g., v1 → v2)
+- **Minor Version**: New features, backward compatible
+- **Patch Version**: Bug fixes, backward compatible
+
+### Current Version
+- **API Version**: v1.0.0
+- **Status**: Stable
+- **Deprecation Policy**: 12 months notice for breaking changes
+
+### Deprecation Timeline
+- **v1.0.0**: Current stable version
+- **v1.1.0**: Planned features (Q2 2024)
+- **v2.0.0**: Breaking changes (Q4 2024, with 12 months notice)
+
+### Migration Guide
+When new versions are released, migration guides will be provided with:
+- Detailed change logs
+- Code examples for migration
+- Backward compatibility information
+- Testing strategies
 
 ## Contact
 
 Please coordinate with the internal team for authentication and environment/base URL details. This spec focuses only on request/response contracts.
+
+### Support
+- **Technical Support**: api-support@waymore.io
+- **Documentation**: https://docs.waymore.io/api
+- **Status Page**: https://status.waymore.io
+- **Developer Community**: https://community.waymore.io
 
 ---
 

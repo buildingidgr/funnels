@@ -106,8 +106,10 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
       el.style.top = `${adjY}px`;
       try {
         // eslint-disable-next-line no-console
-      console.log('[DEBUG][Tooltip] raf reclamp', { tW, tH, adjX, adjY, overflowRight, overflowBottom, overflowLeft, overflowTop, padTop, padRight, padBottom, padLeft });
-      } catch {}
+        console.log('[DEBUG][Tooltip] raf reclamp', { tW, tH, adjX, adjY, overflowRight, overflowBottom, overflowLeft, overflowTop, padTop, padRight, padBottom, padLeft });
+      } catch (error) {
+        // Silently handle any console logging errors
+      }
     });
 
     try {
@@ -123,7 +125,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = (props) => {
         clippedBottom: nextY + tooltipHeight + padBottom + padding > containerHeight,
         padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft }
       });
-    } catch {}
+    } catch (error) {
+      // Silently handle any console logging errors
+    }
 
     // Control visibility based on active state
     if (active && payload && payload.length > 0) {

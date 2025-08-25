@@ -55,7 +55,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
     }
   };
 
-  const updateStepConditions = (stepIndex: number, newConditions: any) => {
+  const updateStepConditions = (stepIndex: number, newConditions: Conditions) => {
     const updatedSteps = [...editedFunnel.steps];
     updatedSteps[stepIndex] = { ...updatedSteps[stepIndex], conditions: newConditions };
     setEditedFunnel(f => ({ ...f, steps: updatedSteps }));
@@ -80,7 +80,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
     setEditedFunnel(f => ({ ...f, steps: updatedSteps }));
   };
 
-  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: any) => {
+  const updateSplit = (stepIndex: number, splitIndex: number, field: string, value: string | number) => {
     const updatedSteps = [...editedFunnel.steps];
     const step = updatedSteps[stepIndex];
     
@@ -372,7 +372,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
                             onClick={() => toggleConditions(index)}
                             className="h-6 text-xs"
                           >
-                            {expandedConditions[index] ? 'Hide' : 'Edit'}
+                            {expandedConditions[index] ? 'Hide' : 'Configure'}
                           </Button>
                         </div>
                         
@@ -405,7 +405,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
                               onClick={() => toggleSplits(index)}
                               className="h-6 text-xs"
                             >
-                              {expandedSplits[index] ? 'Hide' : 'Edit'}
+                              {expandedSplits[index] ? 'Hide' : 'Configure'}
                             </Button>
                             <Button
                               variant="outline"
@@ -478,7 +478,7 @@ export const FunnelConfigEditor: React.FC<FunnelConfigEditorProps> = ({ funnel, 
 interface SplitItemProps {
   split: SplitVariation;
   splitIndex: number;
-  onUpdateSplit: (field: string, value: any) => void;
+  onUpdateSplit: (field: string, value: string | number) => void;
   onUpdateConditions: (conditions: Conditions) => void;
   onRemove: () => void;
 }

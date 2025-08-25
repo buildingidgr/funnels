@@ -49,10 +49,12 @@ export const SankeyTooltip: React.FC<NodeTooltipProps> = ({
   initialValue,
   funnelId
 }) => {
-  if (!payload || !payload.length) return null;
+  // Move hooks to the top before any conditional returns
   const navigate = useNavigate();
   const params = useParams();
   const resolvedFunnelId = funnelId || params.id || "";
+
+  if (!payload || !payload.length) return null;
   
   const data = payload[0].payload;
   if (!data) return null;

@@ -93,7 +93,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     // Debug logging for rechartsData nodes
     console.log('[DEBUG] rechartsData.nodes:', rechartsData.nodes.map(node => ({
       name: node.name,
-      displayName: (node as any).displayName,
+      displayName: (node as { displayName?: string }).displayName,
       value: node.value
     })));
     
@@ -105,8 +105,8 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       // The node.name is actually the ID (like 'step-0', 'step-1', etc.)
       nodeIdToIndex[node.name] = index;
       // Also map by the node's display name if it exists
-      if ((node as any).displayName && (node as any).displayName !== node.name) {
-        nodeIdToIndex[(node as any).displayName] = index;
+      if ((node as { displayName?: string }).displayName && (node as { displayName?: string }).displayName !== node.name) {
+        nodeIdToIndex[(node as { displayName?: string }).displayName!] = index;
       }
     });
 
@@ -117,7 +117,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       nodes: rechartsData.nodes.map((node, index) => ({
         index,
         name: node.name,
-        displayName: (node as any).displayName,
+        displayName: (node as { displayName?: string }).displayName,
         value: node.value
       }))
     });
@@ -130,7 +130,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
       index: index,
       id: node.name,
       conversionRate: 0,
-      displayName: (node as any).displayName || node.name // Add displayName property
+      displayName: (node as { displayName?: string }).displayName || node.name // Add displayName property
     }));
 
     const transformedLinks = rechartsData.links.map(link => {
@@ -180,7 +180,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
         value: link.value || 0,
         sourceId: link.sourceId || '',
         targetId: link.targetId || '',
-        conversionRate: (link as any).conversionRate || 0,
+        conversionRate: (link as { conversionRate?: number }).conversionRate || 0,
         sourceValue: sourceValue,
         color: '#3b82f6'
       };
@@ -282,7 +282,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
     setActiveNode(null);
   };
 
-  const handleLinkMouseEnter = (link: any) => {
+  const handleLinkMouseEnter = (link: { sourceId?: string; targetId?: string; value?: number }) => {
     if (!showTooltips) return;
     console.log("[DEBUG] Link hover:", link);
   };
@@ -411,7 +411,7 @@ const FunnelGraphVisualization: React.FC<FunnelGraphVisualizationProps> = ({
           handleLinkMouseLeave={handleLinkMouseLeave}
           showTooltips={showTooltips}
           interactiveTooltips={interactiveTooltips}
-          funnelId={enabledSteps?.[0]?.funnelId || (steps as any)?.[0]?.funnelId}
+          funnelId={enabledSteps?.[0]?.id || (steps as { id?: string })?.[0]?.id}
         />
       </div>
       

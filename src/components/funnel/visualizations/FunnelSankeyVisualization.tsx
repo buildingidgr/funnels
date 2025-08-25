@@ -169,10 +169,10 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
   
   const NodeTooltipComponent: React.FC<{ node: SankeyNodeDatum<SankeyInputNode, SankeyInputLink> }> = ({ node }) => {
     let details = <></>;
-    const isSplit = (node as any).isSplit;
-    const parentId = (node as any).parentId;
-    const isOptional = (node as any).isOptional;
-    const nodeName = (node as any).name || node.id;
+    const isSplit = (node as { isSplit?: boolean }).isSplit;
+    const parentId = (node as { parentId?: string }).parentId;
+    const isOptional = (node as { isOptional?: boolean }).isOptional;
+    const nodeName = (node as { name?: string }).name || node.id;
 
     if (node.id === 'start' || node.id === 'end') {
       details = (
@@ -250,8 +250,8 @@ const FunnelSankeyVisualization: React.FC<FunnelSankeyVisualizationProps> = ({ s
       ? ((link.value / sourceNodeValue) * 100).toFixed(1) 
       : '0.0';
     
-    const sourceName = (link.source as any).name || link.source.id;
-    const targetName = (link.target as any).name || link.target.id;
+    const sourceName = (link.source as { name?: string }).name || link.source.id;
+    const targetName = (link.target as { name?: string }).name || link.target.id;
     
     return (
       <div className="bg-white shadow-lg rounded-lg p-4 min-w-[250px] border border-gray-200">
