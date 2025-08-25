@@ -1,4 +1,4 @@
-# Waymore Funnel Explorer
+# Waymore Funnela
 
 A comprehensive web application for analyzing user conversion funnels with advanced analytics, split testing capabilities, and multiple visualization types.
 
